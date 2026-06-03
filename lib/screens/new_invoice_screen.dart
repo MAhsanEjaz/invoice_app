@@ -1,13 +1,17 @@
-import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
+import 'package:invoicemaker/pdf/pdf_service.dart';
+import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
+import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
+import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/client_model.dart';
@@ -18,322 +22,121 @@ import 'client_view_screen.dart';
 import 'items_screen.dart';
 
 class NewInvoiceScreen extends StatefulWidget {
-  InvoiceModel? invoice;
+  final InvoiceModel? invoice;
+  final int? invoiceId;
 
-  int? invoiceId;
-
-  NewInvoiceScreen({this.invoiceId, this.invoice});
+  const NewInvoiceScreen({super.key, this.invoiceId, this.invoice});
 
   @override
   State<NewInvoiceScreen> createState() => _NewInvoiceScreenState();
 }
 
 class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
-  getInvoiceData() {
-    final invoiceProvider = Provider.of<InvoiceProvider>(
-      context,
-      listen: false,
-    );
-    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
-
-    if (widget.invoice != null) {
-      // set date and last invoice ID
-      selectDate = widget.invoice!.date;
-      invoiceProvider.lastId = widget.invoice!.invoiceId!;
-      print('lastId---->${widget.invoice!.invoiceId!}');
-      // add clients to client provider
-      for (var client in widget.invoice!.clients!) {
-        clientProvider.selectClient(
-          client.name,
-          client.address,
-          client.phone,
-          client.email,
-          client.id,
-        );
-      }
-
-      // add items to item provider or local list
-
-      final invoiceId = widget.invoice!.invoiceId;
-
-      // Find the invoice in the provider that matches this ID
-      final targetInvoice = invoiceProvider.invoice.firstWhere(
-        (inv) => inv.invoiceId == invoiceId,
-      );
-
-      if (targetInvoice != null) {
-        for (var itemsX in widget.invoice!.items!) {
-          // Check if item already exists in the target invoice
-          final exists =
-              targetInvoice.items?.any((item) => item.id == itemsX.id) ?? false;
-
-          if (!exists) {
-            targetInvoice.items ??= []; // Initialize if null
-            targetInvoice.items!.add(
-              ItemModel(
-                id: itemsX.id,
-                price: itemsX.price,
-                qty: itemsX.qty,
-                note: itemsX.note,
-                itemName: itemsX.itemName,
-                duplicate: false,
-              ),
-            );
-          }
-        }
-      }
-    }
-  }
-
-  int invoiceId = 0;
-
   String? selectDate;
+  final TextEditingController _notesCtrl = TextEditingController();
+
+  bool get _isEditMode => widget.invoice != null;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((e) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       selectDate = customDateFormat(DateTime.now().toString());
-      getInvoiceData();
+      _loadInvoiceData();
+      setState(() {});
     });
+  }
+
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  void _loadInvoiceData() {
+    if (!_isEditMode) return;
+
+    final invoiceProvider = Provider.of<InvoiceProvider>(context, listen: false);
+    final clientProvider = Provider.of<ClientProvider>(context, listen: false);
+    final inv = widget.invoice!;
+
+    selectDate = inv.date;
+    invoiceProvider.lastId = inv.invoiceId!;
+    _notesCtrl.text = inv.notes ?? '';
+
+    // Load client into working provider so cards display correctly
+    for (final client in inv.clients ?? []) {
+      clientProvider.selectClient(
+        client.name,
+        client.address,
+        client.phone,
+        client.email,
+        client.id,
+      );
+    }
+
+    // Ensure no duplicate items are injected into the live invoice list
+    final targetInvoice = invoiceProvider.invoice.firstWhere(
+      (i) => i.invoiceId == inv.invoiceId,
+      orElse: () => inv,
+    );
+    for (final itemX in inv.items ?? []) {
+      final exists =
+          targetInvoice.items?.any((item) => item.id == itemX.id) ?? false;
+      if (!exists) {
+        targetInvoice.items ??= [];
+        targetInvoice.items!.add(ItemModel(
+          id: itemX.id,
+          price: itemX.price,
+          qty: itemX.qty,
+          note: itemX.note,
+          itemName: itemX.itemName,
+          duplicate: false,
+        ));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer3<ClientProvider, ItemProvider, InvoiceProvider>(
       builder: (context, client, item, invoice, _) {
-        print('clients-->${jsonEncode(client.client)}');
-
         return CupertinoPageScaffold(
-          backgroundColor: scaffoldColor,
+          backgroundColor: kBackground,
           child: Column(
             children: [
-              customHeight(context, .01),
-              CupertinoNavigationBar(
-                leading: closeButton(context, () {
-                  client.clearClientFromList();
-
-                  item.item.clear();
-                  selectDate = null;
-
-                  invoice.invoice.forEach((element) {
-                    invoice.lastId = element.invoiceId!;
-                  });
-                  setState(() {});
-                }),
-                middle:
-                    item.item.isNotEmpty || widget.invoice != null
-                        ? Text(
-                          widget.invoice != null
-                              ? 'Update Invoice'
-                              : 'New Invoice',
-                        )
-                        : SizedBox(),
-              ),
-              customHeight(context, .01),
+              _buildNavBar(context, client, item, invoice),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (item.item.isNotEmpty || widget.invoice != null)
-                          SizedBox()
-                        else
-                          Center(
-                            child: Text(
-                              'New Invoice',
-                              style: TextStyle(
-                                fontSize: responseText(context, .06),
-                                fontWeight: FontWeight.bold,
-                                color: buttonColor,
-                              ),
-                            ),
-                          ),
-
-                        if (item.item.isNotEmpty || widget.invoice != null) ...[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      final date = await customDatePicker(
-                                        context,
-                                      );
-
-                                      if (date != null) {
-                                        print('data-->${date}');
-
-                                        selectDate = customDateFormat(
-                                          date.toString(),
-                                        );
-                                      }
-
-                                      setState(() {});
-                                    },
-                                    child: headerWidget(
-                                      Icons.calendar_month,
-                                      selectDate ??
-                                          '${customDateFormat(DateTime.now().toString())}',
-                                    ),
-                                  ),
-                                ),
-
-                                SizedBox(width: 10),
-
-                                Expanded(
-                                  child: headerWidget(
-                                    CupertinoIcons.doc,
-                                    '${widget.invoice != null ? invoice.lastId : invoice.lastId + 1}',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        customHeight(context, .02),
-                        clientCard(client, invoice),
-                        customHeight(context, .01),
-                        itemCard(item, invoice),
-                        customHeight(context, .02),
-                        totalPriceCard(item),
-                      ],
-                    ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (item.item.isEmpty && !_isEditMode)
+                        _buildPageTitle()
+                      else
+                        _buildMetaRow(invoice),
+                      const SizedBox(height: 20),
+                      sectionLabel('Client'),
+                      _clientCard(client, invoice),
+                      const SizedBox(height: 20),
+                      sectionLabel('Line Items'),
+                      _itemCard(item, invoice),
+                      const SizedBox(height: 20),
+                      if (item.item.isNotEmpty || _isEditMode) _totalCard(item),
+                      const SizedBox(height: 20),
+                      sectionLabel('Notes'),
+                      _notesCard(),
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
               ),
-
-              if (client.name != null && item.item.isNotEmpty ||
-                  widget.invoice != null)
-                Container(
-                  decoration: BoxDecoration(color: Colors.white),
-                  child: Padding(
-                    padding: const EdgeInsets.all(13.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 50,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blueGrey.shade100,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                              ),
-                              onPressed: () {},
-                              icon: Icon(
-                                CupertinoIcons.eye,
-                                color: Colors.black,
-                              ),
-                              label: Text(
-                                'Preview',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 10),
-
-                        Expanded(
-                          child: SizedBox(
-                            height: 50,
-
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: buttonColor,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                              ),
-                              onPressed:
-                                  widget.invoice != null
-                                      ? () {}
-                                      : () async {
-                                        print('duplicate-->${duplicate}');
-
-                                        await invoice.addInvoice(
-                                          InvoiceModel(
-                                            invoiceStatus: 'UnPaid',
-                                            businessName: 'Kaka Business',
-                                            date: selectDate,
-                                            invoiceId: invoice.lastId,
-                                            items:
-                                                item.item
-                                                    .map(
-                                                      (e) => ItemModel(
-                                                        itemName: e.itemName,
-                                                        note: e.note,
-                                                        price: e.price,
-                                                        qty: e.qty,
-                                                        id: e.id,
-                                                        duplicate: e.duplicate
-                                                      ),
-                                                    )
-                                                    .toList(),
-                                            clients:
-                                                client.client
-                                                    .map(
-                                                      (e) => ClientModel(
-                                                        name: e.name,
-                                                        phone: e.phone,
-                                                        email: e.email,
-                                                        address: e.address,
-                                                        id: e.id,
-                                                        duplicate: duplicate,
-                                                      ),
-                                                    )
-                                                    .toList(),
-                                          ),
-                                        );
-
-                                        item.item.clear();
-                                        client.client.clear();
-                                        client.clearClientFromList();
-
-                                        // Access the latest added invoice based on lastId
-                                        final latestInvoice = invoice.invoice
-                                            .firstWhere(
-                                              (element) =>
-                                                  element.invoiceId ==
-                                                  invoice.lastId,
-                                            );
-
-                                        // Navigate with the corresponding client and item models
-                                        Navigation.go(
-                                          context,
-                                          VerificationInvoice(
-                                            clientModel:
-                                                latestInvoice.clients!.first,
-                                            itemModel:
-                                                latestInvoice.items!.first,
-                                            invoiceModel: latestInvoice,
-                                          ),
-                                        );
-                                      },
-                              label: Text(
-                                widget.invoice != null
-                                    ? 'Update Invoice'
-                                    : 'Create Invoice',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              if ((client.name != null && item.item.isNotEmpty) || _isEditMode)
+                _buildBottomBar(context, client, item, invoice),
             ],
           ),
         );
@@ -341,24 +144,128 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
-  Widget clientCard(ClientProvider? client, InvoiceProvider invoice) {
+  // ── Nav bar ────────────────────────────────────────────────────────────────
+  Widget _buildNavBar(
+    BuildContext context,
+    ClientProvider client,
+    ItemProvider item,
+    InvoiceProvider invoice,
+  ) {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            closeButton(context, () {
+              client.clearClientFromList();
+              item.item.clear();
+              selectDate = null;
+              for (final e in invoice.invoice) {
+                invoice.lastId = e.invoiceId!;
+              }
+              setState(() {});
+            }),
+            const Spacer(),
+            if (item.item.isNotEmpty || _isEditMode)
+              Text(
+                _isEditMode ? 'Edit Invoice' : 'New Invoice',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: kTextPrimary,
+                ),
+              ),
+            const Spacer(),
+            const SizedBox(width: 34),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Page title (shown only on empty new-invoice state) ─────────────────────
+  Widget _buildPageTitle() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(
+        'New Invoice',
+        style: GoogleFonts.poppins(
+          fontSize: 26,
+          fontWeight: FontWeight.w700,
+          color: kTextPrimary,
+        ),
+      ),
+    );
+  }
+
+  // ── Date + invoice-number chips ────────────────────────────────────────────
+  Widget _buildMetaRow(InvoiceProvider invoice) {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () async {
+              final date = await customDatePicker(context);
+              if (date != null) {
+                selectDate = customDateFormat(date.toString());
+                setState(() {});
+              }
+            },
+            child: _metaChip(
+              CupertinoIcons.calendar,
+              selectDate ?? customDateFormat(DateTime.now().toString()),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _metaChip(
+            CupertinoIcons.doc_text,
+            'Invoice #${_isEditMode ? invoice.lastId : invoice.lastId + 1}',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _metaChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: kCardDecorationFlat,
+      child: Row(
         children: [
-          Text('Client', style: TextStyle(color: Colors.black54)),
+          Icon(icon, size: 16, color: kPrimary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: kTextPrimary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-          customHeight(context, .02),
-
-          GestureDetector(
-            onTap:
-                client!.name != null
-                    ? () {
-                      widget.invoice != null
-                          ? null
-                          : Navigation.go(
+  // ── Client card ────────────────────────────────────────────────────────────
+  Widget _clientCard(ClientProvider client, InvoiceProvider invoice) {
+    return Container(
+      decoration: kCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: client.name != null
+              ? GestureDetector(
+                  onTap: _isEditMode
+                      ? null
+                      : () => Navigation.go(
                             context,
                             AddClientScreen(
                               client: client.client,
@@ -370,374 +277,233 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                               invoice: invoice.invoice,
                               isPredefined: true,
                             ),
-                          );
-
-                      print('clientId-->>${client.lastId}');
-                    }
-                    : null,
-
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 17,
-                        horizontal: 5,
-                      ),
-                      child:
-                          client!.name != null
-                              ? SizedBox(
-                                width: double.infinity,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    Icon(
-                                      CupertinoIcons.person,
-                                      size: 21,
-                                      color: buttonColor,
-                                    ),
-                                    SizedBox(width: 15),
-                                    Text(
-                                      client.name.toString(),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                              : SizedBox(
-                                height: 40,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    if (invoice.invoice.isNotEmpty) {
-                                      Navigation.go(
-                                        context,
-                                        ClientViewScreen(),
-                                      );
-                                    } else {
-                                      Navigation.go(context, AddClientScreen());
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: buttonColor,
-                                  ),
-                                  label: Text(
-                                    'Add Client',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  icon: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 7.0,
-                                    ),
-                                    child: Icon(
-                                      CupertinoIcons.person_badge_plus,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                  ),
+                          ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: kPrimaryLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            (client.name?.isNotEmpty ?? false)
+                                ? client.name![0].toUpperCase()
+                                : '?',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: kPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                client.name ?? '',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: kTextPrimary,
                                 ),
                               ),
+                              if (client.email?.isNotEmpty ?? false)
+                                Text(
+                                  client.email!,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: kTextSecondary,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (!_isEditMode)
+                          const Icon(
+                            CupertinoIcons.chevron_right,
+                            size: 16,
+                            color: kTextSecondary,
+                          ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget itemCard(ItemProvider item, InvoiceProvider? invoice) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Items', style: TextStyle(color: Colors.black54)),
-
-          customHeight(context, .02),
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 5.0, vertical: 0),
-              child:
-                  item.item.isNotEmpty || widget.invoice != null
-                      ? Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (widget.invoice != null)
-                            ListView.builder(
-                              physics: NeverScrollableScrollPhysics(),
-                              itemBuilder: (context, index) {
-                                return Column(
-                                  children: [
-                                    CupertinoListTile(
-                                      subtitle: Text(
-                                        '${widget.invoice!.items![index].qty.toString()} x ${widget.invoice!.items![index].price.toString()}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        widget.invoice!.items![index].itemName
-                                            .toString(),
-                                        style: TextStyle(fontSize: 15),
-                                      ),
-                                      trailing: Text(
-                                        ((widget.invoice!.items![index].price ??
-                                                    0) *
-                                                (widget
-                                                        .invoice!
-                                                        .items![index]
-                                                        .qty ??
-                                                    1))
-                                            .toStringAsFixed(2),
-                                        style: TextStyle(fontSize: 15),
-                                      ),
-                                      onTap: () {
-                                        print(
-                                          'addItemData-->${jsonEncode(widget.invoice)}',
-                                        );
-
-                                        Navigation.go(
-                                          context,
-                                          AddItemScreen(
-                                            itemModel:
-                                                widget.invoice!.items![index],
-                                            isUpdate: true,
-
-                                            invoice: widget.invoice,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14.0,
-                                        vertical: 5,
-                                      ),
-                                      child: Divider(
-                                        height: 0,
-                                        color: Colors.black12,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                              itemCount: widget.invoice!.items!.length,
-                              shrinkWrap: true,
-                            )
-                          else
-                            ListView.builder(
-                              physics: NeverScrollableScrollPhysics(),
-                              itemBuilder: (context, index) {
-                                return Column(
-                                  children: [
-                                    CupertinoListTile(
-                                      subtitle: Text(
-                                        '${item.item[index].qty.toString()} x ${item.item[index].price.toString()}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        item.item[index].itemName.toString(),
-                                        style: TextStyle(fontSize: 15),
-                                      ),
-                                      trailing: Text(
-                                        ((item.item[index].price ?? 0) *
-                                                (item.item[index].qty ?? 1))
-                                            .toStringAsFixed(2),
-                                        style: TextStyle(fontSize: 15),
-                                      ),
-                                      onTap: () {
-                                        Navigation.go(
-                                          context,
-                                          AddItemScreen(
-                                            itemModel: item.item[index],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14.0,
-                                        vertical: 5,
-                                      ),
-                                      child: Divider(
-                                        height: 0,
-                                        color: Colors.black12,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                              itemCount: item.item.length,
-                              shrinkWrap: true,
-                            ),
-
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 17.0,
-                              horizontal: 10,
-                            ),
-                            child: SizedBox(
-                              height: 40,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  if (invoice!.invoice.isNotEmpty) {
-                                    Navigation.go(context, ItemsScreen());
-                                  } else {
-                                    Navigation.go(
-                                      context,
-                                      AddItemScreen(invoice: widget.invoice),
-                                    );
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade500,
-                                  elevation: 0,
-                                ),
-                                label: Text(
-                                  'Add Item',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                icon: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7.0,
-                                  ),
-                                  child: Icon(
-                                    Icons.file_open_outlined,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                      : Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 17.0,
-                              horizontal: 5,
-                            ),
-                            child: SizedBox(
-                              height: 40,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  if (invoice!.invoice.isNotEmpty) {
-                                    Navigation.go(context, ItemsScreen());
-                                  } else {
-                                    Navigation.go(
-                                      context,
-                                      AddItemScreen(invoice: widget.invoice),
-                                    );
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: buttonColor,
-                                ),
-                                label: Text(
-                                  'Add Item',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                icon: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7.0,
-                                  ),
-                                  child: Icon(
-                                    Icons.file_open_outlined,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget totalPriceCard(ItemProvider itemProvider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: Row(
-            children: [
-              Text(
-                'Total',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                  color: buttonColor,
-                ),
-              ),
-              Spacer(),
-
-              if (widget.invoice != null)
-                Text(
-                  widget.invoice!.items!
-                      .fold<double>(0.0, (sum, item) {
-                        final qty = item.qty ?? 0;
-                        final price = item.price ?? 0;
-                        return sum + (price * qty);
-                      })
-                      .toStringAsFixed(2),
+                  ),
                 )
-              else
-                Text(
-                  itemProvider.item
-                      .fold<double>(0.0, (sum, item) {
-                        final qty = item.qty ?? 0;
-                        final price = item.price ?? 0;
-                        return sum + (price * qty);
-                      })
-                      .toStringAsFixed(2),
+              : InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    if (invoice.invoice.isNotEmpty) {
+                      Navigation.go(context, ClientViewScreen());
+                    } else {
+                      Navigation.go(context, AddClientScreen());
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: kPrimaryLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.person_badge_plus,
+                            color: kPrimary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          'Add Client',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: kPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(
+                          CupertinoIcons.chevron_right,
+                          size: 16,
+                          color: kTextSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+        ),
+      ),
+    );
+  }
+
+  // ── Items card ─────────────────────────────────────────────────────────────
+  Widget _itemCard(ItemProvider item, InvoiceProvider? invoice) {
+    final items = _isEditMode ? widget.invoice!.items! : item.item;
+
+    return Container(
+      decoration: kCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            children: [
+              if (items.isNotEmpty)
+                ListView.separated(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, color: kBorder),
+                  itemBuilder: (context, index) {
+                    final i = items[index];
+                    final lineTotal =
+                        ((i.price ?? 0) * (i.qty ?? 1)).toStringAsFixed(2);
+                    return InkWell(
+                      onTap: () => Navigation.go(
+                        context,
+                        AddItemScreen(
+                          itemModel: i,
+                          isUpdate: _isEditMode,
+                          invoice: widget.invoice,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    i.itemName ?? '',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: kTextPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${i.qty} × \$${i.price}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: kTextSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '\$$lineTotal',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: kTextPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+              if (items.isNotEmpty) const Divider(height: 1, color: kBorder),
+
+              InkWell(
+                onTap: () {
+                  if (invoice!.invoice.isNotEmpty) {
+                    Navigation.go(context, ItemsScreen());
+                  } else {
+                    Navigation.go(
+                      context,
+                      AddItemScreen(invoice: widget.invoice),
+                    );
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: items.isEmpty ? kPrimaryLight : kBackground,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          CupertinoIcons.add,
+                          color: items.isEmpty ? kPrimary : kTextSecondary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        'Add Item',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: items.isEmpty ? kPrimary : kTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -745,21 +511,205 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
-  Widget headerWidget(IconData? icon, String? title) {
+  // ── Total card ─────────────────────────────────────────────────────────────
+  Widget _totalCard(ItemProvider itemProvider) {
+    final items = _isEditMode ? widget.invoice!.items! : itemProvider.item;
+    final total = items.fold<double>(
+      0,
+      (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
+    );
+
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+      decoration: kCardDecoration,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      child: Row(
+        children: [
+          Text(
+            'Total',
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: kTextSecondary,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '\$${total.toStringAsFixed(2)}',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: kPrimary,
+            ),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: buttonColor),
-            SizedBox(width: 10),
-            Text(title!, style: TextStyle(fontSize: 12)),
-          ],
-        ),
+    );
+  }
+
+  // ── Notes card ─────────────────────────────────────────────────────────────
+  Widget _notesCard() {
+    return Container(
+      decoration: kCardDecoration,
+      child: CupertinoTextField(
+        controller: _notesCtrl,
+        placeholder: 'Add a note to this invoice (optional)…',
+        placeholderStyle: GoogleFonts.poppins(fontSize: 14, color: kTextHint),
+        style: GoogleFonts.poppins(fontSize: 14, color: kTextPrimary),
+        padding: const EdgeInsets.all(16),
+        maxLines: 3,
+        minLines: 1,
+        decoration: const BoxDecoration(color: Colors.transparent),
+      ),
+    );
+  }
+
+  // ── Bottom action bar ──────────────────────────────────────────────────────
+  Widget _buildBottomBar(
+    BuildContext context,
+    ClientProvider client,
+    ItemProvider item,
+    InvoiceProvider invoice,
+  ) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: kSurface,
+        border: Border(top: BorderSide(color: kBorder)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: Row(
+        children: [
+          // ── Preview ────────────────────────────────────────────────────────
+          Expanded(
+            child: AppButton(
+              outlined: true,
+              txt: 'Preview',
+              onTap: () {
+                final templateProvider =
+                    Provider.of<TemplatesColorsProvider>(context, listen: false);
+
+                // Build a temporary InvoiceModel for preview (create mode)
+                // or use the live invoice (edit mode)
+                final previewInvoice = _isEditMode
+                    ? widget.invoice
+                    : InvoiceModel(
+                        invoiceId: invoice.lastId + 1,
+                        date: selectDate,
+                        invoiceStatus: 'UnPaid',
+                        notes: _notesCtrl.text.trim().isEmpty
+                            ? null
+                            : _notesCtrl.text.trim(),
+                        items: item.item
+                            .map((e) => ItemModel(
+                                  itemName: e.itemName,
+                                  note: e.note,
+                                  price: e.price,
+                                  qty: e.qty,
+                                  id: e.id,
+                                  duplicate: e.duplicate,
+                                ))
+                            .toList(),
+                        clients: client.client
+                            .map((e) => ClientModel(
+                                  name: e.name,
+                                  phone: e.phone,
+                                  email: e.email,
+                                  address: e.address,
+                                  id: e.id,
+                                  duplicate: false,
+                                ))
+                            .toList(),
+                      );
+
+                Navigation.go(
+                  context,
+                  PdfInvoiceScreen(
+                    invoice: previewInvoice,
+                    provider: templateProvider,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // ── Create / Update ────────────────────────────────────────────────
+          Expanded(
+            child: AppButton(
+              txt: _isEditMode ? 'Update Invoice' : 'Create Invoice',
+              onTap: _isEditMode
+                  ? () {
+                      // Save date + notes changes, then pop back to VerificationInvoice
+                      invoice.updateInvoiceDetails(
+                        widget.invoice!.invoiceId!,
+                        date: selectDate,
+                        notes: _notesCtrl.text.trim().isEmpty
+                            ? null
+                            : _notesCtrl.text.trim(),
+                      );
+                      client.clearClientFromList();
+                      item.item.clear();
+                      Navigator.pop(context);
+                    }
+                  : () async {
+                      final businessName =
+                          Provider.of<BusinessProvider>(context, listen: false)
+                              .saveBusinessModel
+                              ?.businessName ??
+                          'My Business';
+
+                      await invoice.addInvoice(
+                        InvoiceModel(
+                          invoiceStatus: 'UnPaid',
+                          businessName: businessName,
+                          date: selectDate,
+                          invoiceId: invoice.lastId,
+                          notes: _notesCtrl.text.trim().isEmpty
+                              ? null
+                              : _notesCtrl.text.trim(),
+                          items: item.item
+                              .map((e) => ItemModel(
+                                    itemName: e.itemName,
+                                    note: e.note,
+                                    price: e.price,
+                                    qty: e.qty,
+                                    id: e.id,
+                                    duplicate: e.duplicate,
+                                  ))
+                              .toList(),
+                          clients: client.client
+                              .map((e) => ClientModel(
+                                    name: e.name,
+                                    phone: e.phone,
+                                    email: e.email,
+                                    address: e.address,
+                                    id: e.id,
+                                    duplicate: duplicate,
+                                  ))
+                              .toList(),
+                        ),
+                      );
+
+                      item.item.clear();
+                      client.client.clear();
+                      client.clearClientFromList();
+
+                      final latestInvoice = invoice.invoice.firstWhere(
+                        (e) => e.invoiceId == invoice.lastId,
+                      );
+
+                      if (!context.mounted) return;
+                      Navigation.go(
+                        context,
+                        VerificationInvoice(
+                          clientModel: latestInvoice.clients!.first,
+                          itemModel: latestInvoice.items!.first,
+                          invoiceModel: latestInvoice,
+                        ),
+                      );
+                    },
+            ),
+          ),
+        ],
       ),
     );
   }

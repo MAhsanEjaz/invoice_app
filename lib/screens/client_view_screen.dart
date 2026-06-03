@@ -1,14 +1,10 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
-import 'package:invoicemaker/providers/items_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
@@ -29,9 +25,6 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    print(
-      'invoice-->${jsonEncode(Provider.of<InvoiceProvider>(context, listen: false).invoice)}',
-    );
   }
 
   @override
@@ -88,6 +81,7 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
                               if (k.duplicate == false)
                                 GestureDetector(
                                   onTap: () async {
+                                    final navigator = Navigator.of(context);
                                     await client.selectClient(
                                       k.name,
                                       k.address,
@@ -108,9 +102,7 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
                                     );
 
                                     duplicate = true;
-
-                                    print('clientViewId---.${k.id}');
-                                    Navigator.pop(context);
+                                    navigator.pop();
                                   },
                                   child: Padding(
                                     padding: const EdgeInsets.all(12.0),

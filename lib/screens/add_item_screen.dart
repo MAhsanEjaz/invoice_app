@@ -1,7 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
@@ -9,20 +8,16 @@ import 'package:invoicemaker/providers/items_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../models/invoice_model.dart';
-import '../services/navigations.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_text_filed.dart';
 
 class AddItemScreen extends StatefulWidget {
-  ItemModel? itemModel;
+  final ItemModel? itemModel;
+  final bool? isUpdate;
+  final bool duplicate;
+  final InvoiceModel? invoice;
 
-  bool? isUpdate;
-
-  bool duplicate;
-
-  InvoiceModel? invoice;
-
-  AddItemScreen({
+  const AddItemScreen({
     super.key,
     this.itemModel,
     this.invoice,
@@ -35,164 +30,78 @@ class AddItemScreen extends StatefulWidget {
 }
 
 class _AddItemScreenState extends State<AddItemScreen> {
-  initializeItemData() {
-    print('invoiceId--->${widget.invoice?.invoiceId}');
-    print('itemId--->${widget.itemModel?.id}');
-
-    if (widget.itemModel != null) {
-      itemCont.text = widget.itemModel!.itemName!;
-      noteCont.text = widget.itemModel!.note!;
-      priceCont.text = widget.itemModel!.price.toString();
-      qtyCont.text = widget.itemModel!.qty.toString();
-    }
-
-    setState(() {});
-  }
-
-  TextEditingController itemCont = TextEditingController();
-  TextEditingController noteCont = TextEditingController();
-  TextEditingController priceCont = TextEditingController();
-  TextEditingController qtyCont = TextEditingController();
-
-  initializeAmountAndQty() {
-    priceCont.text = '1';
-    qtyCont.text = '1';
-    setState(() {});
-  }
+  final itemCont = TextEditingController();
+  final noteCont = TextEditingController();
+  final priceCont = TextEditingController();
+  final qtyCont = TextEditingController();
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    initializeItemData();
-
-    initializeAmountAndQty();
-
-    print('invoiceId--->${widget.invoice?.invoiceId}');
+    if (widget.itemModel != null) {
+      itemCont.text = widget.itemModel!.itemName ?? '';
+      noteCont.text = widget.itemModel!.note ?? '';
+      priceCont.text = widget.itemModel!.price.toString();
+      qtyCont.text = widget.itemModel!.qty.toString();
+    } else {
+      priceCont.text = '1';
+      qtyCont.text = '1';
+    }
   }
 
-  ItemModel? data;
+  @override
+  void dispose() {
+    itemCont.dispose();
+    noteCont.dispose();
+    priceCont.dispose();
+    qtyCont.dispose();
+    super.dispose();
+  }
+
+  double get _lineTotal {
+    final price = double.tryParse(priceCont.text) ?? 0;
+    final qty = int.tryParse(qtyCont.text) ?? 0;
+    return price * qty;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<ItemProvider, InvoiceProvider>(
       builder: (context, item, invoice, _) {
+        final isEditing =
+            widget.itemModel != null && widget.duplicate == false;
+
         return CupertinoPageScaffold(
-          backgroundColor: scaffoldColor,
+          backgroundColor: kBackground,
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15.0),
-                child: CupertinoNavigationBar(
-                  leading: closeButton(context),
-                  middle: Text(
-                    'New Item',
-                    style: TextStyle(
-                      color: buttonColor,
-                      fontSize: responseText(context, .05),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
+              _buildNavBar(isEditing),
               Expanded(
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      addItemsCard(),
-
-                      if (widget.itemModel != null)
-                        deleteContact(item, widget.itemModel!.id ?? 0, invoice),
+                      sectionLabel('Item Details'),
+                      _buildDescriptionCard(),
+                      const SizedBox(height: 20),
+                      sectionLabel('Pricing'),
+                      _buildPricingCard(),
+                      const SizedBox(height: 20),
+                      _buildTotalCard(),
+                      if (widget.itemModel != null) ...[
+                        const SizedBox(height: 24),
+                        _buildDeleteButton(item, invoice),
+                      ],
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(color: Colors.white),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: AppButton(
-                    onTap: () {
-                      if (widget.duplicate == true &&
-                          widget.itemModel != null) {
-                        invoice.addExistingItemWithId(
-                          widget.itemModel!,
-                          item.item,
-                          itemCont.text.trim(),
-                          qtyCont.text,
-                          priceCont.text,
-                          noteCont.text.trim(),
-                        );
-                      }
-
-                      if (widget.itemModel != null &&
-                          widget.duplicate == false) {
-                        item.updateItems(
-                          itemCont.text,
-                          priceCont.text,
-                          qtyCont.text,
-                          noteCont.text,
-                          widget.itemModel,
-                        );
-                      } else {
-                        if (widget.invoice == null &&
-                            widget.duplicate == false) {
-                          item.addItems(
-                            ItemModel(
-                              note: noteCont.text.trim(),
-                              id: item.lastId,
-                              qty: int.tryParse(qtyCont.text),
-                              price: double.tryParse(priceCont.text),
-                              itemName: itemCont.text,
-                              duplicate: false,
-                            ),
-                          );
-                        } else {
-                          if (widget.duplicate == false) {
-                            invoice.addMoreInvoices(
-                              widget.invoice!.invoiceId!,
-                              ItemModel(
-                                id: invoice.newItemId,
-                                note: noteCont.text.trim(),
-                                qty: int.tryParse(qtyCont.text),
-                                price: double.tryParse(priceCont.text),
-                                itemName: itemCont.text,
-                                duplicate: false,
-                              ),
-                            );
-                          }
-                        }
-                      }
-
-                      print('itemId-->${widget.itemModel?.id!}');
-
-                      if (widget.itemModel?.id != null &&
-                          widget.duplicate == false) {
-                        invoice.itemUpdate(
-                          widget.itemModel!.id!,
-                          itemCont.text,
-                          noteCont.text,
-                          double.parse(priceCont.text.toString()),
-                          int.parse(qtyCont.text),
-                        );
-                      }
-                      if (invoice.invoice.isNotEmpty) {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pop(context);
-                      }
-
-                      setState(() {});
-                    },
-                    txt:
-                        (widget.itemModel != null && widget.duplicate == false)
-                            ? 'Update Item'
-                            : 'Save Item',
-                  ),
-                ),
-              ),
+              _buildBottomBar(item, invoice, isEditing),
             ],
           ),
         );
@@ -200,122 +109,234 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  Widget deleteContact(ItemProvider item, int id, InvoiceProvider? invoice) {
+  Widget _buildNavBar(bool isEditing) {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            closeButton(context),
+            const Spacer(),
+            Text(
+              isEditing ? 'Edit Item' : 'New Item',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: kTextPrimary,
+              ),
+            ),
+            const Spacer(),
+            const SizedBox(width: 34),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescriptionCard() {
+    return Container(
+      decoration: kCardDecoration,
+      child: Column(
+        children: [
+          AppTextFiled(
+            controller: itemCont,
+            placeholder: 'Item or service name',
+            autofocus: true,
+          ),
+          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          AppTextFiled(
+            controller: noteCont,
+            placeholder: 'Notes (optional)',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPricingCard() {
+    return Container(
+      decoration: kCardDecoration,
+      child: Column(
+        children: [
+          AppTextFiled(
+            controller: priceCont,
+            placeholder: 'Unit Price',
+            textInputType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
+          ),
+          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          AppTextFiled(
+            controller: qtyCont,
+            placeholder: 'Quantity',
+            textInputType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalCard() {
+    return Container(
+      decoration: kCardDecoration,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      child: Row(
+        children: [
+          Text(
+            'Line Total',
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: kTextSecondary,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '\$${_lineTotal.toStringAsFixed(2)}',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: kPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeleteButton(ItemProvider item, InvoiceProvider invoice) {
     return GestureDetector(
       onTap: () {
         if (widget.duplicate == true) {
           customCupertinoDialog(context, () {
-            invoice!.deleteExistingItems(widget.itemModel!.id);
+            invoice.deleteExistingItems(widget.itemModel!.id);
           });
         } else {
           customCupertinoDialog(context, () async {
             if (widget.isUpdate == true &&
                 widget.invoice != null &&
                 widget.itemModel?.id != null) {
-              await invoice!.deleteInvoice(
+              await invoice.deleteInvoice(
                 widget.invoice!.invoiceId!,
                 widget.itemModel!.id!,
               );
             } else if (widget.itemModel != null) {
-              await item.deleteItems(widget.itemModel!, id);
+              await item.deleteItems(widget.itemModel!, widget.itemModel!.id ?? 0);
             }
-
+            if (!mounted) return;
             Navigator.pop(context);
           });
         }
       },
-
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(CupertinoIcons.delete_solid, color: Colors.red, size: 16),
-                SizedBox(width: 10),
-                Text(
-                  'Delete from invoice',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: kDangerBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kDangerColor.withValues(alpha: 0.2)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(CupertinoIcons.delete, color: kDangerColor, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Remove Item',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: kDangerColor,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget addItemsCard() {
-    return Padding(
-      padding: const EdgeInsets.all(18.0),
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(10),
-                bottomRight: Radius.circular(10),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppTextFiled(
-                  controller: itemCont,
-                  placeholder: 'Item or service provider',
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                  child: Divider(height: 0, color: Colors.black12),
-                ),
-                AppTextFiled(
-                  controller: noteCont,
-                  placeholder: 'Notes (optional)',
-                ),
-              ],
-            ),
-          ),
+  Widget _buildBottomBar(
+    ItemProvider item,
+    InvoiceProvider invoice,
+    bool isEditing,
+  ) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: kSurface,
+        border: Border(top: BorderSide(color: kBorder)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: AppButton(
+        txt: isEditing ? 'Update Item' : 'Save Item',
+        onTap: () {
+          if (widget.duplicate == true && widget.itemModel != null) {
+            invoice.addExistingItemWithId(
+              widget.itemModel!,
+              item.item,
+              itemCont.text.trim(),
+              qtyCont.text,
+              priceCont.text,
+              noteCont.text.trim(),
+            );
+          }
 
-          customHeight(context, 0.04),
+          if (widget.itemModel != null && widget.duplicate == false) {
+            item.updateItems(
+              itemCont.text,
+              priceCont.text,
+              qtyCont.text,
+              noteCont.text,
+              widget.itemModel,
+            );
+          } else {
+            if (widget.invoice == null && widget.duplicate == false) {
+              item.addItems(
+                ItemModel(
+                  note: noteCont.text.trim(),
+                  id: item.lastId,
+                  qty: int.tryParse(qtyCont.text),
+                  price: double.tryParse(priceCont.text),
+                  itemName: itemCont.text,
+                  duplicate: false,
+                ),
+              );
+            } else {
+              if (widget.duplicate == false) {
+                invoice.addMoreInvoices(
+                  widget.invoice!.invoiceId!,
+                  ItemModel(
+                    id: invoice.newItemId,
+                    note: noteCont.text.trim(),
+                    qty: int.tryParse(qtyCont.text),
+                    price: double.tryParse(priceCont.text),
+                    itemName: itemCont.text,
+                    duplicate: false,
+                  ),
+                );
+              }
+            }
+          }
 
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              children: [
-                AppTextFiled(
-                  controller: priceCont,
-                  placeholder: 'Price',
-                  textInputType: TextInputType.number,
-                ),
+          if (widget.itemModel?.id != null && widget.duplicate == false) {
+            invoice.itemUpdate(
+              widget.itemModel!.id!,
+              itemCont.text,
+              noteCont.text,
+              double.parse(priceCont.text),
+              int.parse(qtyCont.text),
+            );
+          }
 
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                  child: Divider(height: 0, color: Colors.black12),
-                ),
-                AppTextFiled(
-                  controller: qtyCont,
-                  placeholder: 'Quantity',
-                  textInputType: TextInputType.number,
-                ),
-              ],
-            ),
-          ),
-        ],
+          if (invoice.invoice.isNotEmpty) {
+            Navigator.pop(context);
+            Navigator.pop(context);
+          } else {
+            Navigator.pop(context);
+          }
+
+          setState(() {});
+        },
       ),
     );
   }

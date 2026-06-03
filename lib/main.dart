@@ -6,12 +6,9 @@ import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
 import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
-import 'package:invoicemaker/screens/home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/screens/splash_screen.dart';
-
-import 'animation_screen.dart';
 
 bool duplicate = false;
 

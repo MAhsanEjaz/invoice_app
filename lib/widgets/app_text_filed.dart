@@ -1,62 +1,66 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 
 class AppTextFiled extends StatefulWidget {
   final TextEditingController controller;
   final String? placeholder;
-  TextInputType?textInputType;
+  final TextInputType? textInputType;
+  final Function(String val)? onChanged;
+  final bool autofocus;
 
-  Function(String val)? onChanged;
-
-  AppTextFiled({super.key, required this.controller, this.placeholder, this.onChanged,this.textInputType});
+  const AppTextFiled({
+    super.key,
+    required this.controller,
+    this.placeholder,
+    this.onChanged,
+    this.textInputType,
+    this.autofocus = false,
+  });
 
   @override
   State<AppTextFiled> createState() => _AppTextFiledState();
 }
 
 class _AppTextFiledState extends State<AppTextFiled> {
-  FocusNode? _focusNode;
+  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
-
-    _focusNode!.addListener(() {
-      setState(() {}); // Rebuild on focus change to update border
-    });
+    _focusNode.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    _focusNode!.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: CupertinoTextField(
-        onChanged: (widget.onChanged),
-        focusNode: _focusNode,
-        keyboardType:widget.textInputType ,
-        autofocus: true,
-        clearButtonMode: OverlayVisibilityMode.editing,
-        autocorrect: true,
-        placeholderStyle: TextStyle(color: Colors.black87),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(.6),
-          border: Border.all(
-            color: _focusNode!.hasFocus ? buttonColor : Colors.transparent,
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(7),
+    return CupertinoTextField(
+      onChanged: widget.onChanged,
+      focusNode: _focusNode,
+      keyboardType: widget.textInputType,
+      autofocus: widget.autofocus,
+      clearButtonMode: OverlayVisibilityMode.editing,
+      autocorrect: false,
+      style: GoogleFonts.poppins(fontSize: 15, color: kTextPrimary),
+      placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: kTextHint),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: kSurface,
+        border: Border.all(
+          color: _focusNode.hasFocus ? kPrimary : Colors.transparent,
+          width: 1.5,
         ),
-        controller: widget.controller,
-        placeholder: widget.placeholder,
+        borderRadius: BorderRadius.circular(12),
       ),
+      controller: widget.controller,
+      placeholder: widget.placeholder,
     );
   }
 }

@@ -220,6 +220,32 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Updates the mutable fields of an invoice (date, notes).
+  void updateInvoiceDetails(int invoiceId, {String? date, String? notes}) {
+    final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
+    if (date != null) inv.date = date;
+    // Allow clearing notes by passing empty string
+    inv.notes = notes;
+    saveInvoice();
+    notifyListeners();
+  }
+
+  /// Persists the amount received against an invoice.
+  void updateReceivedAmount(int invoiceId, double amount) {
+    final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
+    inv.receivedAmount = amount;
+    saveInvoice();
+    notifyListeners();
+  }
+
+  /// Permanently removes an entire invoice.
+  void deleteWholeInvoice(int invoiceId) {
+    invoice.removeWhere((e) => e.invoiceId == invoiceId);
+    getInvoices();
+    saveInvoice();
+    notifyListeners();
+  }
+
   saveInvoice() async {
     final prefs = await SharedPreferences.getInstance();
 
