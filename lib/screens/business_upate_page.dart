@@ -3,13 +3,17 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:invoicemaker/widgets/app_text_filed.dart';
 import 'package:provider/provider.dart';
 
 class BusinessUpatePage extends StatefulWidget {
-  const BusinessUpatePage({super.key});
+  // If null, edits the currently active business.
+  final BusinessModel? business;
+
+  const BusinessUpatePage({super.key, this.business});
 
   @override
   State<BusinessUpatePage> createState() => _BusinessUpatePageState();
@@ -17,14 +21,18 @@ class BusinessUpatePage extends StatefulWidget {
 
 class _BusinessUpatePageState extends State<BusinessUpatePage> {
   final TextEditingController businessCont = TextEditingController();
+  String? _logoPath;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<BusinessProvider>(context, listen: false);
-      businessCont.text = provider.saveBusinessModel?.businessName ?? '';
-      provider.imagePath = provider.saveBusinessModel?.businessLogo ?? '';
+      final target = widget.business ?? provider.activeBusiness;
+      businessCont.text = target?.businessName ?? '';
+      _logoPath = target?.businessLogo ?? '';
+      // Sync provider imagePath so the logo picker widget stays consistent
+      provider.imagePath = _logoPath;
       setState(() {});
     });
   }
@@ -77,9 +85,20 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                 child: AppButton(
                   txt: 'Save Changes',
-                  onTap: () {
-                    business.updateBusinessData(businessCont.text.trim());
-                    Navigator.pop(context);
+                  onTap: () async {
+                    final name = businessCont.text.trim();
+                    if (widget.business != null) {
+                      // Editing a specific business (from ManageBusinessesScreen)
+                      await business.updateBusiness(
+                        widget.business!.id,
+                        name,
+                        business.imagePath,
+                      );
+                    } else {
+                      // Editing the active business (from SettingPage)
+                      await business.updateBusinessData(name);
+                    }
+                    if (context.mounted) Navigator.pop(context);
                   },
                 ),
               ),
@@ -100,7 +119,7 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
             closeButton(context),
             const Spacer(),
             Text(
-              'Manage Business',
+              'Edit Business',
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -116,10 +135,14 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
   }
 
   Widget _buildLogoPicker(BusinessProvider business) {
+    final displayPath = business.imagePath;
     return GestureDetector(
       onTap: () async {
-        business.imagePath = await business.imagePickFunction();
-        setState(() {});
+        final targetId = widget.business?.id ?? business.activeBusiness?.id;
+        final newPath = await business.imagePickFunction(businessId: targetId);
+        if (newPath != null) {
+          setState(() => _logoPath = newPath);
+        }
       },
       child: Container(
         width: 110,
@@ -131,31 +154,27 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(26),
-          child:
-              business.imagePath != null && business.imagePath!.isNotEmpty
-                  ? Image.file(
-                      File(business.imagePath!),
-                      fit: BoxFit.cover,
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          CupertinoIcons.camera_fill,
-                          color: kPrimary,
-                          size: 28,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Add Logo',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: kPrimary,
-                          ),
-                        ),
-                      ],
+          child: displayPath != null && displayPath.isNotEmpty
+              ? Image.file(File(displayPath), fit: BoxFit.cover)
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      CupertinoIcons.camera_fill,
+                      color: kPrimary,
+                      size: 28,
                     ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Add Logo',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: kPrimary,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

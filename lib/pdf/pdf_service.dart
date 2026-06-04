@@ -7,6 +7,7 @@ import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
+import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:open_file/open_file.dart';
@@ -30,6 +31,7 @@ class PdfService {
     InvoiceModel invoice,
     TemplatesColorsProvider? provider, {
     BusinessModel? business,
+    String currencySymbol = '\$',
   }) async {
     final pdf = pw.Document();
 
@@ -71,9 +73,9 @@ class PdfService {
               children: [
                 _buildBillTo(invoice),
                 pw.SizedBox(height: 28),
-                _buildItemsTable(items, accentColor),
+                _buildItemsTable(items, accentColor, currencySymbol),
                 pw.SizedBox(height: 20),
-                _buildTotals(subtotal, invoice.receivedAmount ?? 0),
+                _buildTotals(subtotal, invoice.discount ?? 0, invoice.receivedAmount ?? 0, currencySymbol),
                 if (invoice.notes?.isNotEmpty ?? false) ...[
                   pw.SizedBox(height: 20),
                   _buildNotes(invoice.notes!),
@@ -243,6 +245,7 @@ class PdfService {
   pw.Widget _buildItemsTable(
     List<dynamic> items,
     PdfColor accentColor,
+    String currencySymbol,
   ) {
     const rowAlt = PdfColor(0.973, 0.980, 0.988); // very light grey-blue
 
@@ -281,11 +284,11 @@ class PdfService {
               _td(item.itemName ?? ''),
               _td(qty.toString(), align: pw.Alignment.center),
               _td(
-                '\$${unitPrice.toStringAsFixed(2)}',
+                '$currencySymbol${unitPrice.toStringAsFixed(2)}',
                 align: pw.Alignment.centerRight,
               ),
               _td(
-                '\$${lineTotal.toStringAsFixed(2)}',
+                '$currencySymbol${lineTotal.toStringAsFixed(2)}',
                 align: pw.Alignment.centerRight,
                 bold: true,
               ),
@@ -331,10 +334,18 @@ class PdfService {
     );
   }
 
-  // ── Totals: subtotal → received → balance due ─────────────────────────────
-  pw.Widget _buildTotals(double subtotal, double received) {
-    final balanceDue = (subtotal - received).clamp(0.0, double.infinity);
+  // ── Totals: subtotal → discount → received → balance due ──────────────────
+  pw.Widget _buildTotals(
+    double subtotal,
+    double discount,
+    double received,
+    String currencySymbol,
+  ) {
+    final total = (subtotal - discount).clamp(0.0, double.infinity);
+    final balanceDue = (total - received).clamp(0.0, double.infinity);
+    final hasDiscount = discount > 0;
     final hasReceived = received > 0;
+    final hasAdjustment = hasDiscount || hasReceived;
 
     return pw.Align(
       alignment: pw.Alignment.centerRight,
@@ -342,21 +353,29 @@ class PdfService {
         width: 220,
         child: pw.Column(
           children: [
-            _totalRow('Subtotal', '\$${subtotal.toStringAsFixed(2)}'),
-            if (hasReceived) ...[
+            _totalRow(
+              'Subtotal',
+              '$currencySymbol${subtotal.toStringAsFixed(2)}',
+            ),
+            if (hasDiscount)
+              _totalRow(
+                'Discount',
+                '-$currencySymbol${discount.toStringAsFixed(2)}',
+                valueColor: PdfColors.orange800,
+              ),
+            if (hasReceived)
               _totalRow(
                 'Received',
-                '(\$${received.toStringAsFixed(2)})',
+                '($currencySymbol${received.toStringAsFixed(2)})',
                 valueColor: PdfColors.green700,
               ),
-            ],
             pw.Container(
               margin: const pw.EdgeInsets.symmetric(vertical: 6),
               child: pw.Divider(color: PdfColors.grey400, thickness: 0.5),
             ),
             _totalRow(
-              hasReceived ? 'BALANCE DUE' : 'TOTAL DUE',
-              '\$${(hasReceived ? balanceDue : subtotal).toStringAsFixed(2)}',
+              hasAdjustment ? 'BALANCE DUE' : 'TOTAL DUE',
+              '$currencySymbol${(hasAdjustment ? balanceDue : subtotal).toStringAsFixed(2)}',
               isBold: true,
               fontSize: 13,
             ),
@@ -537,6 +556,9 @@ class _PdfInvoiceScreenState extends State<PdfInvoiceScreen> {
         widget.invoice!,
         widget.provider,
         business: _business,
+        currencySymbol: Provider.of<CurrencyProvider>(context, listen: false)
+            .currency
+            .pdfSymbol,
       );
 
   /// Generates the PDF, saves it, then opens it with the device's PDF viewer.
@@ -558,6 +580,9 @@ class _PdfInvoiceScreenState extends State<PdfInvoiceScreen> {
         widget.invoice!,
         widget.provider,
         business: _business,
+        currencySymbol: Provider.of<CurrencyProvider>(context, listen: false)
+            .currency
+            .pdfSymbol,
       );
       final dir = persist
           ? await getApplicationDocumentsDirectory()

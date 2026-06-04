@@ -1,0 +1,350 @@
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/models/business_model.dart';
+import 'package:invoicemaker/providers/business_provider.dart';
+import 'package:invoicemaker/services/navigations.dart';
+import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:provider/provider.dart';
+
+import 'business_upate_page.dart';
+
+class ManageBusinessesScreen extends StatelessWidget {
+  const ManageBusinessesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<BusinessProvider>(
+      builder: (context, business, _) {
+        return CupertinoPageScaffold(
+          backgroundColor: kBackground,
+          child: Column(
+            children: [
+              _buildNavBar(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      sectionLabel('Your Businesses'),
+                      const SizedBox(height: 8),
+                      if (business.businesses.isEmpty)
+                        _buildEmpty()
+                      else
+                        _buildBusinessList(context, business),
+                      const SizedBox(height: 24),
+                      AppButton(
+                        txt: 'Add New Business',
+                        onTap: () => _showAddDialog(context, business),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNavBar(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            closeButton(context),
+            const Spacer(),
+            Text(
+              'Manage Businesses',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: kTextPrimary,
+              ),
+            ),
+            const Spacer(),
+            const SizedBox(width: 34),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Text(
+          'No businesses yet.',
+          style: GoogleFonts.poppins(fontSize: 14, color: kTextSecondary),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBusinessList(BuildContext context, BusinessProvider business) {
+    return Container(
+      decoration: kCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: business.businesses.length,
+          separatorBuilder: (_, __) => const Divider(height: 1, color: kBorder),
+          itemBuilder: (context, index) {
+            final b = business.businesses[index];
+            final isActive = business.activeBusiness?.id == b.id;
+            return _BusinessTile(
+              business: b,
+              isActive: isActive,
+              canDelete: business.businesses.length > 1,
+              onSetActive: () => business.setActiveBusiness(b),
+              onSetDefault: () => business.setDefaultBusiness(b.id),
+              onEdit: () => Navigation.go(
+                context,
+                BusinessUpatePage(business: b),
+              ),
+              onDelete: () => _confirmDelete(context, business, b),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showAddDialog(BuildContext context, BusinessProvider business) {
+    final ctrl = TextEditingController();
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: Text(
+          'New Business',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: CupertinoTextField(
+            controller: ctrl,
+            autofocus: true,
+            placeholder: 'Business name',
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('Add'),
+            onPressed: () {
+              final name = ctrl.text.trim();
+              if (name.isNotEmpty) {
+                business.addBusiness(name);
+              }
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(
+    BuildContext context,
+    BusinessProvider business,
+    BusinessModel b,
+  ) {
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: Text(
+          'Delete Business',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Remove "${b.businessName}"? Invoices linked to this business will remain but won\'t be visible under any business.',
+          style: GoogleFonts.poppins(fontSize: 13),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Delete'),
+            onPressed: () {
+              business.deleteBusiness(b.id);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BusinessTile extends StatelessWidget {
+  final BusinessModel business;
+  final bool isActive;
+  final bool canDelete;
+  final VoidCallback onSetActive;
+  final VoidCallback onSetDefault;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _BusinessTile({
+    required this.business,
+    required this.isActive,
+    required this.canDelete,
+    required this.onSetActive,
+    required this.onSetDefault,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = business.businessName ?? '';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final logoPath = business.businessLogo;
+    final hasLogo = logoPath != null && logoPath.isNotEmpty && File(logoPath).existsSync();
+
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onSetActive,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // Avatar
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: kPrimaryLight,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                clipBehavior: Clip.hardEdge,
+                child: hasLogo
+                    ? Image.file(File(logoPath), fit: BoxFit.cover)
+                    : Center(
+                        child: Text(
+                          initial,
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: kPrimary,
+                          ),
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 14),
+
+              // Name + badges
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: kTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        if (isActive)
+                          _badge('Active', kPrimary),
+                        if (isActive && business.isDefault)
+                          const SizedBox(width: 6),
+                        if (business.isDefault)
+                          _badge('Default', Colors.orange),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Actions
+              PopupMenuButton<String>(
+                icon: const Icon(
+                  CupertinoIcons.ellipsis_vertical,
+                  size: 18,
+                  color: kTextSecondary,
+                ),
+                onSelected: (val) {
+                  if (val == 'edit') onEdit();
+                  if (val == 'default') onSetDefault();
+                  if (val == 'delete') onDelete();
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text(
+                      'Edit',
+                      style: GoogleFonts.poppins(fontSize: 14),
+                    ),
+                  ),
+                  if (!business.isDefault)
+                    PopupMenuItem(
+                      value: 'default',
+                      child: Text(
+                        'Set as Default',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                    ),
+                  if (canDelete)
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _badge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+}

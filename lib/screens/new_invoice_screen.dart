@@ -6,6 +6,7 @@ import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/pdf/pdf_service.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
+import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
 import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
@@ -14,11 +15,14 @@ import 'package:invoicemaker/services/navigations.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
+import '../models/business_model.dart';
 import '../models/client_model.dart';
 import '../models/item_model.dart';
+import '../models/service_model.dart';
+import '../providers/saved_client_provider.dart';
+import '../providers/service_provider.dart';
 import 'add_client_screen.dart';
 import 'add_item_screen.dart';
-import 'client_view_screen.dart';
 import 'items_screen.dart';
 
 class NewInvoiceScreen extends StatefulWidget {
@@ -34,6 +38,7 @@ class NewInvoiceScreen extends StatefulWidget {
 class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   String? selectDate;
   final TextEditingController _notesCtrl = TextEditingController();
+  BusinessModel? _selectedBusiness;
 
   bool get _isEditMode => widget.invoice != null;
 
@@ -43,6 +48,11 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       selectDate = customDateFormat(DateTime.now().toString());
       _loadInvoiceData();
+      // Default to the default business for new invoices
+      if (!_isEditMode) {
+        final bp = Provider.of<BusinessProvider>(context, listen: false);
+        _selectedBusiness = bp.defaultBusiness ?? bp.activeBusiness;
+      }
       setState(() {});
     });
   }
@@ -201,31 +211,214 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
 
   // ── Date + invoice-number chips ────────────────────────────────────────────
   Widget _buildMetaRow(InvoiceProvider invoice) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () async {
-              final date = await customDatePicker(context);
-              if (date != null) {
-                selectDate = customDateFormat(date.toString());
-                setState(() {});
-              }
-            },
-            child: _metaChip(
-              CupertinoIcons.calendar,
-              selectDate ?? customDateFormat(DateTime.now().toString()),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () async {
+                  final date = await customDatePicker(context);
+                  if (date != null) {
+                    selectDate = customDateFormat(date.toString());
+                    setState(() {});
+                  }
+                },
+                child: _metaChip(
+                  CupertinoIcons.calendar,
+                  selectDate ?? customDateFormat(DateTime.now().toString()),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _metaChip(
+                CupertinoIcons.doc_text,
+                'Invoice #${_isEditMode ? invoice.lastId : invoice.lastId + 1}',
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _metaChip(
-            CupertinoIcons.doc_text,
-            'Invoice #${_isEditMode ? invoice.lastId : invoice.lastId + 1}',
-          ),
-        ),
+        if (!_isEditMode) ...[
+          const SizedBox(height: 10),
+          _buildBusinessSelector(),
+        ],
       ],
+    );
+  }
+
+  Widget _buildBusinessSelector() {
+    final bp = Provider.of<BusinessProvider>(context, listen: false);
+    final businesses = bp.businesses;
+    if (businesses.length <= 1) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => _showBusinessPicker(bp),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: kCardDecorationFlat,
+        child: Row(
+          children: [
+            const Icon(CupertinoIcons.building_2_fill, size: 16, color: kPrimary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _selectedBusiness?.businessName ?? 'Select Business',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: kTextPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(
+              CupertinoIcons.chevron_down,
+              size: 13,
+              color: kTextSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBusinessPicker(BusinessProvider bp) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: kBackground,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: kBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Invoice From',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: kTextPrimary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: bp.businesses.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) {
+                  final b = bp.businesses[i];
+                  final isSel = _selectedBusiness?.id == b.id;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedBusiness = b);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSel ? kPrimaryLight : kSurface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSel ? kPrimary : kBorder,
+                          width: isSel ? 1.5 : 1,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: isSel ? kPrimary : kBackground,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              (b.businessName?.isNotEmpty ?? false)
+                                  ? b.businessName![0].toUpperCase()
+                                  : '?',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: isSel ? Colors.white : kTextSecondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              b.businessName ?? '',
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: kTextPrimary,
+                              ),
+                            ),
+                          ),
+                          if (b.isDefault)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Default',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            isSel
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                            color: isSel ? kPrimary : kTextHint,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -337,13 +530,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 )
               : InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    if (invoice.invoice.isNotEmpty) {
-                      Navigation.go(context, ClientViewScreen());
-                    } else {
-                      Navigation.go(context, AddClientScreen());
-                    }
-                  },
+                  onTap: () => _showClientPicker(client),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -406,6 +593,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       const Divider(height: 1, color: kBorder),
                   itemBuilder: (context, index) {
                     final i = items[index];
+                    final sym =
+                        Provider.of<CurrencyProvider>(context).symbol;
                     final lineTotal =
                         ((i.price ?? 0) * (i.qty ?? 1)).toStringAsFixed(2);
                     return InkWell(
@@ -437,7 +626,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '${i.qty} × \$${i.price}',
+                                    '${i.qty} × $sym${i.price}',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: kTextSecondary,
@@ -447,7 +636,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                               ),
                             ),
                             Text(
-                              '\$$lineTotal',
+                              '$sym$lineTotal',
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -504,6 +693,44 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   ),
                 ),
               ),
+
+              const Divider(height: 1, color: kBorder),
+
+              InkWell(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
+                onTap: () => _showServicePicker(item, invoice!),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: kBackground,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.tag,
+                          color: kTextSecondary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        'Add Service',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: kTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -511,8 +738,66 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
+  void _showClientPicker(ClientProvider client) {
+    final savedClients =
+        Provider.of<SavedClientProvider>(context, listen: false).clients;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ClientPickerSheet(
+        savedClients: savedClients,
+        onSelect: (c) {
+          client.selectClient(c.name, c.address, c.phone, c.email, c.id);
+          client.client.add(ClientModel(
+            name: c.name,
+            id: c.id,
+            email: c.email,
+            address: c.address,
+            phone: c.phone,
+            duplicate: false,
+          ));
+        },
+        onAddNew: () => Navigation.go(context, const AddClientScreen()),
+      ),
+    );
+  }
+
+  void _showServicePicker(ItemProvider item, InvoiceProvider invoice) {
+    final services =
+        Provider.of<ServiceProvider>(context, listen: false).services;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ServicePickerSheet(
+        services: services,
+        onConfirm: (selected) {
+          for (final service in selected) {
+            final itemModel = ItemModel(
+              itemName: service.name,
+              note: service.description,
+              price: service.price ?? 0,
+              qty: 1,
+              duplicate: false,
+            );
+            if (_isEditMode) {
+              invoice.addMoreInvoices(widget.invoice!.invoiceId!, itemModel);
+            } else {
+              item.addItems(itemModel);
+            }
+          }
+        },
+      ),
+    );
+  }
+
   // ── Total card ─────────────────────────────────────────────────────────────
   Widget _totalCard(ItemProvider itemProvider) {
+    final sym =
+        Provider.of<CurrencyProvider>(context).symbol;
     final items = _isEditMode ? widget.invoice!.items! : itemProvider.item;
     final total = items.fold<double>(
       0,
@@ -534,7 +819,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           ),
           const Spacer(),
           Text(
-            '\$${total.toStringAsFixed(2)}',
+            '$sym${total.toStringAsFixed(2)}',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -651,16 +936,15 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       Navigator.pop(context);
                     }
                   : () async {
-                      final businessName =
-                          Provider.of<BusinessProvider>(context, listen: false)
-                              .saveBusinessModel
-                              ?.businessName ??
-                          'My Business';
+                      final bp =
+                          Provider.of<BusinessProvider>(context, listen: false);
+                      final biz = _selectedBusiness ?? bp.defaultBusiness ?? bp.activeBusiness;
 
                       await invoice.addInvoice(
                         InvoiceModel(
                           invoiceStatus: 'UnPaid',
-                          businessName: businessName,
+                          businessId: biz?.id,
+                          businessName: biz?.businessName ?? 'My Business',
                           date: selectDate,
                           invoiceId: invoice.lastId,
                           notes: _notesCtrl.text.trim().isEmpty
@@ -710,6 +994,432 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ServicePickerSheet extends StatefulWidget {
+  final List<ServiceModel> services;
+  final void Function(List<ServiceModel>) onConfirm;
+
+  const _ServicePickerSheet({
+    required this.services,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_ServicePickerSheet> createState() => _ServicePickerSheetState();
+}
+
+class _ServicePickerSheetState extends State<_ServicePickerSheet> {
+  final Set<int> _selected = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: kBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Text(
+                    'Select Services',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: kTextPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_selected.length} selected',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: kTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (widget.services.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  children: [
+                    const Icon(
+                      CupertinoIcons.tag,
+                      size: 40,
+                      color: kTextHint,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No services added yet.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: kTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Go to Settings → Items & Services to add some.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: kTextHint,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.45,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: widget.services.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final service = widget.services[index];
+                    final isChosen = _selected.contains(service.id);
+                    return GestureDetector(
+                      onTap: () => setState(() {
+                        if (isChosen) {
+                          _selected.remove(service.id);
+                        } else {
+                          _selected.add(service.id!);
+                        }
+                      }),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isChosen ? kPrimaryLight : kSurface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isChosen ? kPrimary : kBorder,
+                            width: isChosen ? 1.5 : 1,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isChosen ? kPrimary : kBackground,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                (service.name?.isNotEmpty ?? false)
+                                    ? service.name![0].toUpperCase()
+                                    : 'S',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: isChosen
+                                      ? Colors.white
+                                      : kTextSecondary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    service.name ?? '',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: kTextPrimary,
+                                    ),
+                                  ),
+                                  if (service.description?.isNotEmpty ?? false)
+                                    Text(
+                                      service.description!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: kTextSecondary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (service.price != null)
+                              Text(
+                                '\$${service.price!.toStringAsFixed(2)}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isChosen
+                                      ? kPrimary
+                                      : kTextSecondary,
+                                ),
+                              ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              isChosen
+                                  ? CupertinoIcons.checkmark_circle_fill
+                                  : CupertinoIcons.circle,
+                              color: isChosen ? kPrimary : kTextHint,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: AppButton(
+                txt: _selected.isEmpty
+                    ? 'Select Services'
+                    : 'Add ${_selected.length} Service${_selected.length > 1 ? 's' : ''}',
+                onTap: _selected.isEmpty
+                    ? null
+                    : () {
+                        final chosen = widget.services
+                            .where((s) => _selected.contains(s.id))
+                            .toList();
+                        Navigator.pop(context);
+                        widget.onConfirm(chosen);
+                      },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ClientPickerSheet extends StatelessWidget {
+  final List<ClientModel> savedClients;
+  final void Function(ClientModel) onSelect;
+  final VoidCallback onAddNew;
+
+  const _ClientPickerSheet({
+    required this.savedClients,
+    required this.onSelect,
+    required this.onAddNew,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: kBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Select Client',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: kTextPrimary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (savedClients.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    const Icon(
+                      CupertinoIcons.person_2,
+                      size: 40,
+                      color: kTextHint,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No saved clients yet.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: kTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Go to Settings → Clients to add some.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: kTextHint,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: savedClients.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final c = savedClients[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSelect(c);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: kSurface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: kBorder),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: kPrimaryLight,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                (c.name?.isNotEmpty ?? false)
+                                    ? c.name![0].toUpperCase()
+                                    : '?',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: kPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    c.name ?? '',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: kTextPrimary,
+                                    ),
+                                  ),
+                                  if (c.email?.isNotEmpty ?? false)
+                                    Text(
+                                      c.email!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: kTextSecondary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    )
+                                  else if (c.phone?.isNotEmpty ?? false)
+                                    Text(
+                                      c.phone!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: kTextSecondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 14,
+                              color: kTextSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: AppButton(
+                outlined: true,
+                txt: 'Add New Client',
+                onTap: () {
+                  Navigator.pop(context);
+                  onAddNew();
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

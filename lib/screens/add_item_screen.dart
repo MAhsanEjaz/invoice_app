@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
@@ -178,6 +179,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Widget _buildTotalCard() {
+    final sym = Provider.of<CurrencyProvider>(context).symbol;
     return Container(
       decoration: kCardDecoration,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -193,7 +195,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
           const Spacer(),
           Text(
-            '\$${_lineTotal.toStringAsFixed(2)}',
+            '$sym${_lineTotal.toStringAsFixed(2)}',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w700,

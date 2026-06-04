@@ -29,7 +29,7 @@ class InvoiceProvider extends ChangeNotifier {
     for (var l in invoice) {
       l.items!.removeWhere((element) => element.id == itemId);
 
-      print('this Delete Function--->${itemId}');
+      print('this Delete Function--->$itemId');
       notifyListeners();
     }
   }
@@ -56,11 +56,11 @@ class InvoiceProvider extends ChangeNotifier {
 
     item.add(
       ItemModel(
-        price: model!.price,
-        qty: model!.qty,
-        note: model!.note,
-        itemName: model!.itemName,
-        id: model!.id,
+        price: model.price,
+        qty: model.qty,
+        note: model.note,
+        itemName: model.itemName,
+        id: model.id,
         duplicate: true,
       ),
     );
@@ -128,8 +128,8 @@ class InvoiceProvider extends ChangeNotifier {
 
       itemsUpdate.itemName = itemName!;
       itemsUpdate.note = note!;
-      itemsUpdate.qty = qty!;
-      itemsUpdate.price = price!;
+      itemsUpdate.qty = qty;
+      itemsUpdate.price = price;
     }
 
     print('this Function');
@@ -171,7 +171,7 @@ class InvoiceProvider extends ChangeNotifier {
     final myPrice = data.items!.fold<num>(
       0,
       (pre, newPrice) =>
-          double.parse(pre.toString())! +
+          double.parse(pre.toString()) +
           double.parse(newPrice.price.toString()) * newPrice.qty!,
     );
 
@@ -179,7 +179,7 @@ class InvoiceProvider extends ChangeNotifier {
 
     notifyListeners();
 
-    print('myPrice--->${myPrice}');
+    print('myPrice--->$myPrice');
   }
 
   void addMoreInvoices(int invoiceId, ItemModel? itemModel) {
@@ -238,6 +238,14 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Persists the discount applied to an invoice.
+  void updateDiscount(int invoiceId, double amount) {
+    final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
+    inv.discount = amount > 0 ? amount : null;
+    saveInvoice();
+    notifyListeners();
+  }
+
   /// Permanently removes an entire invoice.
   void deleteWholeInvoice(int invoiceId) {
     invoice.removeWhere((e) => e.invoiceId == invoiceId);
@@ -273,7 +281,7 @@ class InvoiceProvider extends ChangeNotifier {
         lastId = l.invoiceId!;
       }
     }
-    print('lastId-->${lastId}');
+    print('lastId-->$lastId');
 
     print('saveInvoiceList--->${jsonEncode(invoice)}');
     notifyListeners();

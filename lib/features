@@ -1,0 +1,10 @@
+Tax / GST / VAT — per item or on total, with custom rate (e.g. 15%)
+Discount — per item or invoice-level, fixed or percentage
+Due Date — separate from invoice date, shown on PDF
+Bank / Payment Details — shown at bottom of PDF so client knows how to pay
+Search & Filter — search by client name, filter by date range or status
+Estimate / Quote — same as invoice but labeled "Quote", can convert to invoice
+Email Invoice — send PDF directly from app via email
+Dark Mode
+Multiple Businesses — switch between different business profiles
+Late Payment Reminder — local notification when invoice is overdue

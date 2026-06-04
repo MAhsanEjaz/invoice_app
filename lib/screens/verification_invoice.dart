@@ -8,6 +8,7 @@ import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/pdf/pdf_service.dart';
+import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/screens/home_screen.dart';
 import 'package:invoicemaker/screens/new_invoice_screen.dart';
@@ -90,6 +91,63 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             },
             child: Text(
               'Save',
+              style: GoogleFonts.poppins(
+                color: kPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Discount dialog ────────────────────────────────────────────────────────
+  void _showDiscountDialog(InvoiceProvider invoice, double current) {
+    final ctrl = TextEditingController(
+      text: current > 0 ? current.toStringAsFixed(2) : '',
+    );
+
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: Text(
+          'Discount Amount',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: ctrl,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            placeholder: '0.00',
+            autofocus: true,
+            style: GoogleFonts.poppins(fontSize: 15),
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
+            ),
+          ),
+          CupertinoDialogAction(
+            onPressed: () {
+              final amount = double.tryParse(ctrl.text.trim()) ?? 0;
+              invoice.updateDiscount(
+                widget.invoiceModel!.invoiceId!,
+                amount,
+              );
+              Navigator.pop(context);
+            },
+            child: Text(
+              'Apply',
               style: GoogleFonts.poppins(
                 color: kPrimary,
                 fontWeight: FontWeight.w600,
@@ -244,14 +302,17 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
     bool isPaid,
     InvoiceProvider invoice,
   ) {
+    final sym = Provider.of<CurrencyProvider>(context).symbol;
     // All values derived from the live provider object
     final items = liveInvoice.items ?? [];
-    final total = items.fold<double>(
+    final subtotal = items.fold<double>(
       0,
       (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
     );
+    final discount = liveInvoice.discount ?? 0;
+    final total = (subtotal - discount).clamp(0.0, double.infinity);
     final received = liveInvoice.receivedAmount ?? 0;
-    final balanceDue = (total - received).clamp(0, double.infinity);
+    final balanceDue = (total - received).clamp(0.0, double.infinity);
 
     final client = (liveInvoice.clients?.isNotEmpty ?? false)
         ? liveInvoice.clients!.first
@@ -289,7 +350,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  '\$${total.toStringAsFixed(2)}',
+                  '$sym${total.toStringAsFixed(2)}',
                   style: GoogleFonts.poppins(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
@@ -374,7 +435,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                                   ),
                                 ),
                                 Text(
-                                  '${item.qty} × \$${item.price}',
+                                  '${item.qty} × $sym${item.price}',
                                   style: GoogleFonts.poppins(
                                     fontSize: 12,
                                     color: kTextSecondary,
@@ -384,7 +445,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                             ),
                           ),
                           Text(
-                            '\$$lineTotal',
+                            '$sym$lineTotal',
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -397,35 +458,114 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   },
                 ),
 
-                // Total row
+                // Subtotal row
                 const Divider(height: 1, color: kBorder),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 14,
+                    vertical: 12,
                   ),
                   child: Row(
                     children: [
                       Text(
-                        'Total',
+                        'Subtotal',
                         style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                           color: kTextSecondary,
                         ),
                       ),
                       const Spacer(),
                       Text(
-                        '\$${total.toStringAsFixed(2)}',
+                        '$sym${subtotal.toStringAsFixed(2)}',
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: kPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: kTextSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
+
+                // Discount row — always visible and tappable
+                const Divider(height: 1, color: kBorder),
+                GestureDetector(
+                  onTap: () => _showDiscountDialog(invoice, discount),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          CupertinoIcons.tag,
+                          size: 15,
+                          color: discount > 0 ? kDangerColor : kTextSecondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Discount',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color:
+                                discount > 0 ? kDangerColor : kTextSecondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          discount > 0
+                              ? '-$sym${discount.toStringAsFixed(2)}'
+                              : '$sym${0.toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                discount > 0 ? kDangerColor : kTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          CupertinoIcons.pencil,
+                          size: 13,
+                          color: kTextSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Total row — shown only when discount is applied
+                if (discount > 0) ...[
+                  const Divider(height: 1, color: kBorder),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Total',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: kTextSecondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '$sym${total.toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: kPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -517,7 +657,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         ),
                         const Spacer(),
                         Text(
-                          '\$${received.toStringAsFixed(2)}',
+                          '$sym${received.toStringAsFixed(2)}',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -561,7 +701,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         ),
                         const Spacer(),
                         Text(
-                          '\$${balanceDue.toStringAsFixed(2)}',
+                          '$sym${balanceDue.toStringAsFixed(2)}',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -807,9 +947,13 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               icon: CupertinoIcons.paperplane,
               outlined: false,
               onTap: () async {
+                final sym = Provider.of<CurrencyProvider>(context, listen: false)
+                    .currency
+                    .pdfSymbol;
                 final pdfData = await PdfService().invoicePdfGenerate(
                   liveInvoice,
                   data,
+                  currencySymbol: sym,
                 );
                 final tempDir = await getTemporaryDirectory();
                 final pdfFile = File('${tempDir.path}/Ledger.pdf');

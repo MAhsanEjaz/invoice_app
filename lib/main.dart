@@ -5,7 +5,10 @@ import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
+import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
+import 'package:invoicemaker/providers/saved_client_provider.dart';
+import 'package:invoicemaker/providers/service_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/screens/splash_screen.dart';
@@ -38,6 +41,9 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (context) => ItemProvider()),
         ChangeNotifierProvider(create: (context) => InvoiceProvider()),
         ChangeNotifierProvider(create: (context) => TemplatesColorsProvider()),
+        ChangeNotifierProvider(create: (context) => CurrencyProvider()),
+        ChangeNotifierProvider(create: (context) => ServiceProvider()),
+        ChangeNotifierProvider(create: (context) => SavedClientProvider()),
       ],
       child: CupertinoApp(
         debugShowCheckedModeBanner: false,

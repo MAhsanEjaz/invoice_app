@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
+import 'package:invoicemaker/providers/currency_provider.dart';
+import 'package:invoicemaker/screens/currency_screen.dart';
+import 'package:invoicemaker/screens/services_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:provider/provider.dart';
 
-import 'business_upate_page.dart';
+import 'manage_businesses_screen.dart';
+import 'saved_clients_screen.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -26,9 +30,9 @@ class _SettingPageState extends State<SettingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BusinessProvider>(
-      builder: (context, business, _) {
-        final name = business.saveBusinessModel?.businessName ?? '';
+    return Consumer2<BusinessProvider, CurrencyProvider>(
+      builder: (context, business, currency, _) {
+        final name = business.activeBusiness?.businessName ?? '';
         final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
         return CupertinoPageScaffold(
@@ -47,11 +51,19 @@ class _SettingPageState extends State<SettingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 8),
-                        _buildBusinessHeader(name, initial),
+                        _buildBusinessHeader(name, initial, business.businesses.length),
                         const SizedBox(height: 24),
+
+                        // ── Business section ───────────────────────────────
                         sectionLabel('Business'),
-                        _buildMenuCard(business),
+                        _buildBusinessCard(business),
+                        const SizedBox(height: 24),
+
+                        // ── Preferences section ────────────────────────────
+                        sectionLabel('Preferences'),
+                        _buildPreferencesCard(currency),
                         const SizedBox(height: 32),
+
                         Center(
                           child: Text(
                             'Invoice Maker v1.0.0',
@@ -74,6 +86,7 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
+  // ── Nav bar ────────────────────────────────────────────────────────────────
   Widget _buildNavBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -96,7 +109,8 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  Widget _buildBusinessHeader(String name, String initial) {
+  // ── Business header card ───────────────────────────────────────────────────
+  Widget _buildBusinessHeader(String name, String initial, int businessCount) {
     return Container(
       decoration: kCardDecoration,
       padding: const EdgeInsets.all(20),
@@ -133,7 +147,9 @@ class _SettingPageState extends State<SettingPage> {
                   ),
                 ),
                 Text(
-                  'Your Business',
+                  businessCount > 1
+                      ? '$businessCount businesses'
+                      : 'Your Business',
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: kTextSecondary,
@@ -147,11 +163,10 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  Widget _buildMenuCard(BusinessProvider business) {
+  // ── Business menu card ─────────────────────────────────────────────────────
+  Widget _buildBusinessCard(BusinessProvider business) {
     return Container(
       decoration: kCardDecoration,
-      // ClipRRect clips the ink ripple to the card shape;
-      // Material(transparency) provides the Material ancestor InkWell needs
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Material(
@@ -160,20 +175,23 @@ class _SettingPageState extends State<SettingPage> {
             children: [
               _menuTile(
                 icon: CupertinoIcons.building_2_fill,
-                label: 'Manage Business',
-                onTap: () => Navigation.go(context, BusinessUpatePage()),
+                label: 'Manage Businesses',
+                onTap: () => Navigation.go(
+                  context,
+                  const ManageBusinessesScreen(),
+                ),
               ),
               const Divider(height: 1, color: kBorder),
               _menuTile(
                 icon: CupertinoIcons.person_2_fill,
                 label: 'Clients',
-                onTap: () {},
+                onTap: () => Navigation.go(context, const SavedClientsScreen()),
               ),
               const Divider(height: 1, color: kBorder),
               _menuTile(
                 icon: CupertinoIcons.tag_fill,
                 label: 'Items & Services',
-                onTap: () {},
+                onTap: () => Navigation.go(context, const ServicesScreen()),
                 isLast: true,
               ),
             ],
@@ -183,6 +201,85 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
+  // ── Preferences card (currency + future prefs) ─────────────────────────────
+  Widget _buildPreferencesCard(CurrencyProvider currency) {
+    return Container(
+      decoration: kCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () => Navigation.go(context, const CurrencyScreen()),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  // Icon
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: kPrimaryLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.globe,
+                      color: kPrimary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+
+                  // Label
+                  Expanded(
+                    child: Text(
+                      'Currency',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: kTextPrimary,
+                      ),
+                    ),
+                  ),
+
+                  // Current selection badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: kPrimaryLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${currency.currency.flag}  '
+                      '${currency.code}  ${currency.symbol}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: kPrimary,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 14,
+                    color: kTextSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Reusable menu tile ─────────────────────────────────────────────────────
   Widget _menuTile({
     required IconData icon,
     required String label,

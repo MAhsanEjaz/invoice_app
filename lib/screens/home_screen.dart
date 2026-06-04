@@ -2,7 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
+import 'package:invoicemaker/providers/business_provider.dart';
+import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/screens/setting_page.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
@@ -22,19 +25,41 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int groupVal = 0;
 
+  // Returns invoices for the active business.
+  // Legacy invoices without a businessId are shown under the default business.
+  List<InvoiceModel> _filterForBusiness(
+    List<InvoiceModel> all,
+    BusinessModel? active,
+  ) {
+    if (active == null) return all;
+    return all.where((inv) {
+      if (inv.businessId == active.id) return true;
+      // Legacy invoices (no businessId) belong to default business
+      if (inv.businessId == null && active.isDefault) return true;
+      return false;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<InvoiceProvider>(
-      builder: (context, invoice, _) {
-        final displayList =
-            groupVal == 0 ? invoice.unPaidInvoice : invoice.paidInvoice;
+    return Consumer3<InvoiceProvider, CurrencyProvider, BusinessProvider>(
+      builder: (context, invoice, currency, business, _) {
+        final sym = currency.symbol;
+        final active = business.activeBusiness;
+        final filtered = _filterForBusiness(invoice.invoice, active);
+
+        final unpaid =
+            filtered.where((i) => i.invoiceStatus != 'Paid').toList();
+        final paid =
+            filtered.where((i) => i.invoiceStatus == 'Paid').toList();
+        final displayList = groupVal == 0 ? unpaid : paid;
 
         return CupertinoPageScaffold(
           backgroundColor: kBackground,
           child: SafeArea(
             child: Column(
               children: [
-                _buildHeader(context, invoice),
+                _buildHeader(context, business, filtered, sym),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -43,21 +68,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _buildSegmentControl(),
                 ),
                 Expanded(
-                  child:
-                      displayList.isEmpty
-                          ? _buildEmptyState()
-                          : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                            itemCount: displayList.length,
-                            separatorBuilder:
-                                (_, __) => const SizedBox(height: 10),
-                            itemBuilder:
-                                (context, k) => _buildInvoiceCard(
-                                  context,
-                                  invoice,
-                                  displayList[k],
-                                ),
+                  child: displayList.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.separated(
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                          itemCount: displayList.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, k) => _buildInvoiceCard(
+                            context,
+                            invoice,
+                            displayList[k],
+                            sym,
                           ),
+                        ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -74,17 +99,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, InvoiceProvider invoice) {
-    final unpaidTotal = invoice.unPaidInvoice.fold<double>(
-      0,
-      (sum, inv) =>
-          sum +
-          (inv.items?.fold<double>(
-                0,
-                (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
-              ) ??
-              0),
-    );
+  Widget _buildHeader(
+    BuildContext context,
+    BusinessProvider business,
+    List<InvoiceModel> filtered,
+    String sym,
+  ) {
+    final unpaidTotal = filtered
+        .where((i) => i.invoiceStatus != 'Paid')
+        .fold<double>(
+          0,
+          (sum, inv) =>
+              sum +
+              (inv.items?.fold<double>(
+                    0,
+                    (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
+                  ) ??
+                  0),
+        );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -103,10 +135,46 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Text(
-                  '${invoice.invoice.length} total · \$${unpaidTotal.toStringAsFixed(2)} outstanding',
+                  '${filtered.length} total · $sym${unpaidTotal.toStringAsFixed(2)} outstanding',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: kTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Business switcher chip
+                GestureDetector(
+                  onTap: () =>
+                      _showBusinessSwitcher(context, business),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: kPrimaryLight,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          business.activeBusiness?.businessName ??
+                              'Select Business',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: kPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          CupertinoIcons.chevron_down,
+                          size: 11,
+                          color: kPrimary,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -136,6 +204,21 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showBusinessSwitcher(BuildContext context, BusinessProvider business) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BusinessSwitcherSheet(
+        businesses: business.businesses,
+        activeId: business.activeBusiness?.id,
+        onSelect: (b) {
+          business.setActiveBusiness(b);
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -214,7 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 6),
           Text(
             'Tap "Create Invoice" to get started',
-            style: GoogleFonts.poppins(fontSize: 13, color: kTextSecondary),
+            style: GoogleFonts.poppins(
+                fontSize: 13, color: kTextSecondary),
           ),
         ],
       ),
@@ -225,6 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context,
     InvoiceProvider invoice,
     InvoiceModel inv,
+    String sym,
   ) {
     final clientName = inv.clients?.first.name ?? 'Unknown Client';
     final total =
@@ -263,9 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               alignment: Alignment.center,
               child: Text(
-                clientName.isNotEmpty
-                    ? clientName[0].toUpperCase()
-                    : '?',
+                clientName.isNotEmpty ? clientName[0].toUpperCase() : '?',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -304,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '\$${total.toStringAsFixed(2)}',
+                  '$sym${total.toStringAsFixed(2)}',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -315,6 +398,153 @@ class _HomeScreenState extends State<HomeScreen> {
                 statusBadge(isPaid),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BusinessSwitcherSheet extends StatelessWidget {
+  final List<BusinessModel> businesses;
+  final String? activeId;
+  final void Function(BusinessModel) onSelect;
+
+  const _BusinessSwitcherSheet({
+    required this.businesses,
+    required this.activeId,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: kBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Switch Business',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: kTextPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: businesses.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                final b = businesses[i];
+                final isActive = b.id == activeId;
+                return GestureDetector(
+                  onTap: () => onSelect(b),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isActive ? kPrimaryLight : kSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isActive ? kPrimary : kBorder,
+                        width: isActive ? 1.5 : 1,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: isActive ? kPrimary : kBackground,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            (b.businessName?.isNotEmpty ?? false)
+                                ? b.businessName![0].toUpperCase()
+                                : '?',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: isActive ? Colors.white : kTextSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            b.businessName ?? '',
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: kTextPrimary,
+                            ),
+                          ),
+                        ),
+                        if (b.isDefault)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Default',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        if (isActive)
+                          const Icon(
+                            CupertinoIcons.checkmark_circle_fill,
+                            color: kPrimary,
+                            size: 20,
+                          )
+                        else
+                          const Icon(
+                            CupertinoIcons.circle,
+                            color: kTextHint,
+                            size: 20,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
