@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
+import 'package:invoicemaker/providers/terms_provider.dart';
 import 'package:invoicemaker/screens/currency_screen.dart';
 import 'package:invoicemaker/screens/services_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
@@ -31,8 +32,8 @@ class _SettingPageState extends State<SettingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<BusinessProvider, CurrencyProvider>(
-      builder: (context, business, currency, _) {
+    return Consumer3<BusinessProvider, CurrencyProvider, TermsProvider>(
+      builder: (context, business, currency, terms, _) {
         final name = business.activeBusiness?.businessName ?? '';
         final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
@@ -60,9 +61,19 @@ class _SettingPageState extends State<SettingPage> {
                         _buildBusinessCard(business),
                         const SizedBox(height: 24),
 
+                        // ── Shared data section ────────────────────────────
+                        sectionLabel('Shared'),
+                        _buildSharedDataCard(),
+                        const SizedBox(height: 24),
+
                         // ── Preferences section ────────────────────────────
                         sectionLabel('Preferences'),
                         _buildPreferencesCard(currency),
+                        const SizedBox(height: 24),
+
+                        // ── Invoice Defaults section ───────────────────────
+                        sectionLabel('Invoice Defaults'),
+                        _buildTermsCard(terms),
                         const SizedBox(height: 32),
 
                         Center(
@@ -164,8 +175,27 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  // ── Business menu card ─────────────────────────────────────────────────────
+  // ── Business menu card (business-specific settings only) ──────────────────
   Widget _buildBusinessCard(BusinessProvider business) {
+    return Container(
+      decoration: kCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: _menuTile(
+            icon: CupertinoIcons.building_2_fill,
+            label: 'Manage Businesses',
+            isLast: true,
+            onTap: () => Navigation.go(context, const ManageBusinessesScreen()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Shared data card (common across all businesses) ────────────────────────
+  Widget _buildSharedDataCard() {
     return Container(
       decoration: kCardDecoration,
       child: ClipRRect(
@@ -175,20 +205,10 @@ class _SettingPageState extends State<SettingPage> {
           child: Column(
             children: [
               _menuTile(
-                icon: CupertinoIcons.building_2_fill,
-                label: 'Manage Businesses',
-                onTap: () => Navigation.go(
-                  context,
-                  const ManageBusinessesScreen(),
-                ),
-              ),
-              const Divider(height: 1, color: kBorder),
-              _menuTile(
                 icon: CupertinoIcons.person_2_fill,
                 label: 'Clients',
                 onTap: () => Navigation.go(context, const SavedClientsScreen()),
               ),
-              const Divider(height: 1, color: kBorder),
               const Divider(height: 1, color: kBorder),
               _menuTile(
                 icon: CupertinoIcons.creditcard_fill,
@@ -199,8 +219,8 @@ class _SettingPageState extends State<SettingPage> {
               _menuTile(
                 icon: CupertinoIcons.tag_fill,
                 label: 'Items & Services',
-                onTap: () => Navigation.go(context, const ServicesScreen()),
                 isLast: true,
+                onTap: () => Navigation.go(context, const ServicesScreen()),
               ),
             ],
           ),
@@ -281,6 +301,199 @@ class _SettingPageState extends State<SettingPage> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Terms & Conditions card ────────────────────────────────────────────────
+  Widget _buildTermsCard(TermsProvider terms) {
+    final hasTerms = terms.hasTerms;
+    return Container(
+      decoration: kCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () => _showTermsEditor(terms),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: kPrimaryLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.doc_text,
+                      color: kPrimary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Terms & Conditions',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: kTextPrimary,
+                          ),
+                        ),
+                        Text(
+                          hasTerms ? terms.terms : 'Not set — tap to add',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: kTextSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 14,
+                    color: kTextSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTermsEditor(TermsProvider terms) {
+    final ctrl = TextEditingController(text: terms.terms);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: kBackground,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: kBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Terms & Conditions',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: kTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Shown on invoices when you choose to include them.',
+                style: GoogleFonts.poppins(fontSize: 12, color: kTextSecondary),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: kCardDecoration,
+                child: CupertinoTextField(
+                  controller: ctrl,
+                  placeholder: 'e.g. Payment due within 30 days…',
+                  placeholderStyle: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: kTextHint,
+                  ),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: kTextPrimary,
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  maxLines: 6,
+                  minLines: 4,
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        ctrl.clear();
+                        terms.save('');
+                        Navigator.pop(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: kBorder),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(
+                        'Clear',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: kTextSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        terms.save(ctrl.text);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(
+                        'Save',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

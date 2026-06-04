@@ -9,6 +9,7 @@ import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
+import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:invoicemaker/widgets/app_text_filed.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -311,15 +312,24 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: AppButton(
         onTap: () {
           if (widget.id == null && widget.name == null) {
-            client.addClient(
-              ClientModel(
-                email: emailCont.text.trim(),
-                address: addressCont.text.trim(),
-                phone: phoneCont.text.trim(),
-                name: nameCont.text.trim(),
-                duplicate: false,
-              ),
+            final newClient = ClientModel(
+              email: emailCont.text.trim(),
+              address: addressCont.text.trim(),
+              phone: phoneCont.text.trim(),
+              name: nameCont.text.trim(),
+              duplicate: false,
             );
+            client.addClient(newClient);
+            // Also persist to global saved clients so this client is available
+            // across all businesses in future invoices.
+            Provider.of<SavedClientProvider>(context, listen: false)
+                .addClient(ClientModel(
+              email: newClient.email,
+              address: newClient.address,
+              phone: newClient.phone,
+              name: newClient.name,
+              duplicate: false,
+            ));
           } else {
             if (widget.isPredefined == true) {
               invoice.updateClient(

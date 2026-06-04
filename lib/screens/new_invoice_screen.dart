@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
-import 'package:invoicemaker/pdf/pdf_service.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
-import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
+import 'package:invoicemaker/providers/terms_provider.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
@@ -39,6 +38,8 @@ class NewInvoiceScreen extends StatefulWidget {
 
 class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   String? selectDate;
+  String? _dueDate;
+  bool _includeTerms = false;
   final TextEditingController _notesCtrl = TextEditingController();
   BusinessModel? _selectedBusiness;
   BankModel? _selectedBank;
@@ -69,11 +70,16 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   void _loadInvoiceData() {
     if (!_isEditMode) return;
 
-    final invoiceProvider = Provider.of<InvoiceProvider>(context, listen: false);
+    final invoiceProvider = Provider.of<InvoiceProvider>(
+      context,
+      listen: false,
+    );
     final clientProvider = Provider.of<ClientProvider>(context, listen: false);
     final inv = widget.invoice!;
 
     selectDate = inv.date;
+    _dueDate = inv.dueDate;
+    _includeTerms = inv.termsConditions?.isNotEmpty ?? false;
     invoiceProvider.lastId = inv.invoiceId!;
     _notesCtrl.text = inv.notes ?? '';
 
@@ -98,14 +104,16 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           targetInvoice.items?.any((item) => item.id == itemX.id) ?? false;
       if (!exists) {
         targetInvoice.items ??= [];
-        targetInvoice.items!.add(ItemModel(
-          id: itemX.id,
-          price: itemX.price,
-          qty: itemX.qty,
-          note: itemX.note,
-          itemName: itemX.itemName,
-          duplicate: false,
-        ));
+        targetInvoice.items!.add(
+          ItemModel(
+            id: itemX.id,
+            price: itemX.price,
+            qty: itemX.qty,
+            note: itemX.note,
+            itemName: itemX.itemName,
+            duplicate: false,
+          ),
+        );
       }
     }
   }
@@ -144,6 +152,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       sectionLabel('Notes'),
                       _notesCard(),
                       const SizedBox(height: 20),
+                      _buildTermsToggle(),
                       sectionLabel('Payment Details'),
                       _bankCard(),
                       const SizedBox(height: 16),
@@ -215,7 +224,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
-  // ── Date + invoice-number chips ────────────────────────────────────────────
+  // ── Date + invoice-number + due-date chips ────────────────────────────────
   Widget _buildMetaRow(InvoiceProvider invoice) {
     return Column(
       children: [
@@ -245,6 +254,57 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () async {
+            final date = await customDatePicker(context);
+            if (date != null) {
+              setState(() => _dueDate = customDateFormat(date.toString()));
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: kCardDecorationFlat,
+            child: Row(
+              children: [
+                Icon(
+                  CupertinoIcons.clock,
+                  size: 16,
+                  color: _dueDate != null ? kPrimary : kTextSecondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _dueDate != null
+                        ? 'Due: $_dueDate'
+                        : 'Set Due Date (optional)',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: _dueDate != null ? kTextPrimary : kTextSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (_dueDate != null)
+                  GestureDetector(
+                    onTap: () => setState(() => _dueDate = null),
+                    child: const Icon(
+                      CupertinoIcons.xmark_circle,
+                      size: 16,
+                      color: kTextHint,
+                    ),
+                  )
+                else
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 13,
+                    color: kTextSecondary,
+                  ),
+              ],
+            ),
+          ),
+        ),
         if (!_isEditMode) ...[
           const SizedBox(height: 10),
           _buildBusinessSelector(),
@@ -265,7 +325,11 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         decoration: kCardDecorationFlat,
         child: Row(
           children: [
-            const Icon(CupertinoIcons.building_2_fill, size: 16, color: kPrimary),
+            const Icon(
+              CupertinoIcons.building_2_fill,
+              size: 16,
+              color: kPrimary,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -293,138 +357,142 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: kBackground,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: kBorder,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Invoice From',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: kTextPrimary,
+      builder:
+          (_) => Container(
+            decoration: const BoxDecoration(
+              color: kBackground,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: kBorder,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: bp.businesses.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (_, i) {
-                  final b = bp.businesses[i];
-                  final isSel = _selectedBusiness?.id == b.id;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedBusiness = b);
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isSel ? kPrimaryLight : kSurface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSel ? kPrimary : kBorder,
-                          width: isSel ? 1.5 : 1,
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Invoice From',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: kTextPrimary,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: isSel ? kPrimary : kBackground,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              (b.businessName?.isNotEmpty ?? false)
-                                  ? b.businessName![0].toUpperCase()
-                                  : '?',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: isSel ? Colors.white : kTextSecondary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              b.businessName ?? '',
-                              style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: kTextPrimary,
-                              ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: bp.businesses.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final b = bp.businesses[i];
+                      final isSel = _selectedBusiness?.id == b.id;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedBusiness = b);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSel ? kPrimaryLight : kSurface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSel ? kPrimary : kBorder,
+                              width: isSel ? 1.5 : 1,
                             ),
                           ),
-                          if (b.isDefault)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'Default',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.orange,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: isSel ? kPrimary : kBackground,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  (b.businessName?.isNotEmpty ?? false)
+                                      ? b.businessName![0].toUpperCase()
+                                      : '?',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color:
+                                        isSel ? Colors.white : kTextSecondary,
+                                  ),
                                 ),
                               ),
-                            ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            isSel
-                                ? CupertinoIcons.checkmark_circle_fill
-                                : CupertinoIcons.circle,
-                            color: isSel ? kPrimary : kTextHint,
-                            size: 20,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  b.businessName ?? '',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: kTextPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (b.isDefault)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Default',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                isSel
+                                    ? CupertinoIcons.checkmark_circle_fill
+                                    : CupertinoIcons.circle,
+                                color: isSel ? kPrimary : kTextHint,
+                                size: 20,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -460,119 +528,121 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Material(
           type: MaterialType.transparency,
-          child: client.name != null
-              ? GestureDetector(
-                  onTap: _isEditMode
-                      ? null
-                      : () => Navigation.go(
-                            context,
-                            AddClientScreen(
-                              client: client.client,
-                              name: client.name,
-                              address: client.address,
-                              email: client.email,
-                              phone: client.phone,
-                              id: client.lastId,
-                              invoice: invoice.invoice,
-                              isPredefined: true,
+          child:
+              client.name != null
+                  ? GestureDetector(
+                    onTap:
+                        _isEditMode
+                            ? null
+                            : () => Navigation.go(
+                              context,
+                              AddClientScreen(
+                                client: client.client,
+                                name: client.name,
+                                address: client.address,
+                                email: client.email,
+                                phone: client.phone,
+                                id: client.lastId,
+                                invoice: invoice.invoice,
+                                isPredefined: true,
+                              ),
+                            ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: kPrimaryLight,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              (client.name?.isNotEmpty ?? false)
+                                  ? client.name![0].toUpperCase()
+                                  : '?',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: kPrimary,
+                              ),
                             ),
                           ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: kPrimaryLight,
-                            borderRadius: BorderRadius.circular(12),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  client.name ?? '',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: kTextPrimary,
+                                  ),
+                                ),
+                                if (client.email?.isNotEmpty ?? false)
+                                  Text(
+                                    client.email!,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: kTextSecondary,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            (client.name?.isNotEmpty ?? false)
-                                ? client.name![0].toUpperCase()
-                                : '?',
+                          if (!_isEditMode)
+                            const Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 16,
+                              color: kTextSecondary,
+                            ),
+                        ],
+                      ),
+                    ),
+                  )
+                  : InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => _showClientPicker(client),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: kPrimaryLight,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.person_badge_plus,
+                              color: kPrimary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Text(
+                            'Add Client',
                             style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                               color: kPrimary,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                client.name ?? '',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: kTextPrimary,
-                                ),
-                              ),
-                              if (client.email?.isNotEmpty ?? false)
-                                Text(
-                                  client.email!,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: kTextSecondary,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        if (!_isEditMode)
+                          const Spacer(),
                           const Icon(
                             CupertinoIcons.chevron_right,
                             size: 16,
                             color: kTextSecondary,
                           ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                )
-              : InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _showClientPicker(client),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: kPrimaryLight,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            CupertinoIcons.person_badge_plus,
-                            color: kPrimary,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Text(
-                          'Add Client',
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: kPrimary,
-                          ),
-                        ),
-                        const Spacer(),
-                        const Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 16,
-                          color: kTextSecondary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
         ),
       ),
     );
@@ -595,23 +665,23 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: items.length,
-                  separatorBuilder: (_, __) =>
-                      const Divider(height: 1, color: kBorder),
+                  separatorBuilder:
+                      (_, __) => const Divider(height: 1, color: kBorder),
                   itemBuilder: (context, index) {
                     final i = items[index];
-                    final sym =
-                        Provider.of<CurrencyProvider>(context).symbol;
-                    final lineTotal =
-                        ((i.price ?? 0) * (i.qty ?? 1)).toStringAsFixed(2);
+                    final sym = Provider.of<CurrencyProvider>(context).symbol;
+                    final lineTotal = ((i.price ?? 0) * (i.qty ?? 1))
+                        .toStringAsFixed(2);
                     return InkWell(
-                      onTap: () => Navigation.go(
-                        context,
-                        AddItemScreen(
-                          itemModel: i,
-                          isUpdate: _isEditMode,
-                          invoice: widget.invoice,
-                        ),
-                      ),
+                      onTap:
+                          () => Navigation.go(
+                            context,
+                            AddItemScreen(
+                              itemModel: i,
+                              isUpdate: _isEditMode,
+                              invoice: widget.invoice,
+                            ),
+                          ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -750,11 +820,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _BankPickerSheet(
-        banks: banks,
-        selectedId: _selectedBank?.id,
-        onSelect: (b) => setState(() => _selectedBank = b),
-      ),
+      builder:
+          (_) => _BankPickerSheet(
+            banks: banks,
+            selectedId: _selectedBank?.id,
+            onSelect: (b) => setState(() => _selectedBank = b),
+          ),
     );
   }
 
@@ -766,21 +837,24 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ClientPickerSheet(
-        savedClients: savedClients,
-        onSelect: (c) {
-          client.selectClient(c.name, c.address, c.phone, c.email, c.id);
-          client.client.add(ClientModel(
-            name: c.name,
-            id: c.id,
-            email: c.email,
-            address: c.address,
-            phone: c.phone,
-            duplicate: false,
-          ));
-        },
-        onAddNew: () => Navigation.go(context, const AddClientScreen()),
-      ),
+      builder:
+          (_) => _ClientPickerSheet(
+            savedClients: savedClients,
+            onSelect: (c) {
+              client.selectClient(c.name, c.address, c.phone, c.email, c.id);
+              client.client.add(
+                ClientModel(
+                  name: c.name,
+                  id: c.id,
+                  email: c.email,
+                  address: c.address,
+                  phone: c.phone,
+                  duplicate: false,
+                ),
+              );
+            },
+            onAddNew: () => Navigation.go(context, const AddClientScreen()),
+          ),
     );
   }
 
@@ -792,32 +866,35 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ServicePickerSheet(
-        services: services,
-        onConfirm: (selected) {
-          for (final service in selected) {
-            final itemModel = ItemModel(
-              itemName: service.name,
-              note: service.description,
-              price: service.price ?? 0,
-              qty: 1,
-              duplicate: false,
-            );
-            if (_isEditMode) {
-              invoice.addMoreInvoices(widget.invoice!.invoiceId!, itemModel);
-            } else {
-              item.addItems(itemModel);
-            }
-          }
-        },
-      ),
+      builder:
+          (_) => _ServicePickerSheet(
+            services: services,
+            onConfirm: (selected) {
+              for (final service in selected) {
+                final itemModel = ItemModel(
+                  itemName: service.name,
+                  note: service.description,
+                  price: service.price ?? 0,
+                  qty: 1,
+                  duplicate: false,
+                );
+                if (_isEditMode) {
+                  invoice.addMoreInvoices(
+                    widget.invoice!.invoiceId!,
+                    itemModel,
+                  );
+                } else {
+                  item.addItems(itemModel);
+                }
+              }
+            },
+          ),
     );
   }
 
   // ── Total card ─────────────────────────────────────────────────────────────
   Widget _totalCard(ItemProvider itemProvider) {
-    final sym =
-        Provider.of<CurrencyProvider>(context).symbol;
+    final sym = Provider.of<CurrencyProvider>(context).symbol;
     final items = _isEditMode ? widget.invoice!.items! : itemProvider.item;
     final total = items.fold<double>(
       0,
@@ -868,6 +945,67 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
+  // ── Terms & Conditions toggle ──────────────────────────────────────────────
+  Widget _buildTermsToggle() {
+    final terms = Provider.of<TermsProvider>(context, listen: false);
+    if (!terms.hasTerms) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        sectionLabel('Terms & Conditions'),
+        Container(
+          decoration: kCardDecoration,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              const Icon(
+                CupertinoIcons.doc_text,
+                size: 16,
+                color: kTextSecondary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Include on this invoice',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: kTextPrimary,
+                  ),
+                ),
+              ),
+              Transform.scale(
+                scale: 0.85,
+                child: CupertinoSwitch(
+                  value: _includeTerms,
+                  activeTrackColor: kPrimary,
+                  onChanged: (val) => setState(() => _includeTerms = val),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_includeTerms) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            decoration: kCardDecorationFlat,
+            padding: const EdgeInsets.all(14),
+            child: Text(
+              terms.terms,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: kTextSecondary,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
   // ── Bank card ──────────────────────────────────────────────────────────────
   Widget _bankCard() {
     return Container(
@@ -876,102 +1014,103 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Material(
           type: MaterialType.transparency,
-          child: _selectedBank != null
-              ? InkWell(
-                  onTap: _isEditMode ? null : () => _showBankPicker(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: kPrimaryLight,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            CupertinoIcons.creditcard,
-                            color: kPrimary,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _selectedBank!.title ?? '',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: kTextPrimary,
-                                ),
-                              ),
-                              Text(
-                                '${_selectedBank!.bankName}  •  ${_selectedBank!.accountNumber}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: kTextSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (!_isEditMode) ...[
-                          GestureDetector(
-                            onTap: () => setState(() => _selectedBank = null),
+          child:
+              _selectedBank != null
+                  ? InkWell(
+                    onTap: _isEditMode ? null : () => _showBankPicker(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: kPrimaryLight,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: const Icon(
-                              CupertinoIcons.xmark_circle,
+                              CupertinoIcons.creditcard,
+                              color: kPrimary,
                               size: 20,
-                              color: kTextHint,
                             ),
                           ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedBank!.title ?? '',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: kTextPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  '${_selectedBank!.bankName}  •  ${_selectedBank!.accountNumber}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: kTextSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!_isEditMode) ...[
+                            GestureDetector(
+                              onTap: () => setState(() => _selectedBank = null),
+                              child: const Icon(
+                                CupertinoIcons.xmark_circle,
+                                size: 20,
+                                color: kTextHint,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                )
-              : InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: _isEditMode ? null : () => _showBankPicker(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: kPrimaryLight,
-                            borderRadius: BorderRadius.circular(12),
+                  )
+                  : InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _isEditMode ? null : () => _showBankPicker(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: kPrimaryLight,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.creditcard,
+                              color: kPrimary,
+                              size: 20,
+                            ),
                           ),
-                          child: const Icon(
-                            CupertinoIcons.creditcard,
-                            color: kPrimary,
-                            size: 20,
+                          const SizedBox(width: 14),
+                          Text(
+                            'Add Bank Account',
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: kTextSecondary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 14),
-                        Text(
-                          'Add Bank Account',
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                          const Spacer(),
+                          const Icon(
+                            CupertinoIcons.chevron_right,
+                            size: 16,
                             color: kTextSecondary,
                           ),
-                        ),
-                        const Spacer(),
-                        const Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 16,
-                          color: kTextSecondary,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
         ),
       ),
     );
@@ -990,141 +1129,98 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         border: Border(top: BorderSide(color: kBorder)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      child: Row(
-        children: [
-          // ── Preview ────────────────────────────────────────────────────────
-          Expanded(
-            child: AppButton(
-              outlined: true,
-              txt: 'Preview',
-              onTap: () {
-                final templateProvider =
-                    Provider.of<TemplatesColorsProvider>(context, listen: false);
-
-                // Build a temporary InvoiceModel for preview (create mode)
-                // or use the live invoice (edit mode)
-                final previewInvoice = _isEditMode
-                    ? widget.invoice
-                    : InvoiceModel(
-                        invoiceId: invoice.lastId + 1,
-                        date: selectDate,
-                        invoiceStatus: 'UnPaid',
-                        notes: _notesCtrl.text.trim().isEmpty
+      child: AppButton(
+        txt: _isEditMode ? 'Update Invoice' : 'Create Invoice',
+        onTap:
+            _isEditMode
+                ? () {
+                  final tp = Provider.of<TermsProvider>(context, listen: false);
+                  invoice.updateInvoiceDetails(
+                    widget.invoice!.invoiceId!,
+                    date: selectDate,
+                    dueDate: _dueDate,
+                    notes:
+                        _notesCtrl.text.trim().isEmpty
                             ? null
                             : _notesCtrl.text.trim(),
-                        bank: _selectedBank,
-                        items: item.item
-                            .map((e) => ItemModel(
+                    termsConditions: _includeTerms ? tp.terms : null,
+                  );
+                  client.clearClientFromList();
+                  item.item.clear();
+                  Navigator.pop(context);
+                }
+                : () async {
+                  final bp = Provider.of<BusinessProvider>(
+                    context,
+                    listen: false,
+                  );
+                  final tp = Provider.of<TermsProvider>(context, listen: false);
+                  final biz =
+                      _selectedBusiness ??
+                      bp.defaultBusiness ??
+                      bp.activeBusiness;
+
+                  await invoice.addInvoice(
+                    InvoiceModel(
+                      invoiceStatus: 'UnPaid',
+                      businessId: biz?.id,
+                      businessName: biz?.businessName ?? 'My Business',
+                      date: selectDate,
+                      dueDate: _dueDate,
+                      invoiceId: invoice.lastId,
+                      notes:
+                          _notesCtrl.text.trim().isEmpty
+                              ? null
+                              : _notesCtrl.text.trim(),
+                      termsConditions: _includeTerms ? tp.terms : null,
+                      bank: _selectedBank,
+                      items:
+                          item.item
+                              .map(
+                                (e) => ItemModel(
                                   itemName: e.itemName,
                                   note: e.note,
                                   price: e.price,
                                   qty: e.qty,
                                   id: e.id,
                                   duplicate: e.duplicate,
-                                ))
-                            .toList(),
-                        clients: client.client
-                            .map((e) => ClientModel(
+                                ),
+                              )
+                              .toList(),
+                      clients:
+                          client.client
+                              .map(
+                                (e) => ClientModel(
                                   name: e.name,
                                   phone: e.phone,
                                   email: e.email,
                                   address: e.address,
                                   id: e.id,
-                                  duplicate: false,
-                                ))
-                            .toList(),
-                      );
-
-                Navigation.go(
-                  context,
-                  PdfInvoiceScreen(
-                    invoice: previewInvoice,
-                    provider: templateProvider,
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // ── Create / Update ────────────────────────────────────────────────
-          Expanded(
-            child: AppButton(
-              txt: _isEditMode ? 'Update Invoice' : 'Create Invoice',
-              onTap: _isEditMode
-                  ? () {
-                      // Save date + notes changes, then pop back to VerificationInvoice
-                      invoice.updateInvoiceDetails(
-                        widget.invoice!.invoiceId!,
-                        date: selectDate,
-                        notes: _notesCtrl.text.trim().isEmpty
-                            ? null
-                            : _notesCtrl.text.trim(),
-                      );
-                      client.clearClientFromList();
-                      item.item.clear();
-                      Navigator.pop(context);
-                    }
-                  : () async {
-                      final bp =
-                          Provider.of<BusinessProvider>(context, listen: false);
-                      final biz = _selectedBusiness ?? bp.defaultBusiness ?? bp.activeBusiness;
-
-                      await invoice.addInvoice(
-                        InvoiceModel(
-                          invoiceStatus: 'UnPaid',
-                          businessId: biz?.id,
-                          businessName: biz?.businessName ?? 'My Business',
-                          date: selectDate,
-                          invoiceId: invoice.lastId,
-                          notes: _notesCtrl.text.trim().isEmpty
-                              ? null
-                              : _notesCtrl.text.trim(),
-                          bank: _selectedBank,
-                          items: item.item
-                              .map((e) => ItemModel(
-                                    itemName: e.itemName,
-                                    note: e.note,
-                                    price: e.price,
-                                    qty: e.qty,
-                                    id: e.id,
-                                    duplicate: e.duplicate,
-                                  ))
+                                  duplicate: duplicate,
+                                ),
+                              )
                               .toList(),
-                          clients: client.client
-                              .map((e) => ClientModel(
-                                    name: e.name,
-                                    phone: e.phone,
-                                    email: e.email,
-                                    address: e.address,
-                                    id: e.id,
-                                    duplicate: duplicate,
-                                  ))
-                              .toList(),
-                        ),
-                      );
+                    ),
+                  );
 
-                      item.item.clear();
-                      client.client.clear();
-                      client.clearClientFromList();
+                  item.item.clear();
+                  client.client.clear();
+                  client.clearClientFromList();
 
-                      final latestInvoice = invoice.invoice.firstWhere(
-                        (e) => e.invoiceId == invoice.lastId,
-                      );
+                  final latestInvoice = invoice.invoice.firstWhere(
+                    (e) => e.invoiceId == invoice.lastId,
+                  );
 
-                      if (!context.mounted) return;
-                      Navigation.go(
-                        context,
-                        VerificationInvoice(
-                          clientModel: latestInvoice.clients!.first,
-                          itemModel: latestInvoice.items!.first,
-                          invoiceModel: latestInvoice,
-                        ),
-                      );
-                    },
-            ),
-          ),
-        ],
+                  if (!context.mounted) return;
+                  Navigation.go(
+                    context,
+                    VerificationInvoice(
+                      clientModel: latestInvoice.clients!.first,
+                      itemModel: latestInvoice.items!.first,
+                      invoiceModel: latestInvoice,
+                    ),
+                  );
+                },
       ),
     );
   }
@@ -1134,10 +1230,7 @@ class _ServicePickerSheet extends StatefulWidget {
   final List<ServiceModel> services;
   final void Function(List<ServiceModel>) onConfirm;
 
-  const _ServicePickerSheet({
-    required this.services,
-    required this.onConfirm,
-  });
+  const _ServicePickerSheet({required this.services, required this.onConfirm});
 
   @override
   State<_ServicePickerSheet> createState() => _ServicePickerSheetState();
@@ -1200,11 +1293,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Column(
                   children: [
-                    const Icon(
-                      CupertinoIcons.tag,
-                      size: 40,
-                      color: kTextHint,
-                    ),
+                    const Icon(CupertinoIcons.tag, size: 40, color: kTextHint),
                     const SizedBox(height: 12),
                     Text(
                       'No services added yet.',
@@ -1234,19 +1323,19 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                   shrinkWrap: true,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: widget.services.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: 8),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final service = widget.services[index];
                     final isChosen = _selected.contains(service.id);
                     return GestureDetector(
-                      onTap: () => setState(() {
-                        if (isChosen) {
-                          _selected.remove(service.id);
-                        } else {
-                          _selected.add(service.id!);
-                        }
-                      }),
+                      onTap:
+                          () => setState(() {
+                            if (isChosen) {
+                              _selected.remove(service.id);
+                            } else {
+                              _selected.add(service.id!);
+                            }
+                          }),
                       child: Container(
                         decoration: BoxDecoration(
                           color: isChosen ? kPrimaryLight : kSurface,
@@ -1277,9 +1366,8 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                                 style: GoogleFonts.poppins(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: isChosen
-                                      ? Colors.white
-                                      : kTextSecondary,
+                                  color:
+                                      isChosen ? Colors.white : kTextSecondary,
                                 ),
                               ),
                             ),
@@ -1315,9 +1403,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: isChosen
-                                      ? kPrimary
-                                      : kTextSecondary,
+                                  color: isChosen ? kPrimary : kTextSecondary,
                                 ),
                               ),
                             const SizedBox(width: 8),
@@ -1339,18 +1425,21 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: AppButton(
-                txt: _selected.isEmpty
-                    ? 'Select Services'
-                    : 'Add ${_selected.length} Service${_selected.length > 1 ? 's' : ''}',
-                onTap: _selected.isEmpty
-                    ? null
-                    : () {
-                        final chosen = widget.services
-                            .where((s) => _selected.contains(s.id))
-                            .toList();
-                        Navigator.pop(context);
-                        widget.onConfirm(chosen);
-                      },
+                txt:
+                    _selected.isEmpty
+                        ? 'Select Services'
+                        : 'Add ${_selected.length} Service${_selected.length > 1 ? 's' : ''}',
+                onTap:
+                    _selected.isEmpty
+                        ? null
+                        : () {
+                          final chosen =
+                              widget.services
+                                  .where((s) => _selected.contains(s.id))
+                                  .toList();
+                          Navigator.pop(context);
+                          widget.onConfirm(chosen);
+                        },
               ),
             ),
             const SizedBox(height: 8),

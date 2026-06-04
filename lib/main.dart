@@ -10,6 +10,7 @@ import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
 import 'package:invoicemaker/providers/bank_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/providers/service_provider.dart';
+import 'package:invoicemaker/providers/terms_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/screens/splash_screen.dart';
@@ -34,6 +35,15 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // ignore: use_build_context_synchronously
+      context.read<TemplatesColorsProvider>().load();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
@@ -46,6 +56,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (context) => ServiceProvider()),
         ChangeNotifierProvider(create: (context) => SavedClientProvider()),
         ChangeNotifierProvider(create: (context) => BankProvider()),
+        ChangeNotifierProvider(create: (context) => TermsProvider()),
       ],
       child: CupertinoApp(
         debugShowCheckedModeBanner: false,

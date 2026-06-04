@@ -7,8 +7,10 @@ class InvoiceModel {
   String? businessId;
   String? businessName;
   String? date;
+  String? dueDate;
   String? invoiceStatus;
   String? notes;
+  String? termsConditions;
   double? receivedAmount;
   double? discount;
   List<ItemModel>? items;
@@ -20,10 +22,12 @@ class InvoiceModel {
     this.businessId,
     this.businessName,
     this.date,
+    this.dueDate,
     this.clients,
     this.invoiceId,
     this.invoiceStatus,
     this.notes,
+    this.termsConditions,
     this.receivedAmount,
     this.discount,
     this.bank,
@@ -35,8 +39,10 @@ class InvoiceModel {
       'businessId': businessId,
       'businessName': businessName,
       'date': date,
+      'dueDate': dueDate,
       'invoiceStatus': invoiceStatus,
       'notes': notes,
+      'termsConditions': termsConditions,
       'receivedAmount': receivedAmount,
       'discount': discount,
       'clients': clients?.map((e) => e.toJson()).toList(),
@@ -51,8 +57,10 @@ class InvoiceModel {
       businessId: json['businessId'] as String?,
       invoiceStatus: json['invoiceStatus'],
       date: json['date'],
+      dueDate: json['dueDate'] as String?,
       businessName: json['businessName'],
       notes: json['notes'],
+      termsConditions: json['termsConditions'] as String?,
       receivedAmount: (json['receivedAmount'] as num?)?.toDouble(),
       discount: (json['discount'] as num?)?.toDouble(),
       items: (json['items'] as List<dynamic>?)

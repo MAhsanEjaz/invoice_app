@@ -17,6 +17,7 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/business_provider.dart';
 import '../providers/pdf_templates_colors_provider.dart';
 
 class VerificationInvoice extends StatefulWidget {
@@ -36,8 +37,6 @@ class VerificationInvoice extends StatefulWidget {
 }
 
 class _VerificationInvoiceState extends State<VerificationInvoice> {
-  int _selectedColorIndex = 0;
-
   void _goHome() {
     Navigator.pushAndRemoveUntil(
       context,
@@ -339,12 +338,26 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   children: [
                     statusBadge(isPaid),
                     const Spacer(),
-                    Text(
-                      liveInvoice.date ?? '',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: kTextSecondary,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          liveInvoice.date ?? '',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: kTextSecondary,
+                          ),
+                        ),
+                        if (liveInvoice.dueDate?.isNotEmpty ?? false)
+                          Text(
+                            'Due: ${liveInvoice.dueDate}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: kUnpaidColor,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -589,6 +602,25 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             ),
           ],
 
+          // ── Terms & Conditions (shown only if included) ────────────────────
+          if (liveInvoice.termsConditions?.isNotEmpty ?? false) ...[
+            const SizedBox(height: 20),
+            sectionLabel('Terms & Conditions'),
+            Container(
+              width: double.infinity,
+              decoration: kCardDecoration,
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                liveInvoice.termsConditions!,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: kTextSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+
           // ── Payment ───────────────────────────────────────────────────────
           const SizedBox(height: 20),
           sectionLabel('Payment'),
@@ -787,7 +819,277 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
     );
   }
 
-  // ── Bottom bar: color picker → Preview + Send ──────────────────────────────
+  // ── Customize invoice sheet (template + color) ────────────────────────────
+  void _showCustomizeSheet(
+    TemplatesColorsProvider data,
+    String applyLabel,
+    VoidCallback onApply,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          int colorIdx = data.colors.indexOf(data.color);
+          if (colorIdx < 0) colorIdx = 0;
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: kSurface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: kBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // ── Template section ────────────────────────────────────
+                    Text(
+                      'Choose Template',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: kTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Select a layout for your PDF invoice',
+                      style: GoogleFonts.poppins(fontSize: 12, color: kTextSecondary),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Template grid (2 columns)
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.72,
+                      children: InvoiceTemplate.values.map((t) {
+                        final isSelected = data.template == t;
+                        return GestureDetector(
+                          onTap: () {
+                            data.selectTemplate(t);
+                            setSheet(() {});
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            decoration: BoxDecoration(
+                              color: kBackground,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected ? data.color : kBorder,
+                                width: isSelected ? 2.5 : 1.5,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: data.color.withValues(alpha: 0.18),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(14),
+                                    ),
+                                    child: _TemplatePreview(
+                                      template: t,
+                                      color: data.color,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? data.color.withValues(alpha: 0.08)
+                                        : kSurface,
+                                    borderRadius: const BorderRadius.vertical(
+                                      bottom: Radius.circular(14),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              t.label,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: isSelected
+                                                    ? data.color
+                                                    : kTextPrimary,
+                                              ),
+                                            ),
+                                            Text(
+                                              t.description,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 10,
+                                                color: kTextSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        Container(
+                                          width: 22,
+                                          height: 22,
+                                          decoration: BoxDecoration(
+                                            color: data.color,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.check_rounded,
+                                            color: Colors.white,
+                                            size: 14,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 24),
+                    Divider(color: kBorder, height: 1),
+                    const SizedBox(height: 20),
+
+                    // ── Color section ───────────────────────────────────────
+                    Text(
+                      'Accent Color',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: kTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Applied to the header and highlights',
+                      style: GoogleFonts.poppins(fontSize: 12, color: kTextSecondary),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(data.colors.length, (i) {
+                        final isSelected = colorIdx == i;
+                        return GestureDetector(
+                          onTap: () {
+                            colorIdx = i;
+                            data.selectColor(data.colors[i]);
+                            setSheet(() {});
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: data.colors[i],
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: kTextPrimary, width: 2.5)
+                                  : Border.all(
+                                      color: Colors.transparent, width: 2.5),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: data.colors[i]
+                                            .withValues(alpha: 0.5),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: isSelected
+                                ? const Icon(Icons.check_rounded,
+                                    color: Colors.white, size: 18)
+                                : null,
+                          ),
+                        );
+                      }),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Apply button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimary,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          applyLabel,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    ).then((_) {
+      if (!mounted) return;
+      onApply();
+    });
+  }
+
+  // ── Bottom bar: Preview + Send ─────────────────────────────────────────────
   Widget _buildBottomBar(
     TemplatesColorsProvider data,
     InvoiceProvider invoice,
@@ -801,165 +1103,424 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Row(
         children: [
-          // Preview (opens color picker first)
           Expanded(
             child: _ActionButton(
               label: 'Preview',
               icon: CupertinoIcons.eye,
               outlined: true,
-              onTap: () {
-                showModalBottomSheet<void>(
-                  context: context,
-                  backgroundColor: kSurface,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (_) => StatefulBuilder(
-                    builder: (ctx, setstate) => Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 36,
-                              height: 4,
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: kBorder,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            'Invoice Color Theme',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: kTextPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Applied to the header and table of your PDF',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: kTextSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: data.colors.length,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 5,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                            ),
-                            itemBuilder: (_, i) {
-                              final isSelected = _selectedColorIndex == i;
-                              return GestureDetector(
-                                onTap: () {
-                                  _selectedColorIndex = i;
-                                  data.selectColor(data.colors[i]);
-                                  setstate(() {});
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  decoration: BoxDecoration(
-                                    color: data.colors[i],
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: isSelected
-                                        ? Border.all(
-                                            color: kTextPrimary,
-                                            width: 2.5,
-                                          )
-                                        : null,
-                                    boxShadow: isSelected
-                                        ? [
-                                            BoxShadow(
-                                              color: data.colors[i]
-                                                  .withValues(alpha: 0.5),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 3),
-                                            ),
-                                          ]
-                                        : null,
-                                  ),
-                                  child: isSelected
-                                      ? const Icon(
-                                          Icons.check_rounded,
-                                          color: Colors.white,
-                                          size: 22,
-                                        )
-                                      : null,
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: kPrimary,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              child: Text(
-                                'Apply & Preview',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ).then((_) {
-                  if (!mounted) return;
-                  Navigation.go(
-                    context,
-                    PdfInvoiceScreen(invoice: liveInvoice, provider: data),
-                  );
-                });
-              },
+              onTap: () => _showCustomizeSheet(data, 'Apply & Preview', () {
+                Navigation.go(
+                  context,
+                  PdfInvoiceScreen(invoice: liveInvoice, provider: data),
+                );
+              }),
             ),
           ),
           const SizedBox(width: 12),
-
-          // Send Invoice
           Expanded(
             child: _ActionButton(
               label: 'Send Invoice',
               icon: CupertinoIcons.paperplane,
               outlined: false,
-              onTap: () async {
+              onTap: () => _showCustomizeSheet(data, 'Apply & Send', () async {
                 final sym = Provider.of<CurrencyProvider>(context, listen: false)
                     .currency
                     .pdfSymbol;
+                final bp = Provider.of<BusinessProvider>(context, listen: false);
+                final biz = liveInvoice.businessId != null && bp.businesses.isNotEmpty
+                    ? bp.businesses.firstWhere(
+                        (b) => b.id == liveInvoice.businessId,
+                        orElse: () => bp.activeBusiness ?? bp.businesses.first,
+                      )
+                    : bp.activeBusiness;
                 final pdfData = await PdfService().invoicePdfGenerate(
                   liveInvoice,
                   data,
+                  business: biz,
                   currencySymbol: sym,
                 );
                 final tempDir = await getTemporaryDirectory();
                 final pdfFile = File('${tempDir.path}/Ledger.pdf');
                 await pdfFile.writeAsBytes(pdfData);
                 await OpenFile.open(pdfFile.path);
-              },
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Template mini-preview widget ─────────────────────────────────────────────
+class _TemplatePreview extends StatelessWidget {
+  final InvoiceTemplate template;
+  final Color color;
+
+  const _TemplatePreview({required this.template, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: _buildPreview(),
+    );
+  }
+
+  Widget _buildPreview() {
+    switch (template) {
+      case InvoiceTemplate.classic:
+        return _classicPreview();
+      case InvoiceTemplate.modern:
+        return _modernPreview();
+      case InvoiceTemplate.elegant:
+        return _elegantPreview();
+      case InvoiceTemplate.minimal:
+        return _minimalPreview();
+    }
+  }
+
+  // Classic: full-width colored header band
+  Widget _classicPreview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 48,
+          color: color,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _fakeLine(width: 40, color: Colors.white, height: 5),
+                  const SizedBox(height: 3),
+                  _fakeLine(width: 24, color: Colors.white.withValues(alpha: 0.6), height: 3),
+                ],
+              ),
+              _fakeLine(width: 30, color: Colors.white, height: 7),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fakeLine(width: 50, color: Colors.grey.shade300, height: 4),
+              const SizedBox(height: 6),
+              _fakeTable(color),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Modern: white left + colored right split header
+  Widget _modernPreview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 52,
+          child: Row(
+            children: [
+              Expanded(
+                flex: 6,
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.only(left: 10, top: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fakeLine(width: 44, color: Colors.grey.shade800, height: 6),
+                      const SizedBox(height: 4),
+                      Container(width: 18, height: 2, color: color),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Container(
+                  color: color,
+                  padding: const EdgeInsets.only(right: 8, top: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _fakeLine(width: 36, color: Colors.white, height: 7),
+                      const SizedBox(height: 5),
+                      _fakeLine(width: 24, color: Colors.white.withValues(alpha: 0.6), height: 3),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fakeLine(width: 50, color: Colors.grey.shade300, height: 4),
+              const SizedBox(height: 6),
+              _fakeTableModern(color),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Elegant: very dark header + colored accent stripe
+  Widget _elegantPreview() {
+    final dark = Color.lerp(color, Colors.black, 0.75)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          color: dark,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _fakeLine(width: 40, color: Colors.white, height: 5),
+                  const SizedBox(height: 3),
+                  _fakeLine(width: 24, color: Colors.white.withValues(alpha: 0.4), height: 3),
+                ],
+              ),
+              _fakeLine(width: 30, color: color, height: 7),
+            ],
+          ),
+        ),
+        Container(height: 2.5, color: color),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(width: 2.5, height: 20, color: color),
+                  const SizedBox(width: 5),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fakeLine(width: 36, color: Colors.grey.shade700, height: 5),
+                      const SizedBox(height: 3),
+                      _fakeLine(width: 24, color: Colors.grey.shade400, height: 3),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              _fakeTableElegant(dark),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Minimal: thin top stripe, plain header, line-only table
+  Widget _minimalPreview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(height: 3, color: color),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fakeLine(width: 44, color: Colors.grey.shade800, height: 6),
+                      const SizedBox(height: 3),
+                      _fakeLine(width: 24, color: color, height: 3),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _fakeLine(width: 28, color: Colors.grey.shade400, height: 3),
+                      const SizedBox(height: 3),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: color, width: 0.8),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                        child: _fakeLine(width: 16, color: color, height: 3),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Divider(color: Colors.grey.shade300, height: 1, thickness: 0.5),
+              const SizedBox(height: 8),
+              _fakeTableMinimal(color),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fakeLine({required double width, required Color color, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+
+  Widget _fakeTable(Color accent) {
+    return Column(
+      children: [
+        Container(
+          height: 14,
+          color: accent,
+          child: Row(
+            children: [
+              _tableCell(flex: 4, color: Colors.white.withValues(alpha: 0.7)),
+              _tableCell(flex: 1, color: Colors.white.withValues(alpha: 0.7)),
+              _tableCell(flex: 2, color: Colors.white.withValues(alpha: 0.7)),
+            ],
+          ),
+        ),
+        _fakeRow(Colors.white),
+        _fakeRow(const Color(0xFFF1F5F9)),
+        _fakeRow(Colors.white),
+      ],
+    );
+  }
+
+  Widget _fakeTableModern(Color accent) {
+    return Column(
+      children: [
+        Container(
+          height: 14,
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: accent, width: 1.5)),
+          ),
+          child: Row(
+            children: [
+              _tableCell(flex: 4, color: accent.withValues(alpha: 0.6)),
+              _tableCell(flex: 1, color: accent.withValues(alpha: 0.6)),
+              _tableCell(flex: 2, color: accent.withValues(alpha: 0.6)),
+            ],
+          ),
+        ),
+        _fakeRow(Colors.white),
+        _fakeRow(Colors.white),
+        _fakeRow(Colors.white),
+      ],
+    );
+  }
+
+  Widget _fakeTableElegant(Color dark) {
+    return Column(
+      children: [
+        Container(
+          height: 14,
+          color: dark,
+          child: Row(
+            children: [
+              _tableCell(flex: 4, color: Colors.white.withValues(alpha: 0.7)),
+              _tableCell(flex: 1, color: Colors.white.withValues(alpha: 0.7)),
+              _tableCell(flex: 2, color: Colors.white.withValues(alpha: 0.7)),
+            ],
+          ),
+        ),
+        _fakeRow(Colors.white),
+        _fakeRow(Colors.white),
+        _fakeRow(Colors.white),
+      ],
+    );
+  }
+
+  Widget _fakeTableMinimal(Color accent) {
+    return Column(
+      children: [
+        Container(
+          height: 14,
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: accent, width: 1.5),
+              bottom: BorderSide(color: Colors.grey.shade300, width: 0.5),
+            ),
+          ),
+          child: Row(
+            children: [
+              _tableCell(flex: 4, color: Colors.grey.shade400),
+              _tableCell(flex: 1, color: Colors.grey.shade400),
+              _tableCell(flex: 2, color: Colors.grey.shade400),
+            ],
+          ),
+        ),
+        _fakeRow(Colors.white),
+        _fakeRow(Colors.white),
+        _fakeRow(Colors.white),
+      ],
+    );
+  }
+
+  Widget _tableCell({required int flex, required Color color}) {
+    return Expanded(
+      flex: flex,
+      child: Center(
+        child: Container(width: 20, height: 3, color: color),
+      ),
+    );
+  }
+
+  Widget _fakeRow(Color bg) {
+    return Container(
+      height: 12,
+      color: bg,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Container(height: 3, color: Colors.grey.shade300),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Center(child: Container(width: 8, height: 3, color: Colors.grey.shade300)),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Container(height: 3, color: Colors.grey.shade300),
             ),
           ),
         ],

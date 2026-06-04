@@ -28,8 +28,6 @@ class InvoiceProvider extends ChangeNotifier {
   deleteExistingItems(int? itemId) {
     for (var l in invoice) {
       l.items!.removeWhere((element) => element.id == itemId);
-
-      print('this Delete Function--->$itemId');
       notifyListeners();
     }
   }
@@ -66,7 +64,6 @@ class InvoiceProvider extends ChangeNotifier {
     );
 
     notifyListeners();
-    print('itemDuplicate--->${jsonEncode(item)}');
   }
 
   addInvoice(InvoiceModel newInvoice) {
@@ -74,8 +71,6 @@ class InvoiceProvider extends ChangeNotifier {
     newInvoice.invoiceId = lastId;
 
     invoice.add(newInvoice);
-
-    print('invoiceJson---->${jsonEncode(invoice)}');
     getInvoices();
 
     saveInvoice();
@@ -91,9 +86,6 @@ class InvoiceProvider extends ChangeNotifier {
     invoiceIdData.invoiceStatus = val;
 
     getInvoices();
-
-    print('json-->${jsonEncode(invoice)}');
-
     saveInvoice();
     notifyListeners();
   }
@@ -132,7 +124,6 @@ class InvoiceProvider extends ChangeNotifier {
       itemsUpdate.price = price;
     }
 
-    print('this Function');
     saveInvoice();
     notifyListeners();
   }
@@ -176,10 +167,7 @@ class InvoiceProvider extends ChangeNotifier {
     );
 
     myCalPrice = myPrice;
-
     notifyListeners();
-
-    print('myPrice--->$myPrice');
   }
 
   void addMoreInvoices(int invoiceId, ItemModel? itemModel) {
@@ -187,23 +175,17 @@ class InvoiceProvider extends ChangeNotifier {
       (element) => element.invoiceId == invoiceId,
     );
 
-    print('run new');
-
     // Step 1: Calculate highest existing ID
     newItemId = 1;
     for (var element in myInvoice.items!) {
       if (element.id != null && element.id! > newItemId) {
         newItemId = element.id!;
       }
-      print('existingId --> ${element.id}');
     }
 
     // Step 2: Assign next ID to new item
     itemModel!.id = newItemId + 1;
     myInvoice.items!.add(itemModel);
-
-    print('addedItemId --> ${itemModel.id}');
-    print('itemJson --> ${jsonEncode(invoice)}');
 
     saveInvoice();
     notifyListeners();
@@ -220,12 +202,19 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Updates the mutable fields of an invoice (date, notes).
-  void updateInvoiceDetails(int invoiceId, {String? date, String? notes}) {
+  /// Updates the mutable fields of an invoice (date, dueDate, notes, termsConditions).
+  void updateInvoiceDetails(
+    int invoiceId, {
+    String? date,
+    String? dueDate,
+    String? notes,
+    String? termsConditions,
+  }) {
     final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
     if (date != null) inv.date = date;
-    // Allow clearing notes by passing empty string
+    inv.dueDate = dueDate;
     inv.notes = notes;
+    inv.termsConditions = termsConditions;
     saveInvoice();
     notifyListeners();
   }
@@ -281,9 +270,6 @@ class InvoiceProvider extends ChangeNotifier {
         lastId = l.invoiceId!;
       }
     }
-    print('lastId-->$lastId');
-
-    print('saveInvoiceList--->${jsonEncode(invoice)}');
     notifyListeners();
   }
 }

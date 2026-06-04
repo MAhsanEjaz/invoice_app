@@ -1,9 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+enum InvoiceTemplate { classic, modern, elegant, minimal }
+
+extension InvoiceTemplateX on InvoiceTemplate {
+  String get label {
+    switch (this) {
+      case InvoiceTemplate.classic:
+        return 'Classic';
+      case InvoiceTemplate.modern:
+        return 'Modern';
+      case InvoiceTemplate.elegant:
+        return 'Elegant';
+      case InvoiceTemplate.minimal:
+        return 'Minimal';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case InvoiceTemplate.classic:
+        return 'Bold colored header';
+      case InvoiceTemplate.modern:
+        return 'Two-panel layout';
+      case InvoiceTemplate.elegant:
+        return 'Dark premium look';
+      case InvoiceTemplate.minimal:
+        return 'Clean & airy';
+    }
+  }
+}
 
 class TemplatesColorsProvider extends ChangeNotifier {
-  // Default to app primary teal so PDF never crashes on null
   Color color = const Color(0xFF0D7377);
   String colorCode = 'FF0D7377';
+  InvoiceTemplate template = InvoiceTemplate.classic;
 
   final List<Color> colors = const [
     Color(0xFF0D7377), // Teal (default)
@@ -17,12 +48,35 @@ class TemplatesColorsProvider extends ChangeNotifier {
     Color(0xFF0369A1), // Sky Blue
   ];
 
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hex = prefs.getString('pref_invoice_color');
+    if (hex != null) {
+      final val = int.tryParse(hex, radix: 16);
+      if (val != null) color = Color(val);
+      colorCode = hex;
+    }
+    final tIdx = prefs.getInt('pref_invoice_template') ?? 0;
+    template = InvoiceTemplate.values[tIdx.clamp(0, InvoiceTemplate.values.length - 1)];
+    notifyListeners();
+  }
+
   void selectColor(Color selection) {
     color = selection;
-    colorCode = selection.toARGB32()
-        .toRadixString(16)
-        .padLeft(8, '0')
-        .toUpperCase();
+    colorCode = selection.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
+    _persist();
     notifyListeners();
+  }
+
+  void selectTemplate(InvoiceTemplate t) {
+    template = t;
+    _persist();
+    notifyListeners();
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pref_invoice_color', colorCode);
+    await prefs.setInt('pref_invoice_template', template.index);
   }
 }
