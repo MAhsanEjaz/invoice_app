@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/models/bank_model.dart';
 import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
@@ -79,6 +80,10 @@ class PdfService {
                 if (invoice.notes?.isNotEmpty ?? false) ...[
                   pw.SizedBox(height: 20),
                   _buildNotes(invoice.notes!),
+                ],
+                if (invoice.bank != null) ...[
+                  pw.SizedBox(height: 20),
+                  _buildBankDetails(invoice.bank!),
                 ],
                 pw.SizedBox(height: 40),
                 _buildFooter(),
@@ -454,6 +459,73 @@ class PdfService {
           ),
         ],
       ),
+    );
+  }
+
+  // ── Payment / Bank Details ─────────────────────────────────────────────────
+  pw.Widget _buildBankDetails(BankModel bank) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          'PAYMENT DETAILS',
+          style: pw.TextStyle(
+            font: pw.Font.helveticaBold(),
+            fontSize: 9,
+            color: PdfColors.grey700,
+            letterSpacing: 1.5,
+          ),
+        ),
+        pw.SizedBox(height: 6),
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.all(12),
+          decoration: pw.BoxDecoration(
+            color: const PdfColor(0.973, 0.980, 0.988),
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+            border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              _bankRow('Bank', bank.bankName ?? ''),
+              pw.SizedBox(height: 4),
+              _bankRow('Account Title', bank.title ?? ''),
+              pw.SizedBox(height: 4),
+              _bankRow('Account Number', bank.accountNumber ?? '', bold: true),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _bankRow(String label, String value, {bool bold = false}) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.SizedBox(
+          width: 100,
+          child: pw.Text(
+            '$label:',
+            style: pw.TextStyle(
+              font: pw.Font.helvetica(),
+              fontSize: 10,
+              color: PdfColors.grey700,
+            ),
+          ),
+        ),
+        pw.Expanded(
+          child: pw.Text(
+            value,
+            style: pw.TextStyle(
+              font: bold ? pw.Font.helveticaBold() : pw.Font.helvetica(),
+              fontSize: 10,
+              color: PdfColors.black,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

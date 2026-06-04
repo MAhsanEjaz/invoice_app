@@ -19,6 +19,8 @@ import '../models/business_model.dart';
 import '../models/client_model.dart';
 import '../models/item_model.dart';
 import '../models/service_model.dart';
+import '../models/bank_model.dart';
+import '../providers/bank_provider.dart';
 import '../providers/saved_client_provider.dart';
 import '../providers/service_provider.dart';
 import 'add_client_screen.dart';
@@ -39,6 +41,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   String? selectDate;
   final TextEditingController _notesCtrl = TextEditingController();
   BusinessModel? _selectedBusiness;
+  BankModel? _selectedBank;
 
   bool get _isEditMode => widget.invoice != null;
 
@@ -140,6 +143,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       const SizedBox(height: 20),
                       sectionLabel('Notes'),
                       _notesCard(),
+                      const SizedBox(height: 20),
+                      sectionLabel('Payment Details'),
+                      _bankCard(),
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -738,6 +744,20 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
+  void _showBankPicker() {
+    final banks = Provider.of<BankProvider>(context, listen: false).banks;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BankPickerSheet(
+        banks: banks,
+        selectedId: _selectedBank?.id,
+        onSelect: (b) => setState(() => _selectedBank = b),
+      ),
+    );
+  }
+
   void _showClientPicker(ClientProvider client) {
     final savedClients =
         Provider.of<SavedClientProvider>(context, listen: false).clients;
@@ -848,6 +868,115 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
+  // ── Bank card ──────────────────────────────────────────────────────────────
+  Widget _bankCard() {
+    return Container(
+      decoration: kCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: _selectedBank != null
+              ? InkWell(
+                  onTap: _isEditMode ? null : () => _showBankPicker(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: kPrimaryLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.creditcard,
+                            color: kPrimary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedBank!.title ?? '',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: kTextPrimary,
+                                ),
+                              ),
+                              Text(
+                                '${_selectedBank!.bankName}  •  ${_selectedBank!.accountNumber}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: kTextSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!_isEditMode) ...[
+                          GestureDetector(
+                            onTap: () => setState(() => _selectedBank = null),
+                            child: const Icon(
+                              CupertinoIcons.xmark_circle,
+                              size: 20,
+                              color: kTextHint,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                )
+              : InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: _isEditMode ? null : () => _showBankPicker(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: kPrimaryLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.creditcard,
+                            color: kPrimary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          'Add Bank Account',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: kTextSecondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(
+                          CupertinoIcons.chevron_right,
+                          size: 16,
+                          color: kTextSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
   // ── Bottom action bar ──────────────────────────────────────────────────────
   Widget _buildBottomBar(
     BuildContext context,
@@ -883,6 +1012,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         notes: _notesCtrl.text.trim().isEmpty
                             ? null
                             : _notesCtrl.text.trim(),
+                        bank: _selectedBank,
                         items: item.item
                             .map((e) => ItemModel(
                                   itemName: e.itemName,
@@ -950,6 +1080,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                           notes: _notesCtrl.text.trim().isEmpty
                               ? null
                               : _notesCtrl.text.trim(),
+                          bank: _selectedBank,
                           items: item.item
                               .map((e) => ItemModel(
                                     itemName: e.itemName,
@@ -1223,6 +1354,178 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
               ),
             ),
             const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BankPickerSheet extends StatelessWidget {
+  final List<BankModel> banks;
+  final int? selectedId;
+  final void Function(BankModel) onSelect;
+
+  const _BankPickerSheet({
+    required this.banks,
+    required this.onSelect,
+    this.selectedId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: kBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Select Bank Account',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: kTextPrimary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (banks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    const Icon(
+                      CupertinoIcons.creditcard,
+                      size: 40,
+                      color: kTextHint,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No bank accounts added yet.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: kTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Go to Settings → Bank Accounts to add some.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: kTextHint,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: banks.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final b = banks[index];
+                    final isSelected = b.id == selectedId;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSelect(b);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected ? kPrimaryLight : kSurface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? kPrimary : kBorder,
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isSelected ? kPrimary : kBackground,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                CupertinoIcons.creditcard,
+                                color:
+                                    isSelected ? Colors.white : kTextSecondary,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    b.title ?? '',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: kTextPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${b.bankName}  •  ${b.accountNumber}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: kTextSecondary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              isSelected
+                                  ? CupertinoIcons.checkmark_circle_fill
+                                  : CupertinoIcons.circle,
+                              color: isSelected ? kPrimary : kTextHint,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

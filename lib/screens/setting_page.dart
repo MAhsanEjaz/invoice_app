@@ -9,6 +9,7 @@ import 'package:invoicemaker/screens/services_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:provider/provider.dart';
 
+import 'bank_accounts_screen.dart';
 import 'manage_businesses_screen.dart';
 import 'saved_clients_screen.dart';
 
@@ -186,6 +187,13 @@ class _SettingPageState extends State<SettingPage> {
                 icon: CupertinoIcons.person_2_fill,
                 label: 'Clients',
                 onTap: () => Navigation.go(context, const SavedClientsScreen()),
+              ),
+              const Divider(height: 1, color: kBorder),
+              const Divider(height: 1, color: kBorder),
+              _menuTile(
+                icon: CupertinoIcons.creditcard_fill,
+                label: 'Bank Accounts',
+                onTap: () => Navigation.go(context, const BankAccountsScreen()),
               ),
               const Divider(height: 1, color: kBorder),
               _menuTile(

@@ -1,3 +1,4 @@
+import 'bank_model.dart';
 import 'client_model.dart';
 import 'item_model.dart';
 
@@ -12,6 +13,7 @@ class InvoiceModel {
   double? discount;
   List<ItemModel>? items;
   List<ClientModel>? clients;
+  BankModel? bank;
 
   InvoiceModel({
     this.items,
@@ -24,6 +26,7 @@ class InvoiceModel {
     this.notes,
     this.receivedAmount,
     this.discount,
+    this.bank,
   });
 
   Map<String, dynamic> toJson() {
@@ -38,6 +41,7 @@ class InvoiceModel {
       'discount': discount,
       'clients': clients?.map((e) => e.toJson()).toList(),
       'items': items?.map((e) => e.toJson()).toList(),
+      'bank': bank?.toJson(),
     };
   }
 
@@ -51,14 +55,15 @@ class InvoiceModel {
       notes: json['notes'],
       receivedAmount: (json['receivedAmount'] as num?)?.toDouble(),
       discount: (json['discount'] as num?)?.toDouble(),
-      items:
-          (json['items'] as List<dynamic>?)
-              ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
-              .toList(),
-      clients:
-          (json['clients'] as List<dynamic>?)
-              ?.map((e) => ClientModel.fromJson(e as Map<String, dynamic>))
-              .toList(),
+      items: (json['items'] as List<dynamic>?)
+          ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      clients: (json['clients'] as List<dynamic>?)
+          ?.map((e) => ClientModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      bank: json['bank'] != null
+          ? BankModel.fromJson(json['bank'] as Map<String, dynamic>)
+          : null,
     );
   }
 }
