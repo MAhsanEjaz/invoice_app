@@ -45,12 +45,13 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return CupertinoPageScaffold(
-      backgroundColor: kBackground,
+      backgroundColor: cl.background,
       child: SafeArea(
         child: Column(
           children: [
-            _buildNavBar(context),
+            _buildNavBar(cl),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -60,22 +61,22 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    sectionLabel('Service Details'),
-                    _buildForm(),
+                    sectionLabel(context, 'Service Details'),
+                    _buildForm(cl),
                     const SizedBox(height: 16),
-                    if (_isEdit) _buildDeleteButton(context),
+                    if (_isEdit) _buildDeleteButton(cl),
                   ],
                 ),
               ),
             ),
-            _buildBottomBar(context),
+            _buildBottomBar(cl),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavBar(BuildContext context) {
+  Widget _buildNavBar(AppColors cl) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
@@ -87,7 +88,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const Spacer(),
@@ -97,24 +98,27 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           _formField(
+            cl: cl,
             controller: _nameCtrl,
             placeholder: 'Service name',
             icon: CupertinoIcons.tag,
           ),
-          const Divider(height: 1, color: kBorder),
+          Divider(height: 1, color: cl.border),
           _formField(
+            cl: cl,
             controller: _descCtrl,
             placeholder: 'Description (optional)',
             icon: CupertinoIcons.doc_text,
           ),
-          const Divider(height: 1, color: kBorder),
+          Divider(height: 1, color: cl.border),
           _formField(
+            cl: cl,
             controller: _priceCtrl,
             placeholder: 'Default price (optional)',
             icon: CupertinoIcons.money_dollar_circle,
@@ -126,6 +130,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   }
 
   Widget _formField({
+    required AppColors cl,
     required TextEditingController controller,
     required String placeholder,
     required IconData icon,
@@ -141,14 +146,9 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
             child: CupertinoTextField(
               controller: controller,
               placeholder: placeholder,
-              placeholderStyle: GoogleFonts.poppins(
-                fontSize: 14,
-                color: kTextHint,
-              ),
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: kTextPrimary,
-              ),
+              placeholderStyle:
+                  GoogleFonts.poppins(fontSize: 14, color: cl.textHint),
+              style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
               padding: const EdgeInsets.symmetric(vertical: 16),
               keyboardType: keyboardType,
               decoration: const BoxDecoration(color: Colors.transparent),
@@ -159,7 +159,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     );
   }
 
-  Widget _buildDeleteButton(BuildContext context) {
+  Widget _buildDeleteButton(AppColors cl) {
     return GestureDetector(
       onTap: () => customCupertinoDialog(context, () async {
         await Provider.of<ServiceProvider>(context, listen: false)
@@ -173,7 +173,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: kDangerBg,
+          color: cl.dangerBg,
           borderRadius: BorderRadius.circular(12),
         ),
         alignment: Alignment.center,
@@ -189,11 +189,11 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildBottomBar(AppColors cl) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kSurface,
-        border: Border(top: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        border: Border(top: BorderSide(color: cl.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(

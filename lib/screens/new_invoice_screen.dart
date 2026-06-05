@@ -13,7 +13,6 @@ import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:provider/provider.dart';
-import '../main.dart';
 import '../models/business_model.dart';
 import '../models/client_model.dart';
 import '../models/item_model.dart';
@@ -82,6 +81,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     _includeTerms = inv.termsConditions?.isNotEmpty ?? false;
     invoiceProvider.lastId = inv.invoiceId!;
     _notesCtrl.text = inv.notes ?? '';
+    _selectedBank = inv.bank;
 
     // Load client into working provider so cards display correctly
     for (final client in inv.clients ?? []) {
@@ -123,7 +123,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     return Consumer3<ClientProvider, ItemProvider, InvoiceProvider>(
       builder: (context, client, item, invoice, _) {
         return CupertinoPageScaffold(
-          backgroundColor: kBackground,
+          backgroundColor: context.colors.background,
           child: Column(
             children: [
               _buildNavBar(context, client, item, invoice),
@@ -141,19 +141,19 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       else
                         _buildMetaRow(invoice),
                       const SizedBox(height: 20),
-                      sectionLabel('Client'),
+                      sectionLabel(context, 'Client'),
                       _clientCard(client, invoice),
                       const SizedBox(height: 20),
-                      sectionLabel('Line Items'),
+                      sectionLabel(context, 'Line Items'),
                       _itemCard(item, invoice),
                       const SizedBox(height: 20),
                       if (item.item.isNotEmpty || _isEditMode) _totalCard(item),
                       const SizedBox(height: 20),
-                      sectionLabel('Notes'),
+                      sectionLabel(context, 'Notes'),
                       _notesCard(),
                       const SizedBox(height: 20),
                       _buildTermsToggle(),
-                      sectionLabel('Payment Details'),
+                      sectionLabel(context, 'Payment Details'),
                       _bankCard(),
                       const SizedBox(height: 16),
                     ],
@@ -186,8 +186,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               client.clearClientFromList();
               item.item.clear();
               selectDate = null;
-              for (final e in invoice.invoice) {
-                invoice.lastId = e.invoiceId!;
+              if (invoice.invoice.isNotEmpty) {
+                invoice.lastId = invoice.invoice
+                    .map((e) => e.invoiceId ?? 0)
+                    .reduce((a, b) => a > b ? a : b);
               }
               setState(() {});
             }),
@@ -198,7 +200,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: kTextPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
             const Spacer(),
@@ -218,7 +220,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         style: GoogleFonts.poppins(
           fontSize: 26,
           fontWeight: FontWeight.w700,
-          color: kTextPrimary,
+          color: context.colors.textPrimary,
         ),
       ),
     );
@@ -257,20 +259,20 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         const SizedBox(height: 10),
         GestureDetector(
           onTap: () async {
-            final date = await customDatePicker(context);
+            final date = await customDatePicker(context, allowFuture: true);
             if (date != null) {
               setState(() => _dueDate = customDateFormat(date.toString()));
             }
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: kCardDecorationFlat,
+            decoration: context.cardDecorationFlat,
             child: Row(
               children: [
                 Icon(
                   CupertinoIcons.clock,
                   size: 16,
-                  color: _dueDate != null ? kPrimary : kTextSecondary,
+                  color: _dueDate != null ? kPrimary : context.colors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -281,7 +283,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: _dueDate != null ? kTextPrimary : kTextSecondary,
+                      color: _dueDate != null ? context.colors.textPrimary :context.colors.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -289,17 +291,17 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 if (_dueDate != null)
                   GestureDetector(
                     onTap: () => setState(() => _dueDate = null),
-                    child: const Icon(
+                    child: Icon(
                       CupertinoIcons.xmark_circle,
                       size: 16,
-                      color: kTextHint,
+                      color: context.colors.textHint,
                     ),
                   )
                 else
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
                     size: 13,
-                    color: kTextSecondary,
+                    color: context.colors.textSecondary,
                   ),
               ],
             ),
@@ -322,7 +324,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       onTap: () => _showBusinessPicker(bp),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: kCardDecorationFlat,
+        decoration: context.cardDecorationFlat,
         child: Row(
           children: [
             const Icon(
@@ -337,15 +339,15 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: kTextPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(
+            Icon(
               CupertinoIcons.chevron_down,
               size: 13,
-              color: kTextSecondary,
+              color: context.colors.textSecondary,
             ),
           ],
         ),
@@ -359,9 +361,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       backgroundColor: Colors.transparent,
       builder:
           (_) => Container(
-            decoration: const BoxDecoration(
-              color: kBackground,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            decoration: BoxDecoration(
+              color: context.colors.background,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: SafeArea(
               top: false,
@@ -373,7 +375,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: kBorder,
+                      color: context.colors.border,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -387,7 +389,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: kTextPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                     ),
@@ -409,10 +411,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSel ? kPrimaryLight : kSurface,
+                            color: isSel ? context.colors.primaryLight :context.colors.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSel ? kPrimary : kBorder,
+                              color: isSel ? kPrimary : context.colors.border,
                               width: isSel ? 1.5 : 1,
                             ),
                           ),
@@ -426,7 +428,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: isSel ? kPrimary : kBackground,
+                                  color: isSel ? kPrimary : context.colors.background,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 alignment: Alignment.center,
@@ -438,7 +440,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                     color:
-                                        isSel ? Colors.white : kTextSecondary,
+                                        isSel ? Colors.white : context.colors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -449,7 +451,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                   style: GoogleFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: kTextPrimary,
+                                    color: context.colors.textPrimary,
                                   ),
                                 ),
                               ),
@@ -479,7 +481,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                 isSel
                                     ? CupertinoIcons.checkmark_circle_fill
                                     : CupertinoIcons.circle,
-                                color: isSel ? kPrimary : kTextHint,
+                                color: isSel ? kPrimary : context.colors.textHint,
                                 size: 20,
                               ),
                             ],
@@ -499,7 +501,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   Widget _metaChip(IconData icon, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: kCardDecorationFlat,
+      decoration: context.cardDecorationFlat,
       child: Row(
         children: [
           Icon(icon, size: 16, color: kPrimary),
@@ -510,7 +512,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: kTextPrimary,
+                color: context.colors.textPrimary,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -523,7 +525,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   // ── Client card ────────────────────────────────────────────────────────────
   Widget _clientCard(ClientProvider client, InvoiceProvider invoice) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Material(
@@ -555,7 +557,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: kPrimaryLight,
+                              color: context.colors.primaryLight,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
@@ -580,7 +582,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                   style: GoogleFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: kTextPrimary,
+                                    color: context.colors.textPrimary,
                                   ),
                                 ),
                                 if (client.email?.isNotEmpty ?? false)
@@ -588,17 +590,17 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                     client.email!,
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
-                                      color: kTextSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                   ),
                               ],
                             ),
                           ),
                           if (!_isEditMode)
-                            const Icon(
+                            Icon(
                               CupertinoIcons.chevron_right,
                               size: 16,
-                              color: kTextSecondary,
+                              color: context.colors.textSecondary,
                             ),
                         ],
                       ),
@@ -615,7 +617,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: kPrimaryLight,
+                              color: context.colors.primaryLight,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -634,10 +636,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             ),
                           ),
                           const Spacer(),
-                          const Icon(
+                          Icon(
                             CupertinoIcons.chevron_right,
                             size: 16,
-                            color: kTextSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ],
                       ),
@@ -653,7 +655,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     final items = _isEditMode ? widget.invoice!.items! : item.item;
 
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Material(
@@ -666,7 +668,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   shrinkWrap: true,
                   itemCount: items.length,
                   separatorBuilder:
-                      (_, __) => const Divider(height: 1, color: kBorder),
+                      (_, __) => Divider(height: 1, color: context.colors.border),
                   itemBuilder: (context, index) {
                     final i = items[index];
                     final sym = Provider.of<CurrencyProvider>(context).symbol;
@@ -698,14 +700,14 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: kTextPrimary,
+                                      color: context.colors.textPrimary,
                                     ),
                                   ),
                                   Text(
                                     '${i.qty} × $sym${i.price}',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
-                                      color: kTextSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -716,7 +718,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: kTextPrimary,
+                                color: context.colors.textPrimary,
                               ),
                             ),
                           ],
@@ -726,7 +728,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   },
                 ),
 
-              if (items.isNotEmpty) const Divider(height: 1, color: kBorder),
+              if (items.isNotEmpty) Divider(height: 1, color: context.colors.border),
 
               InkWell(
                 onTap: () {
@@ -747,12 +749,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: items.isEmpty ? kPrimaryLight : kBackground,
+                          color: items.isEmpty ? context.colors.primaryLight : context.colors.background,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           CupertinoIcons.add,
-                          color: items.isEmpty ? kPrimary : kTextSecondary,
+                          color: items.isEmpty ? kPrimary : context.colors.textSecondary,
                           size: 20,
                         ),
                       ),
@@ -762,7 +764,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: items.isEmpty ? kPrimary : kTextSecondary,
+                          color: items.isEmpty ? kPrimary : context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -770,7 +772,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 ),
               ),
 
-              const Divider(height: 1, color: kBorder),
+              Divider(height: 1, color: context.colors.border),
 
               InkWell(
                 borderRadius: const BorderRadius.vertical(
@@ -785,12 +787,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: kBackground,
+                          color: context.colors.background,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           CupertinoIcons.tag,
-                          color: kTextSecondary,
+                          color: context.colors.textSecondary,
                           size: 20,
                         ),
                       ),
@@ -800,7 +802,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: kTextSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -902,7 +904,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
 
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
         children: [
@@ -911,7 +913,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: kTextSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const Spacer(),
@@ -931,12 +933,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   // ── Notes card ─────────────────────────────────────────────────────────────
   Widget _notesCard() {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: CupertinoTextField(
         controller: _notesCtrl,
         placeholder: 'Add a note to this invoice (optional)…',
-        placeholderStyle: GoogleFonts.poppins(fontSize: 14, color: kTextHint),
-        style: GoogleFonts.poppins(fontSize: 14, color: kTextPrimary),
+        placeholderStyle: GoogleFonts.poppins(fontSize: 14, color: context.colors.textHint),
+        style: GoogleFonts.poppins(fontSize: 14, color: context.colors.textPrimary),
         padding: const EdgeInsets.all(16),
         maxLines: 3,
         minLines: 1,
@@ -952,16 +954,16 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        sectionLabel('Terms & Conditions'),
+        sectionLabel(context, 'Terms & Conditions'),
         Container(
-          decoration: kCardDecoration,
+          decoration: context.cardDecoration,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 CupertinoIcons.doc_text,
                 size: 16,
-                color: kTextSecondary,
+                color: context.colors.textSecondary,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -970,7 +972,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: kTextPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -989,13 +991,13 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           const SizedBox(height: 8),
           Container(
             width: double.infinity,
-            decoration: kCardDecorationFlat,
+            decoration: context.cardDecorationFlat,
             padding: const EdgeInsets.all(14),
             child: Text(
               terms.terms,
               style: GoogleFonts.poppins(
                 fontSize: 12,
-                color: kTextSecondary,
+                color: context.colors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -1009,7 +1011,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   // ── Bank card ──────────────────────────────────────────────────────────────
   Widget _bankCard() {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Material(
@@ -1017,7 +1019,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           child:
               _selectedBank != null
                   ? InkWell(
-                    onTap: _isEditMode ? null : () => _showBankPicker(),
+                    onTap: () => _showBankPicker(),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
@@ -1026,7 +1028,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: kPrimaryLight,
+                              color: context.colors.primaryLight,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -1045,36 +1047,34 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                   style: GoogleFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: kTextPrimary,
+                                    color: context.colors.textPrimary,
                                   ),
                                 ),
                                 Text(
                                   '${_selectedBank!.bankName}  •  ${_selectedBank!.accountNumber}',
                                   style: GoogleFonts.poppins(
                                     fontSize: 12,
-                                    color: kTextSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          if (!_isEditMode) ...[
-                            GestureDetector(
-                              onTap: () => setState(() => _selectedBank = null),
-                              child: const Icon(
-                                CupertinoIcons.xmark_circle,
-                                size: 20,
-                                color: kTextHint,
-                              ),
+                          GestureDetector(
+                            onTap: () => setState(() => _selectedBank = null),
+                            child: Icon(
+                              CupertinoIcons.xmark_circle,
+                              size: 20,
+                              color: context.colors.textHint,
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
                   )
                   : InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: _isEditMode ? null : () => _showBankPicker(),
+                    onTap: () => _showBankPicker(),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
@@ -1083,7 +1083,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: kPrimaryLight,
+                              color: context.colors.primaryLight,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -1098,14 +1098,14 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
-                              color: kTextSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                           const Spacer(),
-                          const Icon(
+                          Icon(
                             CupertinoIcons.chevron_right,
                             size: 16,
-                            color: kTextSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ],
                       ),
@@ -1124,9 +1124,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     InvoiceProvider invoice,
   ) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kSurface,
-        border: Border(top: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(top: BorderSide(color: context.colors.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
@@ -1144,6 +1144,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             ? null
                             : _notesCtrl.text.trim(),
                     termsConditions: _includeTerms ? tp.terms : null,
+                    bank: _selectedBank,
                   );
                   client.clearClientFromList();
                   item.item.clear();
@@ -1196,7 +1197,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                   email: e.email,
                                   address: e.address,
                                   id: e.id,
-                                  duplicate: duplicate,
+                                  duplicate: false,
                                 ),
                               )
                               .toList(),
@@ -1215,8 +1216,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   Navigation.go(
                     context,
                     VerificationInvoice(
-                      clientModel: latestInvoice.clients!.first,
-                      itemModel: latestInvoice.items!.first,
+                      clientModel: (latestInvoice.clients?.isNotEmpty ?? false)
+                          ? latestInvoice.clients!.first
+                          : null,
+                      itemModel: (latestInvoice.items?.isNotEmpty ?? false)
+                          ? latestInvoice.items!.first
+                          : null,
                       invoiceModel: latestInvoice,
                     ),
                   );
@@ -1241,10 +1246,11 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final sym = Provider.of<CurrencyProvider>(context, listen: false).symbol;
     return Container(
-      decoration: const BoxDecoration(
-        color: kBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.colors.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1259,7 +1265,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: kBorder,
+                color: context.colors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1273,7 +1279,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: kTextPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                   const Spacer(),
@@ -1281,7 +1287,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                     '${_selected.length} selected',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: kTextSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -1293,13 +1299,13 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Column(
                   children: [
-                    const Icon(CupertinoIcons.tag, size: 40, color: kTextHint),
+                    Icon(CupertinoIcons.tag, size: 40, color: context.colors.textHint),
                     const SizedBox(height: 12),
                     Text(
                       'No services added yet.',
                       style: GoogleFonts.poppins(
                         fontSize: 14,
-                        color: kTextSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1308,7 +1314,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: kTextHint,
+                        color: context.colors.textHint,
                       ),
                     ),
                   ],
@@ -1338,10 +1344,10 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                           }),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isChosen ? kPrimaryLight : kSurface,
+                          color: isChosen ? context.colors.primaryLight :context.colors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isChosen ? kPrimary : kBorder,
+                            color: isChosen ? kPrimary : context.colors.border,
                             width: isChosen ? 1.5 : 1,
                           ),
                         ),
@@ -1355,7 +1361,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: isChosen ? kPrimary : kBackground,
+                                color: isChosen ? kPrimary : context.colors.background,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
@@ -1367,7 +1373,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                   color:
-                                      isChosen ? Colors.white : kTextSecondary,
+                                      isChosen ? Colors.white : context.colors.textSecondary,
                                 ),
                               ),
                             ),
@@ -1381,7 +1387,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: kTextPrimary,
+                                      color: context.colors.textPrimary,
                                     ),
                                   ),
                                   if (service.description?.isNotEmpty ?? false)
@@ -1389,7 +1395,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                                       service.description!,
                                       style: GoogleFonts.poppins(
                                         fontSize: 12,
-                                        color: kTextSecondary,
+                                        color: context.colors.textSecondary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -1399,11 +1405,11 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                             ),
                             if (service.price != null)
                               Text(
-                                '\$${service.price!.toStringAsFixed(2)}',
+                                '$sym${service.price!.toStringAsFixed(2)}',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: isChosen ? kPrimary : kTextSecondary,
+                                  color: isChosen ? kPrimary : context.colors.textSecondary,
                                 ),
                               ),
                             const SizedBox(width: 8),
@@ -1411,7 +1417,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                               isChosen
                                   ? CupertinoIcons.checkmark_circle_fill
                                   : CupertinoIcons.circle,
-                              color: isChosen ? kPrimary : kTextHint,
+                              color: isChosen ? kPrimary : context.colors.textHint,
                               size: 20,
                             ),
                           ],
@@ -1464,9 +1470,9 @@ class _BankPickerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.colors.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -1478,7 +1484,7 @@ class _BankPickerSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: kBorder,
+                color: context.colors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1492,7 +1498,7 @@ class _BankPickerSheet extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: kTextPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -1503,17 +1509,17 @@ class _BankPickerSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       CupertinoIcons.creditcard,
                       size: 40,
-                      color: kTextHint,
+                      color: context.colors.textHint,
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'No bank accounts added yet.',
                       style: GoogleFonts.poppins(
                         fontSize: 14,
-                        color: kTextSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1522,7 +1528,7 @@ class _BankPickerSheet extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: kTextHint,
+                        color: context.colors.textHint,
                       ),
                     ),
                   ],
@@ -1548,10 +1554,10 @@ class _BankPickerSheet extends StatelessWidget {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isSelected ? kPrimaryLight : kSurface,
+                          color: isSelected ? context.colors.primaryLight :context.colors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? kPrimary : kBorder,
+                            color: isSelected ? kPrimary : context.colors.border,
                             width: isSelected ? 1.5 : 1,
                           ),
                         ),
@@ -1565,13 +1571,13 @@ class _BankPickerSheet extends StatelessWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: isSelected ? kPrimary : kBackground,
+                                color: isSelected ? kPrimary : context.colors.background,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 CupertinoIcons.creditcard,
                                 color:
-                                    isSelected ? Colors.white : kTextSecondary,
+                                    isSelected ? Colors.white : context.colors.textSecondary,
                                 size: 18,
                               ),
                             ),
@@ -1585,14 +1591,14 @@ class _BankPickerSheet extends StatelessWidget {
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: kTextPrimary,
+                                      color: context.colors.textPrimary,
                                     ),
                                   ),
                                   Text(
                                     '${b.bankName}  •  ${b.accountNumber}',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
-                                      color: kTextSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -1604,7 +1610,7 @@ class _BankPickerSheet extends StatelessWidget {
                               isSelected
                                   ? CupertinoIcons.checkmark_circle_fill
                                   : CupertinoIcons.circle,
-                              color: isSelected ? kPrimary : kTextHint,
+                              color: isSelected ? kPrimary : context.colors.textHint,
                               size: 20,
                             ),
                           ],
@@ -1636,9 +1642,9 @@ class _ClientPickerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.colors.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1653,7 +1659,7 @@ class _ClientPickerSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: kBorder,
+                color: context.colors.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1667,7 +1673,7 @@ class _ClientPickerSheet extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: kTextPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -1678,17 +1684,17 @@ class _ClientPickerSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       CupertinoIcons.person_2,
                       size: 40,
-                      color: kTextHint,
+                      color: context.colors.textHint,
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'No saved clients yet.',
                       style: GoogleFonts.poppins(
                         fontSize: 14,
-                        color: kTextSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1697,7 +1703,7 @@ class _ClientPickerSheet extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: kTextHint,
+                        color: context.colors.textHint,
                       ),
                     ),
                   ],
@@ -1722,9 +1728,9 @@ class _ClientPickerSheet extends StatelessWidget {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: kSurface,
+                          color: context.colors.surface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: kBorder),
+                          border: Border.all(color: context.colors.border),
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -1736,7 +1742,7 @@ class _ClientPickerSheet extends StatelessWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: kPrimaryLight,
+                                color: context.colors.primaryLight,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
@@ -1761,7 +1767,7 @@ class _ClientPickerSheet extends StatelessWidget {
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: kTextPrimary,
+                                      color: context.colors.textPrimary,
                                     ),
                                   ),
                                   if (c.email?.isNotEmpty ?? false)
@@ -1769,7 +1775,7 @@ class _ClientPickerSheet extends StatelessWidget {
                                       c.email!,
                                       style: GoogleFonts.poppins(
                                         fontSize: 12,
-                                        color: kTextSecondary,
+                                        color: context.colors.textSecondary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -1779,16 +1785,16 @@ class _ClientPickerSheet extends StatelessWidget {
                                       c.phone!,
                                       style: GoogleFonts.poppins(
                                         fontSize: 12,
-                                        color: kTextSecondary,
+                                        color: context.colors.textSecondary,
                                       ),
                                     ),
                                 ],
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               CupertinoIcons.chevron_right,
                               size: 14,
-                              color: kTextSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ],
                         ),

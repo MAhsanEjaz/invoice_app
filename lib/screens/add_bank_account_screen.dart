@@ -43,12 +43,13 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return CupertinoPageScaffold(
-      backgroundColor: kBackground,
+      backgroundColor: cl.background,
       child: SafeArea(
         child: Column(
           children: [
-            _buildNavBar(context),
+            _buildNavBar(cl),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -58,25 +59,25 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    sectionLabel('Bank Details'),
-                    _buildForm(),
+                    sectionLabel(context, 'Bank Details'),
+                    _buildForm(cl),
                     if (_isEdit) ...[
                       const SizedBox(height: 24),
-                      _buildDeleteButton(context),
+                      _buildDeleteButton(cl),
                     ],
                     const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
-            _buildBottomBar(context),
+            _buildBottomBar(cl),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavBar(BuildContext context) {
+  Widget _buildNavBar(AppColors cl) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
@@ -88,7 +89,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const Spacer(),
@@ -98,25 +99,28 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           _formField(
+            cl: cl,
             controller: _bankNameCtrl,
             placeholder: 'Bank Name',
             icon: CupertinoIcons.building_2_fill,
             autofocus: true,
           ),
-          const Divider(height: 1, color: kBorder),
+          Divider(height: 1, color: cl.border),
           _formField(
+            cl: cl,
             controller: _titleCtrl,
             placeholder: 'Account Title',
             icon: CupertinoIcons.person,
           ),
-          const Divider(height: 1, color: kBorder),
+          Divider(height: 1, color: cl.border),
           _formField(
+            cl: cl,
             controller: _accountNumberCtrl,
             placeholder: 'Account Number',
             icon: CupertinoIcons.number,
@@ -128,6 +132,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
   }
 
   Widget _formField({
+    required AppColors cl,
     required TextEditingController controller,
     required String placeholder,
     required IconData icon,
@@ -147,9 +152,9 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
               autofocus: autofocus,
               placeholderStyle: GoogleFonts.poppins(
                 fontSize: 14,
-                color: kTextHint,
+                color: cl.textHint,
               ),
-              style: GoogleFonts.poppins(fontSize: 14, color: kTextPrimary),
+              style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
               padding: const EdgeInsets.symmetric(vertical: 16),
               keyboardType: keyboardType,
               decoration: const BoxDecoration(color: Colors.transparent),
@@ -160,7 +165,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
     );
   }
 
-  Widget _buildDeleteButton(BuildContext context) {
+  Widget _buildDeleteButton(AppColors cl) {
     return GestureDetector(
       onTap: () => customCupertinoDialog(context, () async {
         await Provider.of<BankProvider>(context, listen: false)
@@ -174,7 +179,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: kDangerBg,
+          color: cl.dangerBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kDangerColor.withValues(alpha: 0.2)),
         ),
@@ -198,11 +203,11 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildBottomBar(AppColors cl) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kSurface,
-        border: Border(top: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        border: Border(top: BorderSide(color: cl.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
@@ -212,7 +217,8 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           final title = _titleCtrl.text.trim();
           final accountNumber = _accountNumberCtrl.text.trim();
 
-          if (bankName.isEmpty || title.isEmpty || accountNumber.isEmpty) return;
+          if (bankName.isEmpty || title.isEmpty || accountNumber.isEmpty)
+            return;
 
           final provider = Provider.of<BankProvider>(context, listen: false);
 

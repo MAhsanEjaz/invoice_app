@@ -220,7 +220,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             if (!didPop) _goHome();
           },
           child: CupertinoPageScaffold(
-            backgroundColor: kBackground,
+            backgroundColor: context.colors.background,
             child: Column(
               children: [
                 _buildNavBar(liveInvoice, invoice),
@@ -251,8 +251,8 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               child: Container(
                 width: 34,
                 height: 34,
-                decoration: const BoxDecoration(
-                  color: kPrimaryLight,
+                decoration: BoxDecoration(
+                  color: context.colors.primaryLight,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(CupertinoIcons.xmark, color: kPrimary, size: 15),
@@ -265,7 +265,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: kTextPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const Spacer(),
@@ -282,8 +282,8 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               child: Container(
                 width: 34,
                 height: 34,
-                decoration: const BoxDecoration(
-                  color: kPrimaryLight,
+                decoration: BoxDecoration(
+                  color: context.colors.primaryLight,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(CupertinoIcons.pencil, color: kPrimary, size: 15),
@@ -329,14 +329,14 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           // ── Hero amount card ───────────────────────────────────────────────
           Container(
             width: double.infinity,
-            decoration: kCardDecoration,
+            decoration: context.cardDecoration,
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    statusBadge(isPaid),
+                    statusBadge(context, isPaid),
                     const Spacer(),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -345,7 +345,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                           liveInvoice.date ?? '',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
-                            color: kTextSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         if (liveInvoice.dueDate?.isNotEmpty ?? false)
@@ -367,7 +367,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   style: GoogleFonts.poppins(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
-                    color: kTextPrimary,
+                    color: context.colors.textPrimary,
                     letterSpacing: -1,
                   ),
                 ),
@@ -376,7 +376,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: kTextSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -385,22 +385,22 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
           // ── Client ────────────────────────────────────────────────────────
           const SizedBox(height: 20),
-          sectionLabel('Client'),
+          sectionLabel(context, 'Client'),
           Container(
-            decoration: kCardDecoration,
+            decoration: context.cardDecoration,
             child: Column(
               children: [
                 _infoRow(CupertinoIcons.person, 'Name', clientName),
                 if (clientEmail.isNotEmpty) ...[
-                  const Divider(height: 1, color: kBorder),
+                  Divider(height: 1, color: context.colors.border),
                   _infoRow(CupertinoIcons.mail, 'Email', clientEmail),
                 ],
                 if (clientPhone.isNotEmpty) ...[
-                  const Divider(height: 1, color: kBorder),
+                  Divider(height: 1, color: context.colors.border),
                   _infoRow(CupertinoIcons.phone, 'Phone', clientPhone),
                 ],
                 if (clientAddress.isNotEmpty) ...[
-                  const Divider(height: 1, color: kBorder),
+                  Divider(height: 1, color: context.colors.border),
                   _infoRow(
                     CupertinoIcons.location,
                     'Address',
@@ -413,9 +413,9 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
           // ── Items ─────────────────────────────────────────────────────────
           const SizedBox(height: 20),
-          sectionLabel('Items'),
+          sectionLabel(context, 'Items'),
           Container(
-            decoration: kCardDecoration,
+            decoration: context.cardDecoration,
             child: Column(
               children: [
                 ListView.separated(
@@ -423,7 +423,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   shrinkWrap: true,
                   itemCount: items.length,
                   separatorBuilder: (_, __) =>
-                      const Divider(height: 1, color: kBorder),
+                      Divider(height: 1, color: context.colors.border),
                   itemBuilder: (_, i) {
                     final item = items[i];
                     final lineTotal =
@@ -444,14 +444,14 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: kTextPrimary,
+                                    color: context.colors.textPrimary,
                                   ),
                                 ),
                                 Text(
                                   '${item.qty} × $sym${item.price}',
                                   style: GoogleFonts.poppins(
                                     fontSize: 12,
-                                    color: kTextSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -462,7 +462,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: kTextPrimary,
+                              color: context.colors.textPrimary,
                             ),
                           ),
                         ],
@@ -472,7 +472,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                 ),
 
                 // Subtotal row
-                const Divider(height: 1, color: kBorder),
+                Divider(height: 1, color: context.colors.border),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -484,7 +484,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         'Subtotal',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: kTextSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                       const Spacer(),
@@ -493,7 +493,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: kTextSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -501,7 +501,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                 ),
 
                 // Discount row — always visible and tappable
-                const Divider(height: 1, color: kBorder),
+                Divider(height: 1, color: context.colors.border),
                 GestureDetector(
                   onTap: () => _showDiscountDialog(invoice, discount),
                   child: Padding(
@@ -514,7 +514,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         Icon(
                           CupertinoIcons.tag,
                           size: 15,
-                          color: discount > 0 ? kDangerColor : kTextSecondary,
+                          color: discount > 0 ? kDangerColor : context.colors.textSecondary,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -522,7 +522,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color:
-                                discount > 0 ? kDangerColor : kTextSecondary,
+                                discount > 0 ? kDangerColor : context.colors.textSecondary,
                           ),
                         ),
                         const Spacer(),
@@ -534,14 +534,14 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color:
-                                discount > 0 ? kDangerColor : kTextPrimary,
+                                discount > 0 ? kDangerColor : context.colors.textPrimary,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(
+                        Icon(
                           CupertinoIcons.pencil,
                           size: 13,
-                          color: kTextSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ],
                     ),
@@ -550,7 +550,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
                 // Total row — shown only when discount is applied
                 if (discount > 0) ...[
-                  const Divider(height: 1, color: kBorder),
+                  Divider(height: 1, color: context.colors.border),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -563,7 +563,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: kTextSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         const Spacer(),
@@ -586,16 +586,16 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           // ── Notes (shown only if present) ──────────────────────────────────
           if (liveInvoice.notes?.isNotEmpty ?? false) ...[
             const SizedBox(height: 20),
-            sectionLabel('Notes'),
+            sectionLabel(context, 'Notes'),
             Container(
               width: double.infinity,
-              decoration: kCardDecoration,
+              decoration: context.cardDecoration,
               padding: const EdgeInsets.all(16),
               child: Text(
                 liveInvoice.notes!,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
-                  color: kTextPrimary,
+                  color: context.colors.textPrimary,
                   height: 1.5,
                 ),
               ),
@@ -605,27 +605,59 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           // ── Terms & Conditions (shown only if included) ────────────────────
           if (liveInvoice.termsConditions?.isNotEmpty ?? false) ...[
             const SizedBox(height: 20),
-            sectionLabel('Terms & Conditions'),
+            sectionLabel(context, 'Terms & Conditions'),
             Container(
               width: double.infinity,
-              decoration: kCardDecoration,
+              decoration: context.cardDecoration,
               padding: const EdgeInsets.all(16),
               child: Text(
                 liveInvoice.termsConditions!,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  color: kTextSecondary,
+                  color: context.colors.textSecondary,
                   height: 1.5,
                 ),
               ),
             ),
           ],
 
+          // ── Bank / Payment Details ────────────────────────────────────────
+          if (liveInvoice.bank != null) ...[
+            const SizedBox(height: 20),
+            sectionLabel(context, 'Payment Details'),
+            Container(
+              decoration: context.cardDecoration,
+              child: Column(
+                children: [
+                  _infoRow(
+                    CupertinoIcons.creditcard,
+                    'Bank',
+                    liveInvoice.bank!.bankName ?? '',
+                  ),
+                  Divider(height: 1, color: context.colors.border),
+                  _infoRow(
+                    CupertinoIcons.person,
+                    'Account Title',
+                    liveInvoice.bank!.title ?? '',
+                  ),
+                  if ((liveInvoice.bank!.accountNumber ?? '').isNotEmpty) ...[
+                    Divider(height: 1, color: context.colors.border),
+                    _infoRow(
+                      CupertinoIcons.number,
+                      'Account No.',
+                      liveInvoice.bank!.accountNumber!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+
           // ── Payment ───────────────────────────────────────────────────────
           const SizedBox(height: 20),
-          sectionLabel('Payment'),
+          sectionLabel(context, 'Payment'),
           Container(
-            decoration: kCardDecoration,
+            decoration: context.cardDecoration,
             child: Column(
               children: [
                 // Mark as Paid toggle
@@ -641,7 +673,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: kTextPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                       const Spacer(),
@@ -662,7 +694,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   ),
                 ),
 
-                const Divider(height: 1, color: kBorder),
+                Divider(height: 1, color: context.colors.border),
 
                 // Received — tappable to enter amount
                 GestureDetector(
@@ -677,14 +709,14 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         Icon(
                           CupertinoIcons.money_dollar_circle,
                           size: 16,
-                          color: kTextSecondary,
+                          color: context.colors.textSecondary,
                         ),
                         const SizedBox(width: 10),
                         Text(
                           'Received',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
-                            color: kTextSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         const Spacer(),
@@ -693,14 +725,14 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: received > 0 ? kPaidColor : kTextPrimary,
+                            color: received > 0 ? kPaidColor : context.colors.textPrimary,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(
+                        Icon(
                           CupertinoIcons.pencil,
                           size: 14,
-                          color: kTextSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ],
                     ),
@@ -709,7 +741,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
                 // Balance Due (only shown when not fully paid)
                 if (balanceDue > 0) ...[
-                  const Divider(height: 1, color: kBorder),
+                  Divider(height: 1, color: context.colors.border),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -755,7 +787,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: kDangerBg,
+                color: context.colors.dangerBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: kDangerColor.withValues(alpha: 0.2),
@@ -792,15 +824,16 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
   // ── Reusable info row ──────────────────────────────────────────────────────
   Widget _infoRow(IconData icon, String label, String value) {
+    final cl = context.colors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: kTextSecondary),
+          Icon(icon, size: 16, color: cl.textSecondary),
           const SizedBox(width: 10),
           Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 14, color: kTextSecondary),
+            style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
           ),
           const Spacer(),
           Flexible(
@@ -809,7 +842,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: kTextPrimary,
+                color: context.colors.textPrimary,
               ),
               textAlign: TextAlign.end,
             ),
@@ -835,9 +868,9 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           if (colorIdx < 0) colorIdx = 0;
 
           return Container(
-            decoration: const BoxDecoration(
-              color: kSurface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            decoration: BoxDecoration(
+              color: context.colors.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
@@ -856,7 +889,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         height: 4,
                         margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: kBorder,
+                          color: context.colors.border,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -868,13 +901,13 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: kTextPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Select a layout for your PDF invoice',
-                      style: GoogleFonts.poppins(fontSize: 12, color: kTextSecondary),
+                      style: GoogleFonts.poppins(fontSize: 12, color: ctx.colors.textSecondary),
                     ),
                     const SizedBox(height: 16),
 
@@ -896,10 +929,10 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
                             decoration: BoxDecoration(
-                              color: kBackground,
+                              color: context.colors.background,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? data.color : kBorder,
+                                color: isSelected ? data.color : context.colors.border,
                                 width: isSelected ? 2.5 : 1.5,
                               ),
                               boxShadow: isSelected
@@ -934,7 +967,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? data.color.withValues(alpha: 0.08)
-                                        : kSurface,
+                                        : ctx.colors.surface,
                                     borderRadius: const BorderRadius.vertical(
                                       bottom: Radius.circular(14),
                                     ),
@@ -953,14 +986,14 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                                                 fontWeight: FontWeight.w600,
                                                 color: isSelected
                                                     ? data.color
-                                                    : kTextPrimary,
+                                                    : ctx.colors.textPrimary,
                                               ),
                                             ),
                                             Text(
                                               t.description,
                                               style: GoogleFonts.poppins(
                                                 fontSize: 10,
-                                                color: kTextSecondary,
+                                                color: context.colors.textSecondary,
                                               ),
                                             ),
                                           ],
@@ -991,7 +1024,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                     ),
 
                     const SizedBox(height: 24),
-                    Divider(color: kBorder, height: 1),
+                    Divider(color: context.colors.border, height: 1),
                     const SizedBox(height: 20),
 
                     // ── Color section ───────────────────────────────────────
@@ -1000,13 +1033,13 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: kTextPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Applied to the header and highlights',
-                      style: GoogleFonts.poppins(fontSize: 12, color: kTextSecondary),
+                      style: GoogleFonts.poppins(fontSize: 12, color: ctx.colors.textSecondary),
                     ),
                     const SizedBox(height: 16),
 
@@ -1028,7 +1061,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                               color: data.colors[i],
                               shape: BoxShape.circle,
                               border: isSelected
-                                  ? Border.all(color: kTextPrimary, width: 2.5)
+                                  ? Border.all(color: context.colors.textPrimary, width: 2.5)
                                   : Border.all(
                                       color: Colors.transparent, width: 2.5),
                               boxShadow: isSelected
@@ -1096,9 +1129,9 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
     InvoiceModel liveInvoice,
   ) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kSurface,
-        border: Border(top: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(top: BorderSide(color: context.colors.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Row(
@@ -1140,7 +1173,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   currencySymbol: sym,
                 );
                 final tempDir = await getTemporaryDirectory();
-                final pdfFile = File('${tempDir.path}/Ledger.pdf');
+                final pdfFile = File('${tempDir.path}/Invoice_${liveInvoice.invoiceId}.pdf');
                 await pdfFile.writeAsBytes(pdfData);
                 await OpenFile.open(pdfFile.path);
               }),
@@ -1551,18 +1584,18 @@ class _ActionButton extends StatelessWidget {
           ? OutlinedButton.icon(
               onPressed: onTap,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: kBorder, width: 1.5),
+                side: BorderSide(color: context.colors.border, width: 1.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              icon: Icon(icon, size: 18, color: kTextPrimary),
+              icon: Icon(icon, size: 18, color: context.colors.textPrimary),
               label: Text(
                 label,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: kTextPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
             )

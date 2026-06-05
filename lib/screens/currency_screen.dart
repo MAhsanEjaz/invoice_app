@@ -29,234 +29,118 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
       _filtered = q.isEmpty
           ? CurrencyModel.all
           : CurrencyModel.all
-              .where(
-                (c) =>
-                    c.name.toLowerCase().contains(q) ||
-                    c.code.toLowerCase().contains(q) ||
-                    c.symbol.toLowerCase().contains(q),
-              )
+              .where((c) =>
+                  c.name.toLowerCase().contains(q) ||
+                  c.code.toLowerCase().contains(q) ||
+                  c.symbol.toLowerCase().contains(q))
               .toList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return Consumer<CurrencyProvider>(
       builder: (context, currencyProvider, _) {
         return CupertinoPageScaffold(
-          backgroundColor: kBackground,
+          backgroundColor: cl.background,
           child: Column(
             children: [
-              // ── Nav bar ─────────────────────────────────────────────────
               SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      closeButton(context),
-                      const Spacer(),
-                      Text(
-                        'Currency',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: kTextPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 34),
-                    ],
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Row(children: [
+                    closeButton(context),
+                    const Spacer(),
+                    Text('Currency', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+                    const Spacer(),
+                    const SizedBox(width: 34),
+                  ]),
                 ),
               ),
-
-              // ── Search ──────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                 child: CupertinoTextField(
                   controller: _searchCtrl,
                   onChanged: _onSearch,
                   placeholder: 'Search currency or code…',
-                  placeholderStyle: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: kTextHint,
-                  ),
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: kTextPrimary,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  prefix: const Padding(
-                    padding: EdgeInsets.only(left: 12),
-                    child: Icon(
-                      CupertinoIcons.search,
-                      size: 18,
-                      color: kTextSecondary,
-                    ),
+                  placeholderStyle: GoogleFonts.poppins(fontSize: 14, color: cl.textHint),
+                  style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  prefix: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Icon(CupertinoIcons.search, size: 18, color: cl.textSecondary),
                   ),
                   clearButtonMode: OverlayVisibilityMode.editing,
                   decoration: BoxDecoration(
-                    color: kSurface,
+                    color: cl.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: kBorder),
+                    border: Border.all(color: cl.border),
                   ),
                 ),
               ),
-
-              // ── Selected currency banner ─────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: kPrimaryLight,
+                    color: cl.primaryLight,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: kPrimary.withValues(alpha: 0.3),
+                    border: Border.all(color: kPrimary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(children: [
+                    Text(currencyProvider.currency.flag, style: const TextStyle(fontSize: 20)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Current: ${currencyProvider.currency.name} (${currencyProvider.code})',
+                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500, color: kPrimary),
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        currencyProvider.currency.flag,
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Current: ${currencyProvider.currency.name} '
-                          '(${currencyProvider.code})',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: kPrimary,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        currencyProvider.symbol,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: kPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
+                    Text(currencyProvider.symbol, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: kPrimary)),
+                  ]),
                 ),
               ),
-
-              // ── Currency list ────────────────────────────────────────────
               Expanded(
                 child: _filtered.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No results for "${_searchCtrl.text}"',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: kTextSecondary,
-                          ),
-                        ),
-                      )
+                    ? Center(child: Text('No results for "${_searchCtrl.text}"',
+                        style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary)))
                     : Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),
-                        decoration: kCardDecoration,
+                        decoration: context.cardDecoration,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Material(
                             type: MaterialType.transparency,
                             child: ListView.separated(
                               itemCount: _filtered.length,
-                              separatorBuilder: (_, __) =>
-                                  const Divider(height: 1, color: kBorder),
+                              separatorBuilder: (_, __) => Divider(height: 1, color: cl.border),
                               itemBuilder: (context, index) {
                                 final c = _filtered[index];
-                                final isSelected =
-                                    c.code == currencyProvider.code;
-
+                                final isSelected = c.code == currencyProvider.code;
                                 return InkWell(
                                   onTap: () {
                                     currencyProvider.select(c);
                                     Navigator.pop(context);
                                   },
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Flag
-                                        Text(
-                                          c.flag,
-                                          style:
-                                              const TextStyle(fontSize: 22),
-                                        ),
-                                        const SizedBox(width: 14),
-
-                                        // Name + code
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                c.name,
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: kTextPrimary,
-                                                ),
-                                              ),
-                                              Text(
-                                                c.code,
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: kTextSecondary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // Symbol
-                                        Text(
-                                          c.symbol,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: isSelected
-                                                ? kPrimary
-                                                : kTextSecondary,
-                                          ),
-                                        ),
-
-                                        const SizedBox(width: 10),
-
-                                        // Selected checkmark
-                                        AnimatedOpacity(
-                                          opacity: isSelected ? 1.0 : 0.0,
-                                          duration: const Duration(
-                                            milliseconds: 200,
-                                          ),
-                                          child: const Icon(
-                                            CupertinoIcons.checkmark_alt,
-                                            size: 18,
-                                            color: kPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    child: Row(children: [
+                                      Text(c.flag, style: const TextStyle(fontSize: 22)),
+                                      const SizedBox(width: 14),
+                                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                        Text(c.name, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: cl.textPrimary)),
+                                        Text(c.code, style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
+                                      ])),
+                                      Text(c.symbol, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: isSelected ? kPrimary : cl.textSecondary)),
+                                      const SizedBox(width: 10),
+                                      AnimatedOpacity(
+                                        opacity: isSelected ? 1.0 : 0.0,
+                                        duration: const Duration(milliseconds: 200),
+                                        child: const Icon(CupertinoIcons.checkmark_alt, size: 18, color: kPrimary),
+                                      ),
+                                    ]),
                                   ),
                                 );
                               },
@@ -265,7 +149,6 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                         ),
                       ),
               ),
-
               const SizedBox(height: 20),
             ],
           ),

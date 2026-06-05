@@ -1,24 +1,28 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
 import 'package:invoicemaker/providers/bank_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/providers/service_provider.dart';
 import 'package:invoicemaker/providers/terms_provider.dart';
+import 'package:invoicemaker/providers/theme_provider.dart';
+import 'package:invoicemaker/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/screens/splash_screen.dart';
 
 bool duplicate = false;
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then((
     _,
   ) {
@@ -47,6 +51,8 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => LocaleProvider()),
         ChangeNotifierProvider(create: (context) => BusinessProvider()),
         ChangeNotifierProvider(create: (context) => ClientProvider()),
         ChangeNotifierProvider(create: (context) => ItemProvider()),
@@ -58,25 +64,31 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (context) => BankProvider()),
         ChangeNotifierProvider(create: (context) => TermsProvider()),
       ],
-      child: CupertinoApp(
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: const [
-          DefaultMaterialLocalizations.delegate,
-          DefaultWidgetsLocalizations.delegate,
-          DefaultCupertinoLocalizations.delegate,
-        ],
-        builder: (context, myChild) {
-          return MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: const TextScaler.linear(.8)),
-            child: myChild!,
-          );
-        },
-        theme: theme(isDarkMode: false),
-        home: const SplashScreen(),
-        // home: const AnimationScreen(),
-        // home: HomeScreen(),
+      child: Consumer2<ThemeProvider, LocaleProvider>(
+        builder: (context, themeProvider, localeProvider, _) => CupertinoApp(
+          debugShowCheckedModeBanner: false,
+          locale: localeProvider.locale,
+          supportedLocales: const [
+            Locale('en'),
+            Locale('ur'),
+            Locale('hi'),
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, myChild) {
+            return MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(.8)),
+              child: myChild!,
+            );
+          },
+          theme: theme(isDarkMode: themeProvider.isDark),
+          home: const SplashScreen(),
+        ),
       ),
     );
   }

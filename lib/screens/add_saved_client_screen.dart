@@ -57,10 +57,9 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
               contact.phones.isNotEmpty ? contact.phones.first.number : '';
           _emailCtrl.text =
               contact.emails.isNotEmpty ? contact.emails.first.address : '';
-          _addressCtrl.text =
-              contact.addresses.isNotEmpty
-                  ? contact.addresses.first.address
-                  : '';
+          _addressCtrl.text = contact.addresses.isNotEmpty
+              ? contact.addresses.first.address
+              : '';
         });
       } else {
         openAppSettings();
@@ -72,12 +71,13 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return CupertinoPageScaffold(
-      backgroundColor: kBackground,
+      backgroundColor: cl.background,
       child: SafeArea(
         child: Column(
           children: [
-            _buildNavBar(context),
+            _buildNavBar(cl),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -87,28 +87,28 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    sectionLabel('Client Info'),
-                    _buildNameCard(),
+                    sectionLabel(context, 'Client Info'),
+                    _buildNameCard(cl),
                     const SizedBox(height: 20),
-                    sectionLabel('Contact Details'),
-                    _buildContactCard(),
+                    sectionLabel(context, 'Contact Details'),
+                    _buildContactCard(cl),
                     if (_isEdit) ...[
                       const SizedBox(height: 24),
-                      _buildDeleteButton(context),
+                      _buildDeleteButton(cl),
                     ],
                     const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
-            _buildBottomBar(context),
+            _buildBottomBar(cl),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavBar(BuildContext context) {
+  Widget _buildNavBar(AppColors cl) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
@@ -120,7 +120,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const Spacer(),
@@ -130,18 +130,19 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
     );
   }
 
-  Widget _buildNameCard() {
+  Widget _buildNameCard(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           _formField(
+            cl: cl,
             controller: _nameCtrl,
             placeholder: 'Client Name',
             icon: CupertinoIcons.person,
             autofocus: true,
           ),
-          const Divider(height: 1, color: kBorder),
+          Divider(height: 1, color: cl.border),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: GestureDetector(
@@ -152,7 +153,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: kPrimaryLight,
+                      color: cl.primaryLight,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -171,10 +172,10 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
                     ),
                   ),
                   const Spacer(),
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
                     size: 14,
-                    color: kTextSecondary,
+                    color: cl.textSecondary,
                   ),
                 ],
               ),
@@ -185,26 +186,29 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
     );
   }
 
-  Widget _buildContactCard() {
+  Widget _buildContactCard(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           _formField(
+            cl: cl,
             controller: _phoneCtrl,
             placeholder: 'Phone',
             icon: CupertinoIcons.phone,
             keyboardType: TextInputType.phone,
           ),
-          const Divider(height: 1, color: kBorder),
+          Divider(height: 1, color: cl.border),
           _formField(
+            cl: cl,
             controller: _emailCtrl,
             placeholder: 'Email',
             icon: CupertinoIcons.mail,
             keyboardType: TextInputType.emailAddress,
           ),
-          const Divider(height: 1, color: kBorder),
+          Divider(height: 1, color: cl.border),
           _formField(
+            cl: cl,
             controller: _addressCtrl,
             placeholder: 'Address',
             icon: CupertinoIcons.location,
@@ -216,6 +220,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
   }
 
   Widget _formField({
+    required AppColors cl,
     required TextEditingController controller,
     required String placeholder,
     required IconData icon,
@@ -233,11 +238,10 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
               controller: controller,
               placeholder: placeholder,
               autofocus: autofocus,
-              placeholderStyle: GoogleFonts.poppins(
-                fontSize: 14,
-                color: kTextHint,
-              ),
-              style: GoogleFonts.poppins(fontSize: 14, color: kTextPrimary),
+              placeholderStyle:
+                  GoogleFonts.poppins(fontSize: 14, color: cl.textHint),
+              style:
+                  GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
               padding: const EdgeInsets.symmetric(vertical: 16),
               keyboardType: keyboardType,
               decoration: const BoxDecoration(color: Colors.transparent),
@@ -248,7 +252,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
     );
   }
 
-  Widget _buildDeleteButton(BuildContext context) {
+  Widget _buildDeleteButton(AppColors cl) {
     return GestureDetector(
       onTap: () => customCupertinoDialog(context, () async {
         await Provider.of<SavedClientProvider>(context, listen: false)
@@ -262,7 +266,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: kDangerBg,
+          color: cl.dangerBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kDangerColor.withValues(alpha: 0.2)),
         ),
@@ -286,11 +290,11 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildBottomBar(AppColors cl) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kSurface,
-        border: Border(top: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        border: Border(top: BorderSide(color: cl.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(

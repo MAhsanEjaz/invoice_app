@@ -77,7 +77,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
 
     if (widget.isPredefined == true) {
       for (var element in widget.invoice ?? []) {
-        _matchedClient = element.clients!.firstWhere(
+        _matchedClient = (element.clients ?? []).firstWhere(
           (c) => c.name == widget.name,
           orElse: () => ClientModel(),
         );
@@ -100,7 +100,8 @@ class _AddClientScreenState extends State<AddClientScreen> {
     try {
       if (await Permission.contacts.request().isGranted) {
         final contact = await FlutterContacts.openExternalPick();
-        nameCont.text = contact!.displayName;
+        if (contact == null) return;
+        nameCont.text = contact.displayName;
         phoneCont.text =
             contact.phones.isNotEmpty ? contact.phones.first.number : '';
         emailCont.text =
@@ -120,15 +121,16 @@ class _AddClientScreenState extends State<AddClientScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return Consumer2<ClientProvider, InvoiceProvider>(
       builder: (context, client, invoice, _) {
         final isEditing = client.name != null;
 
         return CupertinoPageScaffold(
-          backgroundColor: kBackground,
+          backgroundColor: cl.background,
           child: Column(
             children: [
-              _buildNavBar(isEditing),
+              _buildNavBar(cl, isEditing),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
@@ -138,21 +140,21 @@ class _AddClientScreenState extends State<AddClientScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      sectionLabel('Client Info'),
-                      _buildNameCard(),
+                      sectionLabel(context, 'Client Info'),
+                      _buildNameCard(cl),
                       const SizedBox(height: 20),
-                      sectionLabel('Contact Details'),
-                      _buildContactCard(),
+                      sectionLabel(context, 'Contact Details'),
+                      _buildContactCard(cl),
                       if (isEditing) ...[
                         const SizedBox(height: 24),
-                        _buildDeleteButton(client),
+                        _buildDeleteButton(cl, client),
                       ],
                       const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
-              _buildBottomBar(client, invoice),
+              _buildBottomBar(cl, client, invoice),
             ],
           ),
         );
@@ -160,7 +162,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
-  Widget _buildNavBar(bool isEditing) {
+  Widget _buildNavBar(AppColors cl, bool isEditing) {
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -174,7 +176,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: kTextPrimary,
+                color: cl.textPrimary,
               ),
             ),
             const Spacer(),
@@ -185,9 +187,9 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
-  Widget _buildNameCard() {
+  Widget _buildNameCard(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           AppTextFiled(
@@ -195,7 +197,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
             placeholder: 'Client Name',
             autofocus: true,
           ),
-          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: GestureDetector(
@@ -206,7 +208,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: kPrimaryLight,
+                      color: cl.primaryLight,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -225,10 +227,10 @@ class _AddClientScreenState extends State<AddClientScreen> {
                     ),
                   ),
                   const Spacer(),
-                  const Icon(
+                  Icon(
                     CupertinoIcons.chevron_right,
                     size: 14,
-                    color: kTextSecondary,
+                    color: cl.textSecondary,
                   ),
                 ],
               ),
@@ -239,9 +241,9 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
-  Widget _buildContactCard() {
+  Widget _buildContactCard(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           AppTextFiled(
@@ -249,13 +251,13 @@ class _AddClientScreenState extends State<AddClientScreen> {
             placeholder: 'Phone',
             textInputType: TextInputType.phone,
           ),
-          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: emailCont,
             placeholder: 'Email',
             textInputType: TextInputType.emailAddress,
           ),
-          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: addressCont,
             placeholder: 'Address',
@@ -266,7 +268,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
-  Widget _buildDeleteButton(ClientProvider client) {
+  Widget _buildDeleteButton(AppColors cl, ClientProvider client) {
     return GestureDetector(
       onTap: () {
         customCupertinoDialog(context, () async {
@@ -278,7 +280,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: kDangerBg,
+          color: cl.dangerBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: kDangerColor.withValues(alpha: 0.2)),
         ),
@@ -302,11 +304,12 @@ class _AddClientScreenState extends State<AddClientScreen> {
     );
   }
 
-  Widget _buildBottomBar(ClientProvider client, InvoiceProvider invoice) {
+  Widget _buildBottomBar(
+      AppColors cl, ClientProvider client, InvoiceProvider invoice) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kSurface,
-        border: Border(top: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        border: Border(top: BorderSide(color: cl.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
@@ -320,8 +323,6 @@ class _AddClientScreenState extends State<AddClientScreen> {
               duplicate: false,
             );
             client.addClient(newClient);
-            // Also persist to global saved clients so this client is available
-            // across all businesses in future invoices.
             Provider.of<SavedClientProvider>(context, listen: false)
                 .addClient(ClientModel(
               email: newClient.email,

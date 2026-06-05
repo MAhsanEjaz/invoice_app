@@ -41,6 +41,7 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     final viewInsets = MediaQuery.of(context).viewInsets;
     final topPad = MediaQuery.of(context).padding.top;
 
@@ -51,209 +52,84 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
           backgroundColor: kPrimary,
           body: Stack(
             children: [
-              // ── Background decorative circles ─────────────────────────────
+              Positioned(top: -80, right: -80, child: _circle(240, 0.08)),
+              Positioned(top: 80, left: -100, child: _circle(200, 0.05)),
               Positioned(
-                top: -80,
-                right: -80,
-                child: _circle(240, 0.08),
-              ),
-              Positioned(
-                top: 80,
-                left: -100,
-                child: _circle(200, 0.05),
-              ),
-
-              // ── Top branded section ───────────────────────────────────────
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
+                top: 0, left: 0, right: 0,
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(28, topPad + 36, 28, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Icon badge
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Icon(
-                          CupertinoIcons.doc_text_fill,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      )
-                          .animate()
-                          .fadeIn(duration: 400.ms)
-                          .scale(
-                            begin: const Offset(0.7, 0.7),
-                            duration: 500.ms,
-                            curve: Curves.easeOut,
-                          ),
-
-                      const SizedBox(height: 22),
-
-                      Text(
-                        "Set up your\nbusiness",
-                        style: GoogleFonts.poppins(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          height: 1.15,
-                          letterSpacing: -0.5,
-                        ),
-                      )
-                          .animate()
-                          .fadeIn(delay: 150.ms, duration: 400.ms)
-                          .slideY(
-                            begin: 0.2,
-                            end: 0,
-                            delay: 150.ms,
-                            duration: 400.ms,
-                          ),
-
-                      const SizedBox(height: 10),
-
-                      Text(
-                        'Just one step to start\ncreating professional invoices.',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white.withValues(alpha: 0.72),
-                          height: 1.5,
-                        ),
-                      )
-                          .animate()
-                          .fadeIn(delay: 250.ms, duration: 400.ms),
-                    ],
-                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Container(
+                      width: 60, height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+                      ),
+                      child: const Icon(CupertinoIcons.doc_text_fill, color: Colors.white, size: 28),
+                    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.7, 0.7), duration: 500.ms, curve: Curves.easeOut),
+                    const SizedBox(height: 22),
+                    Text('Set up your\nbusiness', style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5))
+                        .animate().fadeIn(delay: 150.ms, duration: 400.ms).slideY(begin: 0.2, end: 0, delay: 150.ms, duration: 400.ms),
+                    const SizedBox(height: 10),
+                    Text('Just one step to start\ncreating professional invoices.', style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withValues(alpha: 0.72), height: 1.5))
+                        .animate().fadeIn(delay: 250.ms, duration: 400.ms),
+                  ]),
                 ),
               ),
-
-              // ── White form card (animates up with keyboard) ───────────────
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOut,
-                bottom: viewInsets.bottom,
-                left: 0,
-                right: 0,
+                bottom: viewInsets.bottom, left: 0, right: 0,
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: kSurface,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(32),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x22000000),
-                        blurRadius: 24,
-                        offset: Offset(0, -6),
-                      ),
-                    ],
+                  decoration: BoxDecoration(
+                    color: cl.surface,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 24, offset: Offset(0, -6))],
                   ),
                   child: SafeArea(
                     top: false,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Handle bar
-                          Center(
-                            child: Container(
-                              width: 36,
-                              height: 4,
-                              margin: const EdgeInsets.only(bottom: 20),
-                              decoration: BoxDecoration(
-                                color: kBorder,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
+                      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)))),
+                        sectionLabel(context, 'Your business name'),
+                        const SizedBox(height: 8),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: cl.background,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: _isFocused ? kPrimary : Colors.transparent, width: 1.5),
                           ),
-
-                          sectionLabel('Your business name'),
-                          const SizedBox(height: 8),
-
-                          // Text field
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            decoration: BoxDecoration(
-                              color: kBackground,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: _isFocused ? kPrimary : Colors.transparent,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: CupertinoTextField(
-                              controller: _nameCont,
-                              focusNode: _focusNode,
-                              autofocus: false,
-                              placeholder: 'e.g. Acme Studio',
-                              placeholderStyle: GoogleFonts.poppins(
-                                fontSize: 15,
-                                color: kTextHint,
-                              ),
-                              style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                color: kTextPrimary,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              clearButtonMode: OverlayVisibilityMode.editing,
-                              decoration: const BoxDecoration(
-                                color: Colors.transparent,
-                              ),
-                              onChanged: (val) {
-                                setState(
-                                  () => _hasInput = val.trim().isNotEmpty,
-                                );
-                              },
-                            ),
+                          child: CupertinoTextField(
+                            controller: _nameCont,
+                            focusNode: _focusNode,
+                            autofocus: false,
+                            placeholder: 'e.g. Acme Studio',
+                            placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: cl.textHint),
+                            style: GoogleFonts.poppins(fontSize: 15, color: cl.textPrimary),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            clearButtonMode: OverlayVisibilityMode.editing,
+                            decoration: const BoxDecoration(color: Colors.transparent),
+                            onChanged: (val) => setState(() => _hasInput = val.trim().isNotEmpty),
                           ),
-
-                          const SizedBox(height: 10),
-
-                          Text(
-                            'You can always update this later in Settings.',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: kTextSecondary,
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          AppButton(
-                            txt: 'Continue',
-                            color: _hasInput ? kPrimary : kTextHint,
-                            onTap: _hasInput
-                                ? () {
-                                    business.addBusinessData(
-                                      BusinessModel(
-                                        businessName: _nameCont.text.trim(),
-                                      ),
-                                    );
-                                    business.getSaveBusinessModel();
-                                    Navigation.go(context, const InvoiceDummy());
-                                  }
-                                : null,
-                          ),
-
-                          const SizedBox(height: 20),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text('You can always update this later in Settings.', style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
+                        const SizedBox(height: 24),
+                        AppButton(
+                          txt: 'Continue',
+                          color: _hasInput ? kPrimary : cl.textHint,
+                          onTap: _hasInput ? () {
+                            business.addBusinessData(BusinessModel(businessName: _nameCont.text.trim()));
+                            business.getSaveBusinessModel();
+                            Navigation.go(context, const InvoiceDummy());
+                          } : null,
+                        ),
+                        const SizedBox(height: 20),
+                      ]),
                     ),
                   ),
                 ),
@@ -267,12 +143,8 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
 
   Widget _circle(double size, double opacity) {
     return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: opacity),
-      ),
+      width: size, height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: opacity)),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
@@ -25,8 +26,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int groupVal = 0;
 
-  // Returns invoices for the active business.
-  // Legacy invoices without a businessId are shown under the default business.
   List<InvoiceModel> _filterForBusiness(
     List<InvoiceModel> all,
     BusinessModel? active,
@@ -34,7 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (active == null) return all;
     return all.where((inv) {
       if (inv.businessId == active.id) return true;
-      // Legacy invoices (no businessId) belong to default business
       if (inv.businessId == null && active.isDefault) return true;
       return false;
     }).toList();
@@ -42,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return Consumer3<InvoiceProvider, CurrencyProvider, BusinessProvider>(
       builder: (context, invoice, currency, business, _) {
         final sym = currency.symbol;
@@ -55,29 +54,29 @@ class _HomeScreenState extends State<HomeScreen> {
         final displayList = groupVal == 0 ? unpaid : paid;
 
         return CupertinoPageScaffold(
-          backgroundColor: kBackground,
+          backgroundColor: cl.background,
           child: SafeArea(
             child: Column(
               children: [
-                _buildHeader(context, business, filtered, sym),
+                _buildHeader(context, cl, business, filtered, sym),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 10,
                   ),
-                  child: _buildSegmentControl(),
+                  child: _buildSegmentControl(cl),
                 ),
                 Expanded(
                   child: displayList.isEmpty
-                      ? _buildEmptyState()
+                      ? _buildEmptyState(cl)
                       : ListView.separated(
-                          padding:
-                              const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                           itemCount: displayList.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 10),
                           itemBuilder: (context, k) => _buildInvoiceCard(
                             context,
+                            cl,
                             invoice,
                             displayList[k],
                             sym,
@@ -88,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                   child: AppButton(
                     onTap: () => Navigation.go(context, NewInvoiceScreen()),
-                    txt: 'Create Invoice',
+                    txt: context.tr('create_invoice'),
                   ),
                 ),
               ],
@@ -101,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader(
     BuildContext context,
+    AppColors cl,
     BusinessProvider business,
     List<InvoiceModel> filtered,
     String sym,
@@ -127,32 +127,30 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Invoices',
+                  context.tr('invoices'),
                   style: GoogleFonts.poppins(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: kTextPrimary,
+                    color: cl.textPrimary,
                   ),
                 ),
                 Text(
-                  '${filtered.length} total · $sym${unpaidTotal.toStringAsFixed(2)} outstanding',
+                  '${filtered.length} ${context.tr('total')} · $sym${unpaidTotal.toStringAsFixed(2)} ${context.tr('outstanding')}',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: kTextSecondary,
+                    color: cl.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 6),
-                // Business switcher chip
                 GestureDetector(
-                  onTap: () =>
-                      _showBusinessSwitcher(context, business),
+                  onTap: () => _showBusinessSwitcher(context, cl, business),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: kPrimaryLight,
+                      color: cl.primaryLight,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -160,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           business.activeBusiness?.businessName ??
-                              'Select Business',
+                              context.tr('select_business'),
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -186,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: kSurface,
+                color: cl.surface,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -208,7 +206,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showBusinessSwitcher(BuildContext context, BusinessProvider business) {
+  void _showBusinessSwitcher(
+      BuildContext context, AppColors cl, BusinessProvider business) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -223,26 +222,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSegmentControl() {
+  Widget _buildSegmentControl(AppColors cl) {
     return Container(
       height: 46,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: kSurface,
+        color: cl.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kBorder),
+        border: Border.all(color: cl.border),
       ),
       child: Row(
         children: [
-          _segmentTab('Unpaid', 0),
+          _segmentTab(cl, context.tr('unpaid'), 0),
           const SizedBox(width: 4),
-          _segmentTab('Paid', 1),
+          _segmentTab(cl, context.tr('paid'), 1),
         ],
       ),
     );
   }
 
-  Widget _segmentTab(String label, int index) {
+  Widget _segmentTab(AppColors cl, String label, int index) {
     final isSelected = groupVal == index;
     return Expanded(
       child: GestureDetector(
@@ -259,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : kTextSecondary,
+              color: isSelected ? Colors.white : cl.textSecondary,
             ),
           ),
         ),
@@ -267,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppColors cl) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -276,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: kPrimaryLight,
+              color: cl.primaryLight,
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -287,18 +286,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            groupVal == 0 ? 'No unpaid invoices' : 'No paid invoices',
+            groupVal == 0
+                ? context.tr('no_unpaid')
+                : context.tr('no_paid'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Tap "Create Invoice" to get started',
+            context.tr('tap_create'),
             style: GoogleFonts.poppins(
-                fontSize: 13, color: kTextSecondary),
+                fontSize: 13, color: cl.textSecondary),
           ),
         ],
       ),
@@ -307,11 +308,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildInvoiceCard(
     BuildContext context,
+    AppColors cl,
     InvoiceProvider invoice,
     InvoiceModel inv,
     String sym,
   ) {
-    final clientName = inv.clients?.first.name ?? 'Unknown Client';
+    final clientName = (inv.clients?.isNotEmpty ?? false)
+        ? (inv.clients!.first.name ?? 'Unknown Client')
+        : 'Unknown Client';
     final total =
         inv.items?.fold<double>(
           0,
@@ -329,13 +333,17 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           VerificationInvoice(
             invoiceModel: latest,
-            clientModel: latest.clients!.first,
-            itemModel: latest.items!.first,
+            clientModel: (latest.clients?.isNotEmpty ?? false)
+                ? latest.clients!.first
+                : null,
+            itemModel: (latest.items?.isNotEmpty ?? false)
+                ? latest.items!.first
+                : null,
           ),
         );
       },
       child: Container(
-        decoration: kCardDecoration,
+        decoration: context.cardDecoration,
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
@@ -343,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: kPrimaryLight,
+                color: cl.primaryLight,
                 borderRadius: BorderRadius.circular(13),
               ),
               alignment: Alignment.center,
@@ -366,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: kTextPrimary,
+                      color: cl.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -376,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     '${inv.date ?? ''}  ·  #${inv.invoiceId}',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: kTextSecondary,
+                      color: cl.textSecondary,
                     ),
                   ),
                 ],
@@ -391,11 +399,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: kTextPrimary,
+                    color: cl.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 5),
-                statusBadge(isPaid),
+                statusBadge(context, isPaid),
               ],
             ),
           ],
@@ -418,10 +426,11 @@ class _BusinessSwitcherSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return Container(
-      decoration: const BoxDecoration(
-        color: kBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: cl.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -433,7 +442,7 @@ class _BusinessSwitcherSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: kBorder,
+                color: cl.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -441,11 +450,11 @@ class _BusinessSwitcherSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Switch Business',
+                context.tr('switch_business'),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: kTextPrimary,
+                  color: cl.textPrimary,
                 ),
               ),
             ),
@@ -463,10 +472,10 @@ class _BusinessSwitcherSheet extends StatelessWidget {
                   onTap: () => onSelect(b),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isActive ? kPrimaryLight : kSurface,
+                      color: isActive ? cl.primaryLight : cl.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isActive ? kPrimary : kBorder,
+                        color: isActive ? kPrimary : cl.border,
                         width: isActive ? 1.5 : 1,
                       ),
                     ),
@@ -480,7 +489,7 @@ class _BusinessSwitcherSheet extends StatelessWidget {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: isActive ? kPrimary : kBackground,
+                            color: isActive ? kPrimary : cl.background,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           alignment: Alignment.center,
@@ -491,7 +500,8 @@ class _BusinessSwitcherSheet extends StatelessWidget {
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: isActive ? Colors.white : kTextSecondary,
+                              color:
+                                  isActive ? Colors.white : cl.textSecondary,
                             ),
                           ),
                         ),
@@ -502,7 +512,7 @@ class _BusinessSwitcherSheet extends StatelessWidget {
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: kTextPrimary,
+                              color: cl.textPrimary,
                             ),
                           ),
                         ),
@@ -517,7 +527,7 @@ class _BusinessSwitcherSheet extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              'Default',
+                              context.tr('default_label'),
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -533,9 +543,9 @@ class _BusinessSwitcherSheet extends StatelessWidget {
                             size: 20,
                           )
                         else
-                          const Icon(
+                          Icon(
                             CupertinoIcons.circle,
-                            color: kTextHint,
+                            color: cl.textHint,
                             size: 20,
                           ),
                       ],

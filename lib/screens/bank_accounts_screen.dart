@@ -12,18 +12,19 @@ class BankAccountsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return Consumer<BankProvider>(
       builder: (context, provider, _) {
         return CupertinoPageScaffold(
-          backgroundColor: kBackground,
+          backgroundColor: cl.background,
           child: SafeArea(
             child: Column(
               children: [
-                _buildNavBar(context),
+                _buildNavBar(context, cl),
                 Expanded(
                   child: provider.banks.isEmpty
-                      ? _buildEmpty(context)
-                      : _buildList(context, provider),
+                      ? _buildEmpty(context, cl)
+                      : _buildList(context, cl, provider),
                 ),
               ],
             ),
@@ -33,7 +34,7 @@ class BankAccountsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNavBar(BuildContext context) {
+  Widget _buildNavBar(BuildContext context, AppColors cl) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
@@ -45,7 +46,7 @@ class BankAccountsScreen extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const Spacer(),
@@ -54,8 +55,8 @@ class BankAccountsScreen extends StatelessWidget {
             child: Container(
               width: 34,
               height: 34,
-              decoration: const BoxDecoration(
-                color: kPrimaryLight,
+              decoration: BoxDecoration(
+                color: cl.primaryLight,
                 shape: BoxShape.circle,
               ),
               child: const Icon(CupertinoIcons.add, color: kPrimary, size: 18),
@@ -66,7 +67,7 @@ class BankAccountsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmpty(BuildContext context) {
+  Widget _buildEmpty(BuildContext context, AppColors cl) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -75,7 +76,7 @@ class BankAccountsScreen extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: kPrimaryLight,
+              color: cl.primaryLight,
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -90,18 +91,19 @@ class BankAccountsScreen extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Add bank accounts to include\npayment details on your invoices.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(fontSize: 14, color: kTextSecondary),
+            style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
           ),
           const SizedBox(height: 24),
           GestureDetector(
-            onTap: () => Navigation.go(context, const AddBankAccountScreen()),
+            onTap: () =>
+                Navigation.go(context, const AddBankAccountScreen()),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
@@ -123,7 +125,8 @@ class BankAccountsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildList(BuildContext context, BankProvider provider) {
+  Widget _buildList(
+      BuildContext context, AppColors cl, BankProvider provider) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemCount: provider.banks.length,
@@ -132,7 +135,7 @@ class BankAccountsScreen extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Container(
-            decoration: kCardDecoration,
+            decoration: context.cardDecoration,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Material(
@@ -153,7 +156,7 @@ class BankAccountsScreen extends StatelessWidget {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: kPrimaryLight,
+                            color: cl.primaryLight,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
@@ -172,30 +175,30 @@ class BankAccountsScreen extends StatelessWidget {
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: kTextPrimary,
+                                  color: cl.textPrimary,
                                 ),
                               ),
                               Text(
                                 bank.bankName ?? '',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
-                                  color: kTextSecondary,
+                                  color: cl.textSecondary,
                                 ),
                               ),
                               Text(
                                 bank.accountNumber ?? '',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
-                                  color: kTextHint,
+                                  color: cl.textHint,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           CupertinoIcons.chevron_right,
                           size: 14,
-                          color: kTextSecondary,
+                          color: cl.textSecondary,
                         ),
                       ],
                     ),

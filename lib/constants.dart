@@ -4,47 +4,101 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-// ─── Color Palette ───────────────────────────────────────────────────────────
+// ─── Mode-independent colours ─────────────────────────────────────────────────
 const kPrimary = Color(0xFF0D7377);
-const kPrimaryLight = Color(0xFFE0F4F4);
-const kBackground = Color(0xFFF1F5F9);
-const kSurface = Color(0xFFFFFFFF);
-const kBorder = Color(0xFFE2E8F0);
-const kTextPrimary = Color(0xFF0F172A);
-const kTextSecondary = Color(0xFF64748B);
-const kTextHint = Color(0xFF94A3B8);
 const kPaidColor = Color(0xFF16A34A);
-const kPaidBg = Color(0xFFF0FDF4);
 const kUnpaidColor = Color(0xFFD97706);
-const kUnpaidBg = Color(0xFFFEF3C7);
 const kDangerColor = Color(0xFFDC2626);
-const kDangerBg = Color(0xFFFEF2F2);
 
-// Legacy aliases used throughout the codebase
-const appColor = kSurface;
+// Legacy aliases kept for older screens that still reference them
+const appColor = Color(0xFFFFFFFF);
 const buttonColor = kPrimary;
-var scaffoldColor = kBackground;
+var scaffoldColor = const Color(0xFFF1F5F9);
 
-// ─── Card Decorations ─────────────────────────────────────────────────────────
-BoxDecoration get kCardDecoration => BoxDecoration(
-      color: kSurface,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.06),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    );
+// ─── AppColors class ──────────────────────────────────────────────────────────
+class AppColors {
+  final Color background;
+  final Color surface;
+  final Color border;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textHint;
+  final Color primaryLight;
+  final Color paidBg;
+  final Color unpaidBg;
+  final Color dangerBg;
 
-BoxDecoration get kCardDecorationFlat => BoxDecoration(
-      color: kSurface,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: kBorder, width: 1),
-    );
+  const AppColors({
+    required this.background,
+    required this.surface,
+    required this.border,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textHint,
+    required this.primaryLight,
+    required this.paidBg,
+    required this.unpaidBg,
+    required this.dangerBg,
+  });
 
-// ─── Shared Widgets ──────────────────────────────────────────────────────────
+  static const light = AppColors(
+    background: Color(0xFFF1F5F9),
+    surface: Color(0xFFFFFFFF),
+    border: Color(0xFFE2E8F0),
+    textPrimary: Color(0xFF0F172A),
+    textSecondary: Color(0xFF64748B),
+    textHint: Color(0xFF94A3B8),
+    primaryLight: Color(0xFFE0F4F4),
+    paidBg: Color(0xFFF0FDF4),
+    unpaidBg: Color(0xFFFEF3C7),
+    dangerBg: Color(0xFFFEF2F2),
+  );
+
+  static const dark = AppColors(
+    background: Color(0xFF0F172A),
+    surface: Color(0xFF1E293B),
+    border: Color(0xFF334155),
+    textPrimary: Color(0xFFF1F5F9),
+    textSecondary: Color(0xFF94A3B8),
+    textHint: Color(0xFF64748B),
+    primaryLight: Color(0xFF0D3B3D),
+    paidBg: Color(0xFF052E16),
+    unpaidBg: Color(0xFF451A03),
+    dangerBg: Color(0xFF450A0A),
+  );
+
+  static AppColors of(BuildContext context) {
+    final brightness = CupertinoTheme.brightnessOf(context);
+    return brightness == Brightness.dark ? dark : light;
+  }
+}
+
+// ─── BuildContext extensions ──────────────────────────────────────────────────
+extension AppColorsX on BuildContext {
+  AppColors get colors => AppColors.of(this);
+  bool get isDarkMode => AppColors.of(this) == AppColors.dark;
+
+  BoxDecoration get cardDecoration => BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: (isDarkMode ? Colors.black : const Color(0xFF0F172A))
+                .withValues(alpha: isDarkMode ? 0.3 : 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      );
+
+  BoxDecoration get cardDecorationFlat => BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.border, width: 1),
+      );
+}
+
+// ─── Shared Widgets ───────────────────────────────────────────────────────────
 class ImagePick {
   static pickImage() async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -63,6 +117,7 @@ responseText(BuildContext context, double size) {
 }
 
 Widget closeButton(BuildContext context, [Function()? onTap]) {
+  final cl = context.colors;
   return GestureDetector(
     onTap: () {
       onTap?.call();
@@ -71,8 +126,8 @@ Widget closeButton(BuildContext context, [Function()? onTap]) {
     child: Container(
       width: 34,
       height: 34,
-      decoration: const BoxDecoration(
-        color: kPrimaryLight,
+      decoration: BoxDecoration(
+        color: cl.primaryLight,
         shape: BoxShape.circle,
       ),
       child: const Icon(CupertinoIcons.xmark, color: kPrimary, size: 15),
@@ -80,11 +135,12 @@ Widget closeButton(BuildContext context, [Function()? onTap]) {
   );
 }
 
-Widget statusBadge(bool isPaid) {
+Widget statusBadge(BuildContext context, bool isPaid) {
+  final cl = context.colors;
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: isPaid ? kPaidBg : kUnpaidBg,
+      color: isPaid ? cl.paidBg : cl.unpaidBg,
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
@@ -98,7 +154,7 @@ Widget statusBadge(bool isPaid) {
   );
 }
 
-Widget sectionLabel(String label) {
+Widget sectionLabel(BuildContext context, String label) {
   return Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 8),
     child: Text(
@@ -106,7 +162,7 @@ Widget sectionLabel(String label) {
       style: GoogleFonts.poppins(
         fontSize: 11,
         fontWeight: FontWeight.w600,
-        color: kTextSecondary,
+        color: context.colors.textSecondary,
         letterSpacing: 0.8,
       ),
     ),
@@ -115,25 +171,26 @@ Widget sectionLabel(String label) {
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 CupertinoThemeData theme({required bool isDarkMode}) {
+  final colors = isDarkMode ? AppColors.dark : AppColors.light;
   return CupertinoThemeData(
     brightness: isDarkMode ? Brightness.dark : Brightness.light,
     primaryColor: kPrimary,
-    scaffoldBackgroundColor: kBackground,
-    barBackgroundColor: kSurface,
+    scaffoldBackgroundColor: colors.background,
+    barBackgroundColor: colors.surface,
     textTheme: CupertinoTextThemeData(
       textStyle: GoogleFonts.poppins(
         fontSize: 15,
-        color: isDarkMode ? CupertinoColors.white : kTextPrimary,
+        color: colors.textPrimary,
       ),
       navLargeTitleTextStyle: GoogleFonts.poppins(
         fontSize: 32,
         fontWeight: FontWeight.w700,
-        color: isDarkMode ? CupertinoColors.white : kTextPrimary,
+        color: colors.textPrimary,
       ),
       navTitleTextStyle: GoogleFonts.poppins(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: isDarkMode ? CupertinoColors.white : kTextPrimary,
+        color: colors.textPrimary,
       ),
       actionTextStyle: GoogleFonts.poppins(
         fontSize: 15,
@@ -182,20 +239,33 @@ void customCupertinoDialog(BuildContext context, Function()? onTap) {
   );
 }
 
-Future<DateTime?> customDatePicker(BuildContext context) {
+Future<DateTime?> customDatePicker(
+  BuildContext context, {
+  bool allowFuture = false,
+}) {
+  final isDark = context.isDarkMode;
   return showDatePicker(
     context: context,
     initialDate: DateTime.now(),
     firstDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
-    lastDate: DateTime.now(),
+    lastDate: allowFuture
+        ? DateTime.now().add(const Duration(days: 365 * 5))
+        : DateTime.now(),
     builder: (context, child) {
       return Theme(
         data: ThemeData(
-          colorScheme: const ColorScheme.light(
-            primary: kPrimary,
-            onPrimary: Colors.white,
-            onSurface: kTextPrimary,
-          ),
+          colorScheme: isDark
+              ? ColorScheme.dark(
+                  primary: kPrimary,
+                  onPrimary: Colors.white,
+                  surface: AppColors.dark.surface,
+                  onSurface: AppColors.dark.textPrimary,
+                )
+              : const ColorScheme.light(
+                  primary: kPrimary,
+                  onPrimary: Colors.white,
+                  onSurface: Color(0xFF0F172A),
+                ),
           textTheme: GoogleFonts.poppinsTextTheme(),
         ),
         child: child!,

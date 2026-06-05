@@ -42,7 +42,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     if (widget.itemModel != null) {
       itemCont.text = widget.itemModel!.itemName ?? '';
       noteCont.text = widget.itemModel!.note ?? '';
-      priceCont.text = widget.itemModel!.price.toString();
+      priceCont.text = widget.itemModel!.price?.toString() ?? '';
       qtyCont.text = widget.itemModel!.qty.toString();
     } else {
       priceCont.text = '1';
@@ -67,16 +67,17 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return Consumer2<ItemProvider, InvoiceProvider>(
       builder: (context, item, invoice, _) {
         final isEditing =
             widget.itemModel != null && widget.duplicate == false;
 
         return CupertinoPageScaffold(
-          backgroundColor: kBackground,
+          backgroundColor: cl.background,
           child: Column(
             children: [
-              _buildNavBar(isEditing),
+              _buildNavBar(cl, isEditing),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
@@ -86,23 +87,23 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      sectionLabel('Item Details'),
-                      _buildDescriptionCard(),
+                      sectionLabel(context, 'Item Details'),
+                      _buildDescriptionCard(cl),
                       const SizedBox(height: 20),
-                      sectionLabel('Pricing'),
-                      _buildPricingCard(),
+                      sectionLabel(context, 'Pricing'),
+                      _buildPricingCard(cl),
                       const SizedBox(height: 20),
                       _buildTotalCard(),
                       if (widget.itemModel != null) ...[
                         const SizedBox(height: 24),
-                        _buildDeleteButton(item, invoice),
+                        _buildDeleteButton(cl, item, invoice),
                       ],
                       const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
-              _buildBottomBar(item, invoice, isEditing),
+              _buildBottomBar(cl, item, invoice, isEditing),
             ],
           ),
         );
@@ -110,7 +111,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  Widget _buildNavBar(bool isEditing) {
+  Widget _buildNavBar(AppColors cl, bool isEditing) {
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -124,7 +125,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: kTextPrimary,
+                color: cl.textPrimary,
               ),
             ),
             const Spacer(),
@@ -135,9 +136,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  Widget _buildDescriptionCard() {
+  Widget _buildDescriptionCard(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           AppTextFiled(
@@ -145,7 +146,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             placeholder: 'Item or service name',
             autofocus: true,
           ),
-          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: noteCont,
             placeholder: 'Notes (optional)',
@@ -155,9 +156,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  Widget _buildPricingCard() {
+  Widget _buildPricingCard(AppColors cl) {
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       child: Column(
         children: [
           AppTextFiled(
@@ -166,7 +167,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             textInputType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (_) => setState(() {}),
           ),
-          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: qtyCont,
             placeholder: 'Quantity',
@@ -181,7 +182,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   Widget _buildTotalCard() {
     final sym = Provider.of<CurrencyProvider>(context).symbol;
     return Container(
-      decoration: kCardDecoration,
+      decoration: context.cardDecoration,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
         children: [
@@ -190,7 +191,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: kTextSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const Spacer(),
@@ -207,7 +208,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  Widget _buildDeleteButton(ItemProvider item, InvoiceProvider invoice) {
+  Widget _buildDeleteButton(
+      AppColors cl, ItemProvider item, InvoiceProvider invoice) {
     return GestureDetector(
       onTap: () {
         if (widget.duplicate == true) {
@@ -224,7 +226,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 widget.itemModel!.id!,
               );
             } else if (widget.itemModel != null) {
-              await item.deleteItems(widget.itemModel!, widget.itemModel!.id ?? 0);
+              await item.deleteItems(
+                  widget.itemModel!, widget.itemModel!.id ?? 0);
             }
             if (!mounted) return;
             Navigator.pop(context);
@@ -234,7 +237,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: kDangerBg,
+          color: cl.dangerBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: kDangerColor.withValues(alpha: 0.2)),
         ),
@@ -259,14 +262,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Widget _buildBottomBar(
+    AppColors cl,
     ItemProvider item,
     InvoiceProvider invoice,
     bool isEditing,
   ) {
     return Container(
-      decoration: const BoxDecoration(
-        color: kSurface,
-        border: Border(top: BorderSide(color: kBorder)),
+      decoration: BoxDecoration(
+        color: cl.surface,
+        border: Border(top: BorderSide(color: cl.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
@@ -325,8 +329,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
               widget.itemModel!.id!,
               itemCont.text,
               noteCont.text,
-              double.parse(priceCont.text),
-              int.parse(qtyCont.text),
+              double.tryParse(priceCont.text) ?? 0,
+              int.tryParse(qtyCont.text) ?? 1,
             );
           }
 

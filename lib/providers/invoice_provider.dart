@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
+import 'package:invoicemaker/models/bank_model.dart';
 import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/models/item_model.dart';
+import 'package:invoicemaker/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class InvoiceProvider extends ChangeNotifier {
@@ -66,28 +68,54 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  addInvoice(InvoiceModel newInvoice) {
+  Future<void> addInvoice(InvoiceModel newInvoice) async {
     lastId += 1;
     newInvoice.invoiceId = lastId;
 
     invoice.add(newInvoice);
     getInvoices();
 
-    saveInvoice();
+    await saveInvoice();
 
     notifyListeners();
+
+    if (newInvoice.dueDate != null && newInvoice.invoiceStatus != 'Paid') {
+      final clientName = (newInvoice.clients?.isNotEmpty ?? false)
+          ? (newInvoice.clients!.first.name ?? 'Client')
+          : 'Client';
+      NotificationService.scheduleInvoiceReminder(
+        invoiceId: newInvoice.invoiceId!,
+        clientName: clientName,
+        invoiceNumber: newInvoice.invoiceId.toString(),
+        dueDate: newInvoice.dueDate!,
+      );
+    }
   }
 
   updateInvoiceStatus(String val, int invoiceId) {
-    final invoiceIdData = invoice.firstWhere(
+    final inv = invoice.firstWhere(
       (element) => element.invoiceId == invoiceId,
     );
 
-    invoiceIdData.invoiceStatus = val;
+    inv.invoiceStatus = val;
 
     getInvoices();
     saveInvoice();
     notifyListeners();
+
+    if (val == 'Paid') {
+      NotificationService.cancelInvoiceReminder(invoiceId);
+    } else if (inv.dueDate != null) {
+      final clientName = (inv.clients?.isNotEmpty ?? false)
+          ? (inv.clients!.first.name ?? 'Client')
+          : 'Client';
+      NotificationService.scheduleInvoiceReminder(
+        invoiceId: invoiceId,
+        clientName: clientName,
+        invoiceNumber: invoiceId.toString(),
+        dueDate: inv.dueDate!,
+      );
+    }
   }
 
   getInvoices() {
@@ -100,9 +128,8 @@ class InvoiceProvider extends ChangeNotifier {
       } else {
         unPaidInvoice.add(l);
       }
-
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   itemUpdate(
@@ -149,6 +176,7 @@ class InvoiceProvider extends ChangeNotifier {
       }
     }
 
+    saveInvoice();
     notifyListeners();
   }
 
@@ -202,21 +230,39 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Updates the mutable fields of an invoice (date, dueDate, notes, termsConditions).
+  /// Updates the mutable fields of an invoice (date, dueDate, notes, termsConditions, bank).
   void updateInvoiceDetails(
     int invoiceId, {
     String? date,
     String? dueDate,
     String? notes,
     String? termsConditions,
+    BankModel? bank,
   }) {
     final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
     if (date != null) inv.date = date;
     inv.dueDate = dueDate;
     inv.notes = notes;
     inv.termsConditions = termsConditions;
+    inv.bank = bank;
     saveInvoice();
     notifyListeners();
+
+    if (inv.invoiceStatus != 'Paid') {
+      if (dueDate != null) {
+        final clientName = (inv.clients?.isNotEmpty ?? false)
+            ? (inv.clients!.first.name ?? 'Client')
+            : 'Client';
+        NotificationService.scheduleInvoiceReminder(
+          invoiceId: invoiceId,
+          clientName: clientName,
+          invoiceNumber: invoiceId.toString(),
+          dueDate: dueDate,
+        );
+      } else {
+        NotificationService.cancelInvoiceReminder(invoiceId);
+      }
+    }
   }
 
   /// Persists the amount received against an invoice.
@@ -241,6 +287,7 @@ class InvoiceProvider extends ChangeNotifier {
     getInvoices();
     saveInvoice();
     notifyListeners();
+    NotificationService.cancelInvoiceReminder(invoiceId);
   }
 
   saveInvoice() async {
@@ -266,9 +313,9 @@ class InvoiceProvider extends ChangeNotifier {
     }
 
     if (invoice.isNotEmpty) {
-      for (var l in invoice) {
-        lastId = l.invoiceId!;
-      }
+      lastId = invoice
+          .map((l) => l.invoiceId ?? 0)
+          .reduce((a, b) => a > b ? a : b);
     }
     notifyListeners();
   }

@@ -41,6 +41,7 @@ class _AppTextFiledState extends State<AppTextFiled> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return CupertinoTextField(
       onChanged: widget.onChanged,
       focusNode: _focusNode,
@@ -48,11 +49,11 @@ class _AppTextFiledState extends State<AppTextFiled> {
       autofocus: widget.autofocus,
       clearButtonMode: OverlayVisibilityMode.editing,
       autocorrect: false,
-      style: GoogleFonts.poppins(fontSize: 15, color: kTextPrimary),
-      placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: kTextHint),
+      style: GoogleFonts.poppins(fontSize: 15, color: cl.textPrimary),
+      placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: cl.textHint),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: kSurface,
+        color: cl.surface,
         border: Border.all(
           color: _focusNode.hasFocus ? kPrimary : Colors.transparent,
           width: 1.5,

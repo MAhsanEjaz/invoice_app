@@ -12,18 +12,19 @@ class SavedClientsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = context.colors;
     return Consumer<SavedClientProvider>(
       builder: (context, provider, _) {
         return CupertinoPageScaffold(
-          backgroundColor: kBackground,
+          backgroundColor: cl.background,
           child: SafeArea(
             child: Column(
               children: [
-                _buildNavBar(context),
+                _buildNavBar(context, cl),
                 Expanded(
                   child: provider.clients.isEmpty
-                      ? _buildEmpty(context)
-                      : _buildList(context, provider),
+                      ? _buildEmpty(context, cl)
+                      : _buildList(context, cl, provider),
                 ),
               ],
             ),
@@ -33,7 +34,7 @@ class SavedClientsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNavBar(BuildContext context) {
+  Widget _buildNavBar(BuildContext context, AppColors cl) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
@@ -45,7 +46,7 @@ class SavedClientsScreen extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const Spacer(),
@@ -54,8 +55,8 @@ class SavedClientsScreen extends StatelessWidget {
             child: Container(
               width: 34,
               height: 34,
-              decoration: const BoxDecoration(
-                color: kPrimaryLight,
+              decoration: BoxDecoration(
+                color: cl.primaryLight,
                 shape: BoxShape.circle,
               ),
               child: const Icon(CupertinoIcons.add, color: kPrimary, size: 18),
@@ -66,7 +67,7 @@ class SavedClientsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmpty(BuildContext context) {
+  Widget _buildEmpty(BuildContext context, AppColors cl) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -75,7 +76,7 @@ class SavedClientsScreen extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: kPrimaryLight,
+              color: cl.primaryLight,
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -90,20 +91,22 @@ class SavedClientsScreen extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: kTextPrimary,
+              color: cl.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Save clients to quickly select\nthem when creating invoices.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(fontSize: 14, color: kTextSecondary),
+            style:
+                GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
           ),
           const SizedBox(height: 24),
           GestureDetector(
             onTap: () => Navigation.go(context, const AddSavedClientScreen()),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
                 color: kPrimary,
                 borderRadius: BorderRadius.circular(12),
@@ -123,7 +126,8 @@ class SavedClientsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildList(BuildContext context, SavedClientProvider provider) {
+  Widget _buildList(
+      BuildContext context, AppColors cl, SavedClientProvider provider) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemCount: provider.clients.length,
@@ -132,7 +136,7 @@ class SavedClientsScreen extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Container(
-            decoration: kCardDecoration,
+            decoration: context.cardDecoration,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Material(
@@ -153,7 +157,7 @@ class SavedClientsScreen extends StatelessWidget {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: kPrimaryLight,
+                            color: cl.primaryLight,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
@@ -178,7 +182,7 @@ class SavedClientsScreen extends StatelessWidget {
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: kTextPrimary,
+                                  color: cl.textPrimary,
                                 ),
                               ),
                               if (client.email?.isNotEmpty ?? false)
@@ -186,7 +190,7 @@ class SavedClientsScreen extends StatelessWidget {
                                   client.email!,
                                   style: GoogleFonts.poppins(
                                     fontSize: 12,
-                                    color: kTextSecondary,
+                                    color: cl.textSecondary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -196,16 +200,16 @@ class SavedClientsScreen extends StatelessWidget {
                                   client.phone!,
                                   style: GoogleFonts.poppins(
                                     fontSize: 12,
-                                    color: kTextSecondary,
+                                    color: cl.textSecondary,
                                   ),
                                 ),
                             ],
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           CupertinoIcons.chevron_right,
                           size: 14,
-                          color: kTextSecondary,
+                          color: cl.textSecondary,
                         ),
                       ],
                     ),
