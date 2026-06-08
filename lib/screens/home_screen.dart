@@ -47,11 +47,22 @@ class _HomeScreenState extends State<HomeScreen> {
         final active = business.activeBusiness;
         final filtered = _filterForBusiness(invoice.invoice, active);
 
+        // Separate invoices from quotes/estimates
+        final invoices = filtered
+            .where((i) => (i.documentType ?? 'Invoice') == 'Invoice')
+            .toList();
+        final quotesEstimates = filtered
+            .where((i) => (i.documentType ?? 'Invoice') != 'Invoice')
+            .toList();
         final unpaid =
-            filtered.where((i) => i.invoiceStatus != 'Paid').toList();
+            invoices.where((i) => i.invoiceStatus != 'Paid').toList();
         final paid =
-            filtered.where((i) => i.invoiceStatus == 'Paid').toList();
-        final displayList = groupVal == 0 ? unpaid : paid;
+            invoices.where((i) => i.invoiceStatus == 'Paid').toList();
+        final displayList = groupVal == 0
+            ? unpaid
+            : groupVal == 1
+                ? paid
+                : quotesEstimates;
 
         return CupertinoPageScaffold(
           backgroundColor: cl.background,
@@ -106,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String sym,
   ) {
     final unpaidTotal = filtered
-        .where((i) => i.invoiceStatus != 'Paid')
+        .where((i) => (i.documentType ?? 'Invoice') == 'Invoice' && i.invoiceStatus != 'Paid')
         .fold<double>(
           0,
           (sum, inv) =>
@@ -236,6 +247,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _segmentTab(cl, context.tr('unpaid'), 0),
           const SizedBox(width: 4),
           _segmentTab(cl, context.tr('paid'), 1),
+          const SizedBox(width: 4),
+          _segmentTab(cl, context.tr('quotes_estimates'), 2),
         ],
       ),
     );
@@ -288,7 +301,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             groupVal == 0
                 ? context.tr('no_unpaid')
-                : context.tr('no_paid'),
+                : groupVal == 1
+                    ? context.tr('no_paid')
+                    : context.tr('no_quotes'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -322,8 +337,6 @@ class _HomeScreenState extends State<HomeScreen> {
           (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
         ) ??
         0.0;
-    final isPaid = inv.invoiceStatus == 'Paid';
-
     return GestureDetector(
       onTap: () {
         final latest = invoice.invoice.firstWhere(
@@ -403,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 5),
-                statusBadge(context, isPaid),
+                documentBadge(context, inv),
               ],
             ),
           ],

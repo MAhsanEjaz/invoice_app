@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/service_provider.dart';
 import 'package:invoicemaker/screens/add_service_screen.dart';
@@ -42,7 +43,7 @@ class ServicesScreen extends StatelessWidget {
         children: [
           closeButton(context),
           const Spacer(),
-          Text('Services', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+          Text(context.tr('services_title'), style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
           const Spacer(),
           GestureDetector(
             onTap: () => Navigation.go(context, const AddServiceScreen()),
@@ -63,9 +64,9 @@ class ServicesScreen extends StatelessWidget {
         Container(width: 72, height: 72, decoration: BoxDecoration(color: cl.primaryLight, borderRadius: BorderRadius.circular(20)),
           child: const Icon(CupertinoIcons.tag_fill, color: kPrimary, size: 32)),
         const SizedBox(height: 16),
-        Text('No Services Yet', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+        Text(context.tr('no_services_yet'), style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: cl.textPrimary)),
         const SizedBox(height: 8),
-        Text('Add services to quickly apply\nthem when creating invoices.', textAlign: TextAlign.center,
+        Text(context.tr('no_services_msg'), textAlign: TextAlign.center,
           style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary)),
         const SizedBox(height: 24),
         GestureDetector(
@@ -73,7 +74,7 @@ class ServicesScreen extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(12)),
-            child: Text('Add Service', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+            child: Text(context.tr('add_service'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
           ),
         ),
       ]),

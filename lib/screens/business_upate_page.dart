@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
@@ -58,10 +59,10 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
                     const SizedBox(height: 8),
                     Center(child: _buildLogoPicker(cl, business)),
                     const SizedBox(height: 24),
-                    sectionLabel(context, 'Business Name'),
+                    sectionLabel(context, context.tr('business_name_label')),
                     Container(
                       decoration: context.cardDecoration,
-                      child: AppTextFiled(controller: businessCont, placeholder: 'Business Name'),
+                      child: AppTextFiled(controller: businessCont, placeholder: context.tr('business_name_label')),
                     ),
                     const SizedBox(height: 16),
                   ]),
@@ -74,7 +75,7 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
                 ),
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                 child: AppButton(
-                  txt: 'Save Changes',
+                  txt: context.tr('save_changes'),
                   onTap: () async {
                     final name = businessCont.text.trim();
                     if (widget.business != null) {
@@ -101,7 +102,7 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
         child: Row(children: [
           closeButton(context),
           const Spacer(),
-          Text('Edit Business', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+          Text(context.tr('edit_business'), style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
           const Spacer(),
           const SizedBox(width: 34),
         ]),
@@ -131,7 +132,7 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
               : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(CupertinoIcons.camera_fill, color: kPrimary, size: 28),
                   const SizedBox(height: 6),
-                  Text('Add Logo', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: kPrimary)),
+                  Text(context.tr('add_logo'), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: kPrimary)),
                 ]),
         ),
       ),

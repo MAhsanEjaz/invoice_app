@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum InvoiceTemplate { classic, modern, elegant, minimal }
+enum InvoiceTemplate { classic, modern, elegant, minimal, wave }
 
 extension InvoiceTemplateX on InvoiceTemplate {
   String get label {
@@ -14,6 +14,8 @@ extension InvoiceTemplateX on InvoiceTemplate {
         return 'Elegant';
       case InvoiceTemplate.minimal:
         return 'Minimal';
+      case InvoiceTemplate.wave:
+        return 'Wave';
     }
   }
 
@@ -27,6 +29,8 @@ extension InvoiceTemplateX on InvoiceTemplate {
         return 'Dark premium look';
       case InvoiceTemplate.minimal:
         return 'Clean & airy';
+      case InvoiceTemplate.wave:
+        return 'Curved wave header';
     }
   }
 }

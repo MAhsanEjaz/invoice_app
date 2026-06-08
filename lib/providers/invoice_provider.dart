@@ -79,7 +79,8 @@ class InvoiceProvider extends ChangeNotifier {
 
     notifyListeners();
 
-    if (newInvoice.dueDate != null && newInvoice.invoiceStatus != 'Paid') {
+    final isInvoice = (newInvoice.documentType ?? 'Invoice') == 'Invoice';
+    if (isInvoice && newInvoice.dueDate != null && newInvoice.invoiceStatus != 'Paid') {
       final clientName = (newInvoice.clients?.isNotEmpty ?? false)
           ? (newInvoice.clients!.first.name ?? 'Client')
           : 'Client';
@@ -123,6 +124,9 @@ class InvoiceProvider extends ChangeNotifier {
     unPaidInvoice.clear();
 
     for (var l in invoice) {
+      // Only actual invoices (not quotes/estimates) go into paid/unpaid lists
+      final isInvoice = (l.documentType ?? 'Invoice') == 'Invoice';
+      if (!isInvoice) continue;
       if (l.invoiceStatus == 'Paid') {
         paidInvoice.add(l);
       } else {
@@ -248,7 +252,8 @@ class InvoiceProvider extends ChangeNotifier {
     saveInvoice();
     notifyListeners();
 
-    if (inv.invoiceStatus != 'Paid') {
+    final isInvoice = (inv.documentType ?? 'Invoice') == 'Invoice';
+    if (isInvoice && inv.invoiceStatus != 'Paid') {
       if (dueDate != null) {
         final clientName = (inv.clients?.isNotEmpty ?? false)
             ? (inv.clients!.first.name ?? 'Client')
@@ -269,6 +274,14 @@ class InvoiceProvider extends ChangeNotifier {
   void updateReceivedAmount(int invoiceId, double amount) {
     final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
     inv.receivedAmount = amount;
+    saveInvoice();
+    notifyListeners();
+  }
+
+  /// Updates the bank account linked to an invoice.
+  void updateInvoiceBank(int invoiceId, BankModel? bank) {
+    final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
+    inv.bank = bank;
     saveInvoice();
     notifyListeners();
   }

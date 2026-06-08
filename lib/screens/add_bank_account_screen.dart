@@ -167,14 +167,17 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
 
   Widget _buildDeleteButton(AppColors cl) {
     return GestureDetector(
-      onTap: () => customCupertinoDialog(context, () async {
-        await Provider.of<BankProvider>(context, listen: false)
-            .deleteBank(widget.bank!.id!);
-        if (!context.mounted) return;
-        Navigator.of(context)
-          ..pop()
-          ..pop();
-      }),
+      onTap:
+          () => customCupertinoDialog(context, () async {
+            await Provider.of<BankProvider>(
+              context,
+              listen: false,
+            ).deleteBank(widget.bank!.id!);
+            if (!context.mounted) return;
+            Navigator.of(context)
+              ..pop()
+              ..pop();
+          }),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -217,24 +220,29 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           final title = _titleCtrl.text.trim();
           final accountNumber = _accountNumberCtrl.text.trim();
 
-          if (bankName.isEmpty || title.isEmpty || accountNumber.isEmpty)
+          if (bankName.isEmpty || title.isEmpty || accountNumber.isEmpty) {
             return;
+          }
 
           final provider = Provider.of<BankProvider>(context, listen: false);
 
           if (_isEdit) {
-            await provider.updateBank(BankModel(
-              id: widget.bank!.id,
-              bankName: bankName,
-              title: title,
-              accountNumber: accountNumber,
-            ));
+            await provider.updateBank(
+              BankModel(
+                id: widget.bank!.id,
+                bankName: bankName,
+                title: title,
+                accountNumber: accountNumber,
+              ),
+            );
           } else {
-            await provider.addBank(BankModel(
-              bankName: bankName,
-              title: title,
-              accountNumber: accountNumber,
-            ));
+            await provider.addBank(
+              BankModel(
+                bankName: bankName,
+                title: title,
+                accountNumber: accountNumber,
+              ),
+            );
           }
 
           if (!context.mounted) return;

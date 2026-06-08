@@ -16,6 +16,8 @@ class InvoiceModel {
   List<ItemModel>? items;
   List<ClientModel>? clients;
   BankModel? bank;
+  // 'Invoice' | 'Quote' | 'Estimate' — null treated as 'Invoice' for backward compat
+  String? documentType;
 
   InvoiceModel({
     this.items,
@@ -31,6 +33,7 @@ class InvoiceModel {
     this.receivedAmount,
     this.discount,
     this.bank,
+    this.documentType,
   });
 
   Map<String, dynamic> toJson() {
@@ -48,6 +51,7 @@ class InvoiceModel {
       'clients': clients?.map((e) => e.toJson()).toList(),
       'items': items?.map((e) => e.toJson()).toList(),
       'bank': bank?.toJson(),
+      'documentType': documentType,
     };
   }
 
@@ -72,6 +76,7 @@ class InvoiceModel {
       bank: json['bank'] != null
           ? BankModel.fromJson(json['bank'] as Map<String, dynamic>)
           : null,
+      documentType: json['documentType'] as String?,
     );
   }
 }

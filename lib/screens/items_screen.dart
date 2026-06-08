@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/screens/add_item_screen.dart';
@@ -48,7 +49,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                   CupertinoNavigationBar(
                     padding: EdgeInsetsDirectional.zero,
                     leading: closeButton(context),
-                    middle: Text('Items',  style: TextStyle(
+                    middle: Text(context.tr('items'),  style: TextStyle(
                       color: buttonColor,
                       fontSize: responseText(context, .05),
                       fontWeight: FontWeight.bold,
@@ -72,7 +73,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
                   ),
 
                   customHeight(context, 0.02),
-                  CupertinoTextField(placeholder: 'Search Items'),
+                  CupertinoTextField(placeholder: context.tr('search_items')),
 
                   customHeight(context, 0.02),
                   Container(

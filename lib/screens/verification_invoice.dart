@@ -2,21 +2,26 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/pdf/pdf_service.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/home_screen.dart';
 import 'package:invoicemaker/screens/new_invoice_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
-import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../providers/bank_provider.dart';
 import '../providers/business_provider.dart';
 import '../providers/pdf_templates_colors_provider.dart';
 
@@ -37,6 +42,8 @@ class VerificationInvoice extends StatefulWidget {
 }
 
 class _VerificationInvoiceState extends State<VerificationInvoice> {
+  bool _isExporting = false;
+
   void _goHome() {
     Navigator.pushAndRemoveUntil(
       context,
@@ -55,7 +62,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       context: context,
       builder: (_) => CupertinoAlertDialog(
         title: Text(
-          'Received Amount',
+          context.tr('received_amount'),
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -75,7 +82,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              context.tr('cancel'),
               style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
             ),
           ),
@@ -89,7 +96,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               Navigator.pop(context);
             },
             child: Text(
-              'Save',
+              context.tr('save'),
               style: GoogleFonts.poppins(
                 color: kPrimary,
                 fontWeight: FontWeight.w600,
@@ -111,7 +118,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       context: context,
       builder: (_) => CupertinoAlertDialog(
         title: Text(
-          'Discount Amount',
+          context.tr('discount_amount'),
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -132,7 +139,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              context.tr('cancel'),
               style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
             ),
           ),
@@ -146,7 +153,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               Navigator.pop(context);
             },
             child: Text(
-              'Apply',
+              context.tr('apply'),
               style: GoogleFonts.poppins(
                 color: kPrimary,
                 fontWeight: FontWeight.w600,
@@ -158,13 +165,193 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
     );
   }
 
+  // ── Bank picker sheet ──────────────────────────────────────────────────────
+  void _showBankPicker(InvoiceProvider invoiceProvider, InvoiceModel liveInvoice) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Consumer<BankProvider>(
+        builder: (_, bankProvider, __) {
+          final banks = bankProvider.banks;
+          return Container(
+            decoration: BoxDecoration(
+              color: context.colors.background,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: context.colors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        context.tr('select_bank_account'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: context.colors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (banks.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        children: [
+                          Icon(CupertinoIcons.creditcard, size: 40, color: context.colors.textHint),
+                          const SizedBox(height: 12),
+                          Text(
+                            context.tr('no_bank_accounts'),
+                            style: GoogleFonts.poppins(fontSize: 14, color: context.colors.textSecondary),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr('go_settings_bank'),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textHint),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: banks.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, index) {
+                          final b = banks[index];
+                          final isSelected = b.id == liveInvoice.bank?.id;
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              invoiceProvider.updateInvoiceBank(liveInvoice.invoiceId!, b);
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected ? context.colors.primaryLight : context.colors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? kPrimary : context.colors.border,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? kPrimary : context.colors.background,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      CupertinoIcons.creditcard,
+                                      color: isSelected ? Colors.white : context.colors.textSecondary,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          b.title ?? '',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: context.colors.textPrimary,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${b.bankName}  •  ${b.accountNumber}',
+                                          style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textSecondary),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    isSelected ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+                                    color: isSelected ? kPrimary : context.colors.textHint,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  if (liveInvoice.bank != null) ...[
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          invoiceProvider.updateInvoiceBank(liveInvoice.invoiceId!, null);
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: context.colors.dangerBg,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: kDangerColor.withValues(alpha: 0.2)),
+                          ),
+                          child: Center(
+                            child: Text(
+                              context.tr('remove_bank'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: kDangerColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   // ── Delete confirmation ────────────────────────────────────────────────────
   void _confirmDelete(InvoiceProvider invoice) {
     showCupertinoDialog<void>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
         title: Text(
-          'Delete Invoice',
+          context.tr('delete_invoice'),
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -173,7 +360,15 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         content: Padding(
           padding: const EdgeInsets.only(top: 10),
           child: Text(
-            'Invoice #${widget.invoiceModel!.invoiceId} will be permanently deleted. This cannot be undone.',
+            () {
+              final docType = widget.invoiceModel!.documentType ?? 'Invoice';
+              final prefix = docType == 'Quote'
+                  ? context.tr('quote_no')
+                  : docType == 'Estimate'
+                      ? context.tr('estimate_no')
+                      : context.tr('pdf_invoice_no');
+              return '$prefix${widget.invoiceModel!.invoiceId} ${context.tr('invoice_delete_suffix')}';
+            }(),
             style: GoogleFonts.poppins(fontSize: 13),
           ),
         ),
@@ -181,7 +376,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              context.tr('cancel'),
               style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
             ),
           ),
@@ -193,7 +388,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               _goHome();
             },
             child: Text(
-              'Delete',
+              context.tr('delete'),
               style: GoogleFonts.poppins(color: CupertinoColors.systemRed),
             ),
           ),
@@ -212,6 +407,8 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           orElse: () => widget.invoiceModel!,
         );
 
+        final docType = liveInvoice.documentType ?? 'Invoice';
+        final isInvoice = docType == 'Invoice';
         final isPaid = liveInvoice.invoiceStatus == 'Paid';
 
         return PopScope(
@@ -223,8 +420,8 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             backgroundColor: context.colors.background,
             child: Column(
               children: [
-                _buildNavBar(liveInvoice, invoice),
-                Expanded(child: _buildBody(liveInvoice, isPaid, invoice)),
+                _buildNavBar(liveInvoice, invoice, docType),
+                Expanded(child: _buildBody(liveInvoice, isPaid, isInvoice, invoice)),
                 Consumer<TemplatesColorsProvider>(
                   builder: (ctx, data, _) =>
                       _buildBottomBar(data, invoice, liveInvoice),
@@ -238,7 +435,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
   }
 
   // ── Nav bar ────────────────────────────────────────────────────────────────
-  Widget _buildNavBar(InvoiceModel liveInvoice, InvoiceProvider invoice) {
+  Widget _buildNavBar(InvoiceModel liveInvoice, InvoiceProvider invoice, String docType) {
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -261,7 +458,12 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
             const Spacer(),
             Text(
-              'Invoice #${liveInvoice.invoiceId}',
+              () {
+                final id = liveInvoice.invoiceId;
+                if (docType == 'Quote') return '${context.tr('quote_no')}$id';
+                if (docType == 'Estimate') return '${context.tr('estimate_no')}$id';
+                return '${context.tr('pdf_invoice_no')}$id';
+              }(),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -299,6 +501,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
   Widget _buildBody(
     InvoiceModel liveInvoice,
     bool isPaid,
+    bool isInvoice,
     InvoiceProvider invoice,
   ) {
     final sym = Provider.of<CurrencyProvider>(context).symbol;
@@ -336,7 +539,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               children: [
                 Row(
                   children: [
-                    statusBadge(context, isPaid),
+                    documentBadge(context, liveInvoice),
                     const Spacer(),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -350,7 +553,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         ),
                         if (liveInvoice.dueDate?.isNotEmpty ?? false)
                           Text(
-                            'Due: ${liveInvoice.dueDate}',
+                            '${context.tr('due_label')} ${liveInvoice.dueDate}',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -385,25 +588,25 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
           // ── Client ────────────────────────────────────────────────────────
           const SizedBox(height: 20),
-          sectionLabel(context, 'Client'),
+          sectionLabel(context, context.tr('client')),
           Container(
             decoration: context.cardDecoration,
             child: Column(
               children: [
-                _infoRow(CupertinoIcons.person, 'Name', clientName),
+                _infoRow(CupertinoIcons.person, context.tr('name'), clientName),
                 if (clientEmail.isNotEmpty) ...[
                   Divider(height: 1, color: context.colors.border),
-                  _infoRow(CupertinoIcons.mail, 'Email', clientEmail),
+                  _infoRow(CupertinoIcons.mail, context.tr('email'), clientEmail),
                 ],
                 if (clientPhone.isNotEmpty) ...[
                   Divider(height: 1, color: context.colors.border),
-                  _infoRow(CupertinoIcons.phone, 'Phone', clientPhone),
+                  _infoRow(CupertinoIcons.phone, context.tr('phone'), clientPhone),
                 ],
                 if (clientAddress.isNotEmpty) ...[
                   Divider(height: 1, color: context.colors.border),
                   _infoRow(
                     CupertinoIcons.location,
-                    'Address',
+                    context.tr('address'),
                     clientAddress,
                   ),
                 ],
@@ -413,7 +616,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
           // ── Items ─────────────────────────────────────────────────────────
           const SizedBox(height: 20),
-          sectionLabel(context, 'Items'),
+          sectionLabel(context, context.tr('items')),
           Container(
             decoration: context.cardDecoration,
             child: Column(
@@ -481,7 +684,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   child: Row(
                     children: [
                       Text(
-                        'Subtotal',
+                        context.tr('pdf_subtotal'),
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: context.colors.textSecondary,
@@ -518,7 +721,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Discount',
+                          context.tr('pdf_discount'),
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color:
@@ -559,7 +762,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                     child: Row(
                       children: [
                         Text(
-                          'Total',
+                          context.tr('total'),
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -586,7 +789,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           // ── Notes (shown only if present) ──────────────────────────────────
           if (liveInvoice.notes?.isNotEmpty ?? false) ...[
             const SizedBox(height: 20),
-            sectionLabel(context, 'Notes'),
+            sectionLabel(context, context.tr('pdf_notes')),
             Container(
               width: double.infinity,
               decoration: context.cardDecoration,
@@ -605,7 +808,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           // ── Terms & Conditions (shown only if included) ────────────────────
           if (liveInvoice.termsConditions?.isNotEmpty ?? false) ...[
             const SizedBox(height: 20),
-            sectionLabel(context, 'Terms & Conditions'),
+            sectionLabel(context, context.tr('terms_conditions')),
             Container(
               width: double.infinity,
               decoration: context.cardDecoration,
@@ -622,163 +825,221 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           ],
 
           // ── Bank / Payment Details ────────────────────────────────────────
-          if (liveInvoice.bank != null) ...[
+          const SizedBox(height: 20),
+          sectionLabel(context, context.tr('pdf_payment_details')),
+          Container(
+            decoration: context.cardDecoration,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  children: [
+                    if (liveInvoice.bank != null) ...[
+                      _copyableInfoRow(
+                        CupertinoIcons.creditcard,
+                        context.tr('pdf_bank'),
+                        liveInvoice.bank!.bankName ?? '',
+                      ),
+                      Divider(height: 1, color: context.colors.border),
+                      _copyableInfoRow(
+                        CupertinoIcons.person,
+                        context.tr('pdf_account_title'),
+                        liveInvoice.bank!.title ?? '',
+                      ),
+                      if ((liveInvoice.bank!.accountNumber ?? '').isNotEmpty) ...[
+                        Divider(height: 1, color: context.colors.border),
+                        _copyableInfoRow(
+                          CupertinoIcons.number,
+                          context.tr('account_no'),
+                          liveInvoice.bank!.accountNumber!,
+                        ),
+                      ],
+                      Divider(height: 1, color: context.colors.border),
+                    ],
+                    InkWell(
+                      borderRadius: liveInvoice.bank == null
+                          ? BorderRadius.circular(16)
+                          : const BorderRadius.vertical(bottom: Radius.circular(16)),
+                      onTap: () => _showBankPicker(invoice, liveInvoice),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: liveInvoice.bank == null
+                                    ? context.colors.primaryLight
+                                    : context.colors.background,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                CupertinoIcons.creditcard,
+                                color: liveInvoice.bank == null
+                                    ? kPrimary
+                                    : context.colors.textSecondary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Text(
+                              liveInvoice.bank == null
+                                  ? context.tr('add_bank_account')
+                                  : context.tr('select_bank_account'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: liveInvoice.bank == null
+                                    ? kPrimary
+                                    : context.colors.textSecondary,
+                              ),
+                            ),
+                            const Spacer(),
+                            Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 16,
+                              color: context.colors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Payment (invoices only — not shown for quotes/estimates) ─────────
+          if (isInvoice) ...[
             const SizedBox(height: 20),
-            sectionLabel(context, 'Payment Details'),
+            sectionLabel(context, context.tr('payment')),
             Container(
               decoration: context.cardDecoration,
               child: Column(
                 children: [
-                  _infoRow(
-                    CupertinoIcons.creditcard,
-                    'Bank',
-                    liveInvoice.bank!.bankName ?? '',
+                  // Mark as Paid toggle
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          context.tr('mark_as_paid'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: context.colors.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Transform.scale(
+                          scale: 0.85,
+                          child: CupertinoSwitch(
+                            value: isPaid,
+                            activeTrackColor: kPrimary,
+                            onChanged: (val) {
+                              invoice.updateInvoiceStatus(
+                                val ? 'Paid' : 'UnPaid',
+                                liveInvoice.invoiceId!,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+
                   Divider(height: 1, color: context.colors.border),
-                  _infoRow(
-                    CupertinoIcons.person,
-                    'Account Title',
-                    liveInvoice.bank!.title ?? '',
+
+                  // Received — tappable to enter amount
+                  GestureDetector(
+                    onTap: () => _showReceivedDialog(invoice, received),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.money_dollar_circle,
+                            size: 16,
+                            color: context.colors.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            context.tr('pdf_received'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '$sym${received.toStringAsFixed(2)}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: received > 0 ? kPaidColor : context.colors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            CupertinoIcons.pencil,
+                            size: 14,
+                            color: context.colors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  if ((liveInvoice.bank!.accountNumber ?? '').isNotEmpty) ...[
+
+                  // Balance Due (only shown when not fully paid)
+                  if (balanceDue > 0) ...[
                     Divider(height: 1, color: context.colors.border),
-                    _infoRow(
-                      CupertinoIcons.number,
-                      'Account No.',
-                      liveInvoice.bank!.accountNumber!,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.exclamationmark_circle,
+                            size: 16,
+                            color: kUnpaidColor,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            context.tr('pdf_balance_due'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: kUnpaidColor,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '$sym${balanceDue.toStringAsFixed(2)}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: kUnpaidColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ],
               ),
             ),
           ],
-
-          // ── Payment ───────────────────────────────────────────────────────
-          const SizedBox(height: 20),
-          sectionLabel(context, 'Payment'),
-          Container(
-            decoration: context.cardDecoration,
-            child: Column(
-              children: [
-                // Mark as Paid toggle
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Mark as Paid',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: context.colors.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Transform.scale(
-                        scale: 0.85,
-                        child: CupertinoSwitch(
-                          value: isPaid,
-                          activeTrackColor: kPrimary,
-                          onChanged: (val) {
-                            invoice.updateInvoiceStatus(
-                              val ? 'Paid' : 'UnPaid',
-                              liveInvoice.invoiceId!,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                Divider(height: 1, color: context.colors.border),
-
-                // Received — tappable to enter amount
-                GestureDetector(
-                  onTap: () => _showReceivedDialog(invoice, received),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.money_dollar_circle,
-                          size: 16,
-                          color: context.colors.textSecondary,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Received',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: context.colors.textSecondary,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '$sym${received.toStringAsFixed(2)}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: received > 0 ? kPaidColor : context.colors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          CupertinoIcons.pencil,
-                          size: 14,
-                          color: context.colors.textSecondary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Balance Due (only shown when not fully paid)
-                if (balanceDue > 0) ...[
-                  Divider(height: 1, color: context.colors.border),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.exclamationmark_circle,
-                          size: 16,
-                          color: kUnpaidColor,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Balance Due',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: kUnpaidColor,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '$sym${balanceDue.toStringAsFixed(2)}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: kUnpaidColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
 
           // ── Delete invoice ─────────────────────────────────────────────────
           const SizedBox(height: 32),
@@ -804,7 +1065,9 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Delete Invoice',
+                    isInvoice
+                        ? context.tr('delete_invoice')
+                        : context.tr('delete_document'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -820,6 +1083,41 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         ],
       ),
     );
+  }
+
+  // ── Brief toast (works in CupertinoApp without Scaffold) ──────────────────
+  void _showToast(String message) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => Positioned(
+        bottom: 80,
+        left: 20,
+        right: 20,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xDD000000),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              message,
+              textDirection: TextDirection.ltr,
+              style: GoogleFonts.poppins(
+                color: CupertinoColors.white,
+                fontSize: 13,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(entry);
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (entry.mounted) entry.remove();
+    });
   }
 
   // ── Reusable info row ──────────────────────────────────────────────────────
@@ -848,6 +1146,149 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Copyable info row (shows clipboard icon, tap to copy) ──────────────────
+  Widget _copyableInfoRow(IconData icon, String label, String value) {
+    final cl = context.colors;
+    return GestureDetector(
+      onTap: () async {
+        await Clipboard.setData(ClipboardData(text: value));
+        if (mounted) _showToast(context.tr('copied'));
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: cl.textSecondary),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
+            ),
+            const Spacer(),
+            Flexible(
+              child: Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: cl.textPrimary,
+                ),
+                textAlign: TextAlign.end,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(CupertinoIcons.doc_on_clipboard, size: 14, color: cl.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Send as PDF (share via native share sheet) ────────────────────────────
+  Future<void> _sendAsPdf(TemplatesColorsProvider data, InvoiceModel invoice) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    try {
+      final sym =
+          Provider.of<CurrencyProvider>(context, listen: false).currency.pdfSymbol;
+      final bp = Provider.of<BusinessProvider>(context, listen: false);
+      final locale =
+          Provider.of<LocaleProvider>(context, listen: false).languageCode;
+      final biz = invoice.businessId != null && bp.businesses.isNotEmpty
+          ? bp.businesses.firstWhere(
+              (b) => b.id == invoice.businessId,
+              orElse: () => bp.activeBusiness ?? bp.businesses.first,
+            )
+          : bp.activeBusiness;
+      final pdfData = await PdfService().invoicePdfGenerate(
+        invoice, data,
+        business: biz,
+        currencySymbol: sym,
+        locale: locale,
+      );
+      final tempDir = await getTemporaryDirectory();
+      final pdfFile = File('${tempDir.path}/Invoice_${invoice.invoiceId}.pdf');
+      await pdfFile.writeAsBytes(pdfData);
+      await SharePlus.instance
+          .share(ShareParams(files: [XFile(pdfFile.path)]));
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  // ── Send as Image (raster PDF pages → PNG, then share) ────────────────────
+  Future<void> _sendAsImage(TemplatesColorsProvider data, InvoiceModel invoice) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    try {
+      final sym =
+          Provider.of<CurrencyProvider>(context, listen: false).currency.pdfSymbol;
+      final bp = Provider.of<BusinessProvider>(context, listen: false);
+      final locale =
+          Provider.of<LocaleProvider>(context, listen: false).languageCode;
+      final biz = invoice.businessId != null && bp.businesses.isNotEmpty
+          ? bp.businesses.firstWhere(
+              (b) => b.id == invoice.businessId,
+              orElse: () => bp.activeBusiness ?? bp.businesses.first,
+            )
+          : bp.activeBusiness;
+      final pdfData = await PdfService().invoicePdfGenerate(
+        invoice, data,
+        business: biz,
+        currencySymbol: sym,
+        locale: locale,
+      );
+      final tempDir = await getTemporaryDirectory();
+      final List<XFile> files = [];
+      int page = 0;
+      await for (final raster in Printing.raster(pdfData, dpi: 200)) {
+        final png = await raster.toPng();
+        final suffix = page == 0 ? '' : '_p${page + 1}';
+        final path = '${tempDir.path}/Invoice_${invoice.invoiceId}$suffix.png';
+        await File(path).writeAsBytes(png, flush: true);
+        files.add(XFile(path));
+        page++;
+      }
+      if (files.isNotEmpty) {
+        await SharePlus.instance.share(ShareParams(files: files));
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  // ── Format picker (PDF / Image) shown after customize sheet closes ─────────
+  void _showSendFormatSheet(TemplatesColorsProvider data, InvoiceModel invoice) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => CupertinoActionSheet(
+        title: Text(context.tr('export_format')),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _sendAsPdf(data, invoice);
+            },
+            child: Text(context.tr('pdf_document')),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _sendAsImage(data, invoice);
+            },
+            child: Text(context.tr('image_png')),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: Text(context.tr('cancel')),
+        ),
       ),
     );
   }
@@ -897,7 +1338,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
                     // ── Template section ────────────────────────────────────
                     Text(
-                      'Choose Template',
+                      context.tr('choose_template'),
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -906,7 +1347,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Select a layout for your PDF invoice',
+                      context.tr('choose_template_sub'),
                       style: GoogleFonts.poppins(fontSize: 12, color: ctx.colors.textSecondary),
                     ),
                     const SizedBox(height: 16),
@@ -1029,7 +1470,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
                     // ── Color section ───────────────────────────────────────
                     Text(
-                      'Accent Color',
+                      context.tr('accent_color'),
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -1038,7 +1479,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Applied to the header and highlights',
+                      context.tr('accent_color_sub'),
                       style: GoogleFonts.poppins(fontSize: 12, color: ctx.colors.textSecondary),
                     ),
                     const SizedBox(height: 16),
@@ -1138,10 +1579,10 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         children: [
           Expanded(
             child: _ActionButton(
-              label: 'Preview',
+              label: context.tr('preview'),
               icon: CupertinoIcons.eye,
               outlined: true,
-              onTap: () => _showCustomizeSheet(data, 'Apply & Preview', () {
+              onTap: () => _showCustomizeSheet(data, context.tr('apply'), () {
                 Navigation.go(
                   context,
                   PdfInvoiceScreen(invoice: liveInvoice, provider: data),
@@ -1152,31 +1593,22 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           const SizedBox(width: 12),
           Expanded(
             child: _ActionButton(
-              label: 'Send Invoice',
+              label: _isExporting
+                  ? context.tr('opening')
+                  : (liveInvoice.documentType == 'Quote'
+                      ? context.tr('send_quote')
+                      : liveInvoice.documentType == 'Estimate'
+                          ? context.tr('send_estimate')
+                          : context.tr('send_invoice')),
               icon: CupertinoIcons.paperplane,
               outlined: false,
-              onTap: () => _showCustomizeSheet(data, 'Apply & Send', () async {
-                final sym = Provider.of<CurrencyProvider>(context, listen: false)
-                    .currency
-                    .pdfSymbol;
-                final bp = Provider.of<BusinessProvider>(context, listen: false);
-                final biz = liveInvoice.businessId != null && bp.businesses.isNotEmpty
-                    ? bp.businesses.firstWhere(
-                        (b) => b.id == liveInvoice.businessId,
-                        orElse: () => bp.activeBusiness ?? bp.businesses.first,
-                      )
-                    : bp.activeBusiness;
-                final pdfData = await PdfService().invoicePdfGenerate(
-                  liveInvoice,
-                  data,
-                  business: biz,
-                  currencySymbol: sym,
-                );
-                final tempDir = await getTemporaryDirectory();
-                final pdfFile = File('${tempDir.path}/Invoice_${liveInvoice.invoiceId}.pdf');
-                await pdfFile.writeAsBytes(pdfData);
-                await OpenFile.open(pdfFile.path);
-              }),
+              onTap: _isExporting
+                  ? () {}
+                  : () => _showCustomizeSheet(
+                        data,
+                        context.tr('apply'),
+                        () => _showSendFormatSheet(data, liveInvoice),
+                      ),
             ),
           ),
         ],
@@ -1210,6 +1642,8 @@ class _TemplatePreview extends StatelessWidget {
         return _elegantPreview();
       case InvoiceTemplate.minimal:
         return _minimalPreview();
+      case InvoiceTemplate.wave:
+        return _wavePreview();
     }
   }
 
@@ -1421,6 +1855,53 @@ class _TemplatePreview extends StatelessWidget {
     );
   }
 
+  // Wave: curved arch header with accent fill
+  Widget _wavePreview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 52,
+          child: ClipRect(
+            child: CustomPaint(
+              painter: _WaveHeaderPainter(color),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10, top: 8, right: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _fakeLine(width: 40, color: Colors.white, height: 5),
+                        const SizedBox(height: 3),
+                        _fakeLine(width: 24, color: Colors.white.withValues(alpha: 0.6), height: 3),
+                      ],
+                    ),
+                    _fakeLine(width: 28, color: Colors.white, height: 7),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fakeLine(width: 50, color: Colors.grey.shade300, height: 4),
+              const SizedBox(height: 6),
+              _fakeTable(color),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _fakeLine({required double width, required Color color, required double height}) {
     return Container(
       width: width,
@@ -1560,6 +2041,27 @@ class _TemplatePreview extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Wave header painter for template preview ─────────────────────────────────
+class _WaveHeaderPainter extends CustomPainter {
+  final Color color;
+  const _WaveHeaderPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height - 10)
+      ..quadraticBezierTo(size.width * 0.5, size.height + 6, 0, size.height - 10)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_WaveHeaderPainter old) => old.color != color;
 }
 
 // ── Action button (shared by Preview + Send) ──────────────────────────────────

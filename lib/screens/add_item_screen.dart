@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
@@ -87,10 +88,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      sectionLabel(context, 'Item Details'),
+                      sectionLabel(context, context.tr('item_details')),
                       _buildDescriptionCard(cl),
                       const SizedBox(height: 20),
-                      sectionLabel(context, 'Pricing'),
+                      sectionLabel(context, context.tr('pricing')),
                       _buildPricingCard(cl),
                       const SizedBox(height: 20),
                       _buildTotalCard(),
@@ -121,7 +122,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             closeButton(context),
             const Spacer(),
             Text(
-              isEditing ? 'Edit Item' : 'New Item',
+              isEditing ? context.tr('edit_item') : context.tr('new_item'),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -143,13 +144,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
         children: [
           AppTextFiled(
             controller: itemCont,
-            placeholder: 'Item or service name',
+            placeholder: context.tr('item_name_placeholder'),
             autofocus: true,
           ),
           Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: noteCont,
-            placeholder: 'Notes (optional)',
+            placeholder: context.tr('notes_optional'),
           ),
         ],
       ),
@@ -163,14 +164,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
         children: [
           AppTextFiled(
             controller: priceCont,
-            placeholder: 'Unit Price',
+            placeholder: context.tr('unit_price'),
             textInputType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (_) => setState(() {}),
           ),
           Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: qtyCont,
-            placeholder: 'Quantity',
+            placeholder: context.tr('quantity'),
             textInputType: TextInputType.number,
             onChanged: (_) => setState(() {}),
           ),
@@ -187,7 +188,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       child: Row(
         children: [
           Text(
-            'Line Total',
+            context.tr('line_total'),
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w500,
@@ -248,7 +249,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             const Icon(CupertinoIcons.delete, color: kDangerColor, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Remove Item',
+              context.tr('remove_item'),
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -274,7 +275,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: isEditing ? 'Update Item' : 'Save Item',
+        txt: isEditing ? context.tr('update_item') : context.tr('save_item'),
         onTap: () {
           if (widget.duplicate == true && widget.itemModel != null) {
             invoice.addExistingItemWithId(

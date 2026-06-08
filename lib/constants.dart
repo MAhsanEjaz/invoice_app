@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:invoicemaker/l10n/translations.dart';
+import 'package:invoicemaker/models/invoice_model.dart';
 
 // ─── Mode-independent colours ─────────────────────────────────────────────────
 const kPrimary = Color(0xFF0D7377);
 const kPaidColor = Color(0xFF16A34A);
 const kUnpaidColor = Color(0xFFD97706);
 const kDangerColor = Color(0xFFDC2626);
+const kQuoteColor = Color(0xFF7C3AED);
+const kEstimateColor = Color(0xFF0369A1);
 
 // Legacy aliases kept for older screens that still reference them
 const appColor = Color(0xFFFFFFFF);
@@ -27,6 +31,8 @@ class AppColors {
   final Color paidBg;
   final Color unpaidBg;
   final Color dangerBg;
+  final Color quoteBg;
+  final Color estimateBg;
 
   const AppColors({
     required this.background,
@@ -39,6 +45,8 @@ class AppColors {
     required this.paidBg,
     required this.unpaidBg,
     required this.dangerBg,
+    required this.quoteBg,
+    required this.estimateBg,
   });
 
   static const light = AppColors(
@@ -52,6 +60,8 @@ class AppColors {
     paidBg: Color(0xFFF0FDF4),
     unpaidBg: Color(0xFFFEF3C7),
     dangerBg: Color(0xFFFEF2F2),
+    quoteBg: Color(0xFFF5F3FF),
+    estimateBg: Color(0xFFE0F2FE),
   );
 
   static const dark = AppColors(
@@ -65,6 +75,8 @@ class AppColors {
     paidBg: Color(0xFF052E16),
     unpaidBg: Color(0xFF451A03),
     dangerBg: Color(0xFF450A0A),
+    quoteBg: Color(0xFF2E1065),
+    estimateBg: Color(0xFF0C4A6E),
   );
 
   static AppColors of(BuildContext context) {
@@ -144,7 +156,7 @@ Widget statusBadge(BuildContext context, bool isPaid) {
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
-      isPaid ? 'Paid' : 'Unpaid',
+      isPaid ? context.tr('paid') : context.tr('unpaid'),
       style: GoogleFonts.poppins(
         fontSize: 11,
         fontWeight: FontWeight.w600,
@@ -152,6 +164,46 @@ Widget statusBadge(BuildContext context, bool isPaid) {
       ),
     ),
   );
+}
+
+Widget documentBadge(BuildContext context, InvoiceModel inv) {
+  final docType = inv.documentType ?? 'Invoice';
+  final cl = context.colors;
+  if (docType == 'Quote') {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: cl.quoteBg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        context.tr('doc_quote'),
+        style: GoogleFonts.poppins(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: kQuoteColor,
+        ),
+      ),
+    );
+  } else if (docType == 'Estimate') {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: cl.estimateBg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        context.tr('doc_estimate'),
+        style: GoogleFonts.poppins(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: kEstimateColor,
+        ),
+      ),
+    );
+  }
+  // Invoice — show paid/unpaid status
+  return statusBadge(context, inv.invoiceStatus == 'Paid');
 }
 
 Widget sectionLabel(BuildContext context, String label) {
@@ -206,27 +258,27 @@ void customCupertinoDialog(BuildContext context, Function()? onTap) {
     context: context,
     builder: (context) => CupertinoAlertDialog(
       title: Text(
-        'Delete Item',
+        context.tr('delete_item'),
         style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
       ),
       content: Padding(
         padding: const EdgeInsets.only(top: 10.0),
         child: Text(
-          'This action cannot be undone.',
+          context.tr('action_cannot_undo'),
           style: GoogleFonts.poppins(fontSize: 13),
         ),
       ),
       actions: [
         CupertinoDialogAction(
           child: Text(
-            'Cancel',
+            context.tr('cancel'),
             style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
           ),
           onPressed: () => Navigator.pop(context),
         ),
         CupertinoDialogAction(
           child: Text(
-            'Delete',
+            context.tr('delete'),
             style: GoogleFonts.poppins(color: CupertinoColors.systemRed),
           ),
           onPressed: () {

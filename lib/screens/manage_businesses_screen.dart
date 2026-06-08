@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/services/navigations.dart';
@@ -32,15 +33,15 @@ class ManageBusinessesScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
-                      sectionLabel(context, 'Your Businesses'),
+                      sectionLabel(context, context.tr('your_businesses')),
                       const SizedBox(height: 8),
                       if (business.businesses.isEmpty)
-                        _buildEmpty(cl)
+                        _buildEmpty(context, cl)
                       else
                         _buildBusinessList(context, cl, business),
                       const SizedBox(height: 24),
                       AppButton(
-                        txt: 'Add New Business',
+                        txt: context.tr('add_new_business'),
                         onTap: () => _showAddDialog(context, business),
                       ),
                     ],
@@ -62,7 +63,7 @@ class ManageBusinessesScreen extends StatelessWidget {
         child: Row(children: [
           closeButton(context),
           const Spacer(),
-          Text('Manage Businesses', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+          Text(context.tr('manage_businesses'), style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
           const Spacer(),
           const SizedBox(width: 34),
         ]),
@@ -70,11 +71,11 @@ class ManageBusinessesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmpty(AppColors cl) {
+  Widget _buildEmpty(BuildContext context, AppColors cl) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Text('No businesses yet.', style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary)),
+        child: Text(context.tr('no_businesses_yet'), style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary)),
       ),
     );
   }
@@ -112,18 +113,18 @@ class ManageBusinessesScreen extends StatelessWidget {
     showCupertinoDialog(
       context: context,
       builder: (_) => CupertinoAlertDialog(
-        title: Text('New Business', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        title: Text(context.tr('new_business'), style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         content: Padding(
           padding: const EdgeInsets.only(top: 8),
           child: CupertinoTextField(
-            controller: ctrl, autofocus: true, placeholder: 'Business name',
+            controller: ctrl, autofocus: true, placeholder: context.tr('business_name_placeholder'),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
         actions: [
-          CupertinoDialogAction(isDestructiveAction: true, child: const Text('Cancel'), onPressed: () => Navigator.pop(context)),
+          CupertinoDialogAction(isDestructiveAction: true, child: Text(context.tr('cancel')), onPressed: () => Navigator.pop(context)),
           CupertinoDialogAction(
-            isDefaultAction: true, child: const Text('Add'),
+            isDefaultAction: true, child: Text(context.tr('add')),
             onPressed: () {
               final name = ctrl.text.trim();
               if (name.isNotEmpty) business.addBusiness(name);
@@ -139,11 +140,11 @@ class ManageBusinessesScreen extends StatelessWidget {
     showCupertinoDialog(
       context: context,
       builder: (_) => CupertinoAlertDialog(
-        title: Text('Delete Business', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        content: Text('Remove "${b.businessName}"? Invoices linked to this business will remain but won\'t be visible under any business.', style: GoogleFonts.poppins(fontSize: 13)),
+        title: Text(context.tr('delete_business'), style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        content: Text('"${b.businessName}" — ${context.tr('confirm_delete_business')}', style: GoogleFonts.poppins(fontSize: 13)),
         actions: [
-          CupertinoDialogAction(child: const Text('Cancel'), onPressed: () => Navigator.pop(context)),
-          CupertinoDialogAction(isDestructiveAction: true, child: const Text('Delete'), onPressed: () { business.deleteBusiness(b.id); Navigator.pop(context); }),
+          CupertinoDialogAction(child: Text(context.tr('cancel')), onPressed: () => Navigator.pop(context)),
+          CupertinoDialogAction(isDestructiveAction: true, child: Text(context.tr('delete')), onPressed: () { business.deleteBusiness(b.id); Navigator.pop(context); }),
         ],
       ),
     );
@@ -197,9 +198,9 @@ class _BusinessTile extends StatelessWidget {
               Text(name, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: cl.textPrimary)),
               const SizedBox(height: 2),
               Row(children: [
-                if (isActive) _badge(kPrimary, 'Active'),
+                if (isActive) _badge(kPrimary, context.tr('active')),
                 if (isActive && business.isDefault) const SizedBox(width: 6),
-                if (business.isDefault) _badge(Colors.orange, 'Default'),
+                if (business.isDefault) _badge(Colors.orange, context.tr('default_label')),
               ]),
             ])),
             PopupMenuButton<String>(
@@ -211,11 +212,11 @@ class _BusinessTile extends StatelessWidget {
                 if (val == 'delete') onDelete();
               },
               itemBuilder: (_) => [
-                PopupMenuItem(value: 'edit', child: Text('Edit', style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary))),
+                PopupMenuItem(value: 'edit', child: Text(context.tr('edit'), style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary))),
                 if (!business.isDefault)
-                  PopupMenuItem(value: 'default', child: Text('Set as Default', style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary))),
+                  PopupMenuItem(value: 'default', child: Text(context.tr('set_as_default'), style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary))),
                 if (canDelete)
-                  PopupMenuItem(value: 'delete', child: Text('Delete', style: GoogleFonts.poppins(fontSize: 14, color: Colors.red))),
+                  PopupMenuItem(value: 'delete', child: Text(context.tr('delete'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.red))),
               ],
             ),
           ]),

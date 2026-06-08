@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
@@ -42,6 +43,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   final TextEditingController _notesCtrl = TextEditingController();
   BusinessModel? _selectedBusiness;
   BankModel? _selectedBank;
+  // 'Invoice' | 'Quote' | 'Estimate'
+  String _documentType = 'Invoice';
 
   bool get _isEditMode => widget.invoice != null;
 
@@ -82,6 +85,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     invoiceProvider.lastId = inv.invoiceId!;
     _notesCtrl.text = inv.notes ?? '';
     _selectedBank = inv.bank;
+    _documentType = inv.documentType ?? 'Invoice';
 
     // Load client into working provider so cards display correctly
     for (final client in inv.clients ?? []) {
@@ -136,24 +140,25 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (!_isEditMode) _buildDocTypeSelector(),
                       if (item.item.isEmpty && !_isEditMode)
                         _buildPageTitle()
                       else
                         _buildMetaRow(invoice),
                       const SizedBox(height: 20),
-                      sectionLabel(context, 'Client'),
+                      sectionLabel(context, context.tr('client')),
                       _clientCard(client, invoice),
                       const SizedBox(height: 20),
-                      sectionLabel(context, 'Line Items'),
+                      sectionLabel(context, context.tr('line_items')),
                       _itemCard(item, invoice),
                       const SizedBox(height: 20),
                       if (item.item.isNotEmpty || _isEditMode) _totalCard(item),
                       const SizedBox(height: 20),
-                      sectionLabel(context, 'Notes'),
+                      sectionLabel(context, context.tr('notes')),
                       _notesCard(),
                       const SizedBox(height: 20),
                       _buildTermsToggle(),
-                      sectionLabel(context, 'Payment Details'),
+                      sectionLabel(context, context.tr('pdf_payment_details')),
                       _bankCard(),
                       const SizedBox(height: 16),
                     ],
@@ -196,7 +201,17 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             const Spacer(),
             if (item.item.isNotEmpty || _isEditMode)
               Text(
-                _isEditMode ? 'Edit Invoice' : 'New Invoice',
+                _isEditMode
+                    ? (_documentType == 'Quote'
+                        ? context.tr('edit_quote')
+                        : _documentType == 'Estimate'
+                            ? context.tr('edit_estimate')
+                            : context.tr('edit_invoice'))
+                    : (_documentType == 'Quote'
+                        ? context.tr('new_quote')
+                        : _documentType == 'Estimate'
+                            ? context.tr('new_estimate')
+                            : context.tr('new_invoice')),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -211,12 +226,69 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
+  // ── Document type selector ─────────────────────────────────────────────────
+  Widget _buildDocTypeSelector() {
+    final types = [
+      ('Invoice', context.tr('doc_invoice')),
+      ('Quote', context.tr('doc_quote')),
+      ('Estimate', context.tr('doc_estimate')),
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, top: 4),
+      child: Row(
+        children: types.map((entry) {
+          final key = entry.$1;
+          final label = entry.$2;
+          final isSelected = _documentType == key;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: key != 'Estimate' ? 8 : 0,
+              ),
+              child: GestureDetector(
+                onTap: () => setState(() => _documentType = key),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? kPrimary : context.colors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? kPrimary : context.colors.border,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : context.colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   // ── Page title (shown only on empty new-invoice state) ─────────────────────
   Widget _buildPageTitle() {
+    String titleKey;
+    if (_documentType == 'Quote') {
+      titleKey = 'new_quote';
+    } else if (_documentType == 'Estimate') {
+      titleKey = 'new_estimate';
+    } else {
+      titleKey = 'new_invoice';
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(
-        'New Invoice',
+        context.tr(titleKey),
         style: GoogleFonts.poppins(
           fontSize: 26,
           fontWeight: FontWeight.w700,
@@ -251,7 +323,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             Expanded(
               child: _metaChip(
                 CupertinoIcons.doc_text,
-                'Invoice #${_isEditMode ? invoice.lastId : invoice.lastId + 1}',
+                () {
+                  final num = _isEditMode ? invoice.lastId : invoice.lastId + 1;
+                  if (_documentType == 'Quote') return '${context.tr('quote_no')}$num';
+                  if (_documentType == 'Estimate') return '${context.tr('estimate_no')}$num';
+                  return '${context.tr('pdf_invoice_no')}$num';
+                }(),
               ),
             ),
           ],
@@ -278,8 +355,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 Expanded(
                   child: Text(
                     _dueDate != null
-                        ? 'Due: $_dueDate'
-                        : 'Set Due Date (optional)',
+                        ? '${context.tr('due_prefix')}$_dueDate'
+                        : context.tr('set_due_date'),
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -335,7 +412,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                _selectedBusiness?.businessName ?? 'Select Business',
+                _selectedBusiness?.businessName ?? context.tr('select_business'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -385,7 +462,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Invoice From',
+                        context.tr('invoice_from'),
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -468,7 +545,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    'Default',
+                                    context.tr('default_label'),
                                     style: GoogleFonts.poppins(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -628,7 +705,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                           ),
                           const SizedBox(width: 14),
                           Text(
-                            'Add Client',
+                            context.tr('add_client'),
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -760,7 +837,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       ),
                       const SizedBox(width: 14),
                       Text(
-                        'Add Item',
+                        context.tr('add_item'),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -798,7 +875,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       ),
                       const SizedBox(width: 14),
                       Text(
-                        'Add Service',
+                        context.tr('add_service'),
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -817,17 +894,17 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   }
 
   void _showBankPicker() {
-    final banks = Provider.of<BankProvider>(context, listen: false).banks;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (_) => _BankPickerSheet(
-            banks: banks,
-            selectedId: _selectedBank?.id,
-            onSelect: (b) => setState(() => _selectedBank = b),
-          ),
+      builder: (_) => Consumer<BankProvider>(
+        builder: (_, bankProvider, __) => _BankPickerSheet(
+          banks: bankProvider.banks,
+          selectedId: _selectedBank?.id,
+          onSelect: (b) => setState(() => _selectedBank = b),
+        ),
+      ),
     );
   }
 
@@ -861,36 +938,34 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   }
 
   void _showServicePicker(ItemProvider item, InvoiceProvider invoice) {
-    final services =
-        Provider.of<ServiceProvider>(context, listen: false).services;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (_) => _ServicePickerSheet(
-            services: services,
-            onConfirm: (selected) {
-              for (final service in selected) {
-                final itemModel = ItemModel(
-                  itemName: service.name,
-                  note: service.description,
-                  price: service.price ?? 0,
-                  qty: 1,
-                  duplicate: false,
+      builder: (_) => Consumer<ServiceProvider>(
+        builder: (_, serviceProvider, __) => _ServicePickerSheet(
+          services: serviceProvider.services,
+          onConfirm: (selected) {
+            for (final service in selected) {
+              final itemModel = ItemModel(
+                itemName: service.name,
+                note: service.description,
+                price: service.price ?? 0,
+                qty: 1,
+                duplicate: false,
+              );
+              if (_isEditMode) {
+                invoice.addMoreInvoices(
+                  widget.invoice!.invoiceId!,
+                  itemModel,
                 );
-                if (_isEditMode) {
-                  invoice.addMoreInvoices(
-                    widget.invoice!.invoiceId!,
-                    itemModel,
-                  );
-                } else {
-                  item.addItems(itemModel);
-                }
+              } else {
+                item.addItems(itemModel);
               }
-            },
-          ),
+            }
+          },
+        ),
+      ),
     );
   }
 
@@ -909,7 +984,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       child: Row(
         children: [
           Text(
-            'Total',
+            context.tr('total'),
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -936,7 +1011,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       decoration: context.cardDecoration,
       child: CupertinoTextField(
         controller: _notesCtrl,
-        placeholder: 'Add a note to this invoice (optional)…',
+        placeholder: context.tr('notes_hint'),
         placeholderStyle: GoogleFonts.poppins(fontSize: 14, color: context.colors.textHint),
         style: GoogleFonts.poppins(fontSize: 14, color: context.colors.textPrimary),
         padding: const EdgeInsets.all(16),
@@ -954,7 +1029,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        sectionLabel(context, 'Terms & Conditions'),
+        sectionLabel(context, context.tr('terms_conditions')),
         Container(
           decoration: context.cardDecoration,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -968,7 +1043,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Include on this invoice',
+                  context.tr('include_on_invoice'),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -1094,7 +1169,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                           ),
                           const SizedBox(width: 14),
                           Text(
-                            'Add Bank Account',
+                            context.tr('add_bank_account'),
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
@@ -1130,7 +1205,17 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: _isEditMode ? 'Update Invoice' : 'Create Invoice',
+        txt: _isEditMode
+            ? (_documentType == 'Quote'
+                ? context.tr('update_quote')
+                : _documentType == 'Estimate'
+                    ? context.tr('update_estimate')
+                    : context.tr('update_invoice'))
+            : (_documentType == 'Quote'
+                ? context.tr('create_quote')
+                : _documentType == 'Estimate'
+                    ? context.tr('create_estimate')
+                    : context.tr('create_invoice')),
         onTap:
             _isEditMode
                 ? () {
@@ -1161,9 +1246,13 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       bp.defaultBusiness ??
                       bp.activeBusiness;
 
+                  // Only invoices get an invoiceStatus; quotes/estimates do not
+                  final isInvoice = _documentType == 'Invoice';
+
                   await invoice.addInvoice(
                     InvoiceModel(
-                      invoiceStatus: 'UnPaid',
+                      invoiceStatus: isInvoice ? 'UnPaid' : null,
+                      documentType: _documentType,
                       businessId: biz?.id,
                       businessName: biz?.businessName ?? 'My Business',
                       date: selectDate,
@@ -1275,7 +1364,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
               child: Row(
                 children: [
                   Text(
-                    'Select Services',
+                    context.tr('select_services'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -1284,7 +1373,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                   ),
                   const Spacer(),
                   Text(
-                    '${_selected.length} selected',
+                    '${_selected.length} ${context.tr('selected')}',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: context.colors.textSecondary,
@@ -1302,7 +1391,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                     Icon(CupertinoIcons.tag, size: 40, color: context.colors.textHint),
                     const SizedBox(height: 12),
                     Text(
-                      'No services added yet.',
+                      context.tr('no_services_added'),
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: context.colors.textSecondary,
@@ -1310,7 +1399,7 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Go to Settings → Items & Services to add some.',
+                      context.tr('go_settings_services'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
@@ -1433,8 +1522,8 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
               child: AppButton(
                 txt:
                     _selected.isEmpty
-                        ? 'Select Services'
-                        : 'Add ${_selected.length} Service${_selected.length > 1 ? 's' : ''}',
+                        ? context.tr('select_services')
+                        : '${context.tr('add')} ${_selected.length} ${context.tr('services_title')}',
                 onTap:
                     _selected.isEmpty
                         ? null
@@ -1494,7 +1583,7 @@ class _BankPickerSheet extends StatelessWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Select Bank Account',
+                  context.tr('select_bank_account'),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -1516,7 +1605,7 @@ class _BankPickerSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'No bank accounts added yet.',
+                      context.tr('no_bank_accounts'),
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: context.colors.textSecondary,
@@ -1524,7 +1613,7 @@ class _BankPickerSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Go to Settings → Bank Accounts to add some.',
+                      context.tr('go_settings_bank'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
@@ -1669,7 +1758,7 @@ class _ClientPickerSheet extends StatelessWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Select Client',
+                  context.tr('select_client'),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -1691,7 +1780,7 @@ class _ClientPickerSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'No saved clients yet.',
+                      context.tr('no_saved_clients'),
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: context.colors.textSecondary,
@@ -1699,7 +1788,7 @@ class _ClientPickerSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Go to Settings → Clients to add some.',
+                      context.tr('go_settings_clients'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
@@ -1808,7 +1897,7 @@ class _ClientPickerSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: AppButton(
                 outlined: true,
-                txt: 'Add New Client',
+                txt: context.tr('add_new_client'),
                 onTap: () {
                   Navigator.pop(context);
                   onAddNew();
