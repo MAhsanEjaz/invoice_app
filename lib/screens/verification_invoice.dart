@@ -14,6 +14,7 @@ import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/home_screen.dart';
+import 'package:invoicemaker/screens/invoice_preview_screen.dart';
 import 'package:invoicemaker/screens/new_invoice_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:path_provider/path_provider.dart';
@@ -399,6 +400,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     return Consumer<InvoiceProvider>(
       builder: (context, invoice, _) {
         // ── Always read the live invoice so edits are reflected immediately ──
@@ -566,7 +568,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  '$sym${total.toStringAsFixed(2)}',
+                  '$sym${balanceDue.toStringAsFixed(2)}',
                   style: GoogleFonts.poppins(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
@@ -1196,8 +1198,6 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       final sym =
           Provider.of<CurrencyProvider>(context, listen: false).currency.pdfSymbol;
       final bp = Provider.of<BusinessProvider>(context, listen: false);
-      final locale =
-          Provider.of<LocaleProvider>(context, listen: false).languageCode;
       final biz = invoice.businessId != null && bp.businesses.isNotEmpty
           ? bp.businesses.firstWhere(
               (b) => b.id == invoice.businessId,
@@ -1208,7 +1208,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         invoice, data,
         business: biz,
         currencySymbol: sym,
-        locale: locale,
+        locale: 'en',
       );
       final tempDir = await getTemporaryDirectory();
       final pdfFile = File('${tempDir.path}/Invoice_${invoice.invoiceId}.pdf');
@@ -1229,8 +1229,6 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       final sym =
           Provider.of<CurrencyProvider>(context, listen: false).currency.pdfSymbol;
       final bp = Provider.of<BusinessProvider>(context, listen: false);
-      final locale =
-          Provider.of<LocaleProvider>(context, listen: false).languageCode;
       final biz = invoice.businessId != null && bp.businesses.isNotEmpty
           ? bp.businesses.firstWhere(
               (b) => b.id == invoice.businessId,
@@ -1241,7 +1239,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         invoice, data,
         business: biz,
         currencySymbol: sym,
-        locale: locale,
+        locale: 'en',
       );
       final tempDir = await getTemporaryDirectory();
       final List<XFile> files = [];
@@ -1585,7 +1583,11 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               onTap: () => _showCustomizeSheet(data, context.tr('apply'), () {
                 Navigation.go(
                   context,
-                  PdfInvoiceScreen(invoice: liveInvoice, provider: data),
+                  InvoicePreviewScreen(
+                    invoice: liveInvoice,
+                    template: data.template,
+                    accentColor: data.color,
+                  ),
                 );
               }),
             ),

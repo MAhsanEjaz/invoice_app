@@ -9,7 +9,10 @@ import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/terms_provider.dart';
+import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
+import 'package:invoicemaker/screens/invoice_preview_screen.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
@@ -82,7 +85,6 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     selectDate = inv.date;
     _dueDate = inv.dueDate;
     _includeTerms = inv.termsConditions?.isNotEmpty ?? false;
-    invoiceProvider.lastId = inv.invoiceId!;
     _notesCtrl.text = inv.notes ?? '';
     _selectedBank = inv.bank;
     _documentType = inv.documentType ?? 'Invoice';
@@ -124,6 +126,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     return Consumer3<ClientProvider, ItemProvider, InvoiceProvider>(
       builder: (context, client, item, invoice, _) {
         return CupertinoPageScaffold(
@@ -188,14 +191,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         child: Row(
           children: [
             closeButton(context, () {
-              client.clearClientFromList();
+              client.clearClientFromList(); // now also clears client.client list
               item.item.clear();
               selectDate = null;
-              if (invoice.invoice.isNotEmpty) {
-                invoice.lastId = invoice.invoice
-                    .map((e) => e.invoiceId ?? 0)
-                    .reduce((a, b) => a > b ? a : b);
-              }
               setState(() {});
             }),
             const Spacer(),
@@ -324,7 +322,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               child: _metaChip(
                 CupertinoIcons.doc_text,
                 () {
-                  final num = _isEditMode ? invoice.lastId : invoice.lastId + 1;
+                  final num = _isEditMode
+                      ? (widget.invoice!.invoiceId ?? invoice.lastId)
+                      : invoice.lastId + 1;
                   if (_documentType == 'Quote') return '${context.tr('quote_no')}$num';
                   if (_documentType == 'Estimate') return '${context.tr('estimate_no')}$num';
                   return '${context.tr('pdf_invoice_no')}$num';
@@ -808,16 +808,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               if (items.isNotEmpty) Divider(height: 1, color: context.colors.border),
 
               InkWell(
-                onTap: () {
-                  if (invoice!.invoice.isNotEmpty) {
-                    Navigation.go(context, ItemsScreen());
-                  } else {
-                    Navigation.go(
-                      context,
-                      AddItemScreen(invoice: widget.invoice),
-                    );
-                  }
-                },
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
+                onTap: () => _showAddLineItemPicker(item, invoice!),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -848,44 +842,6 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   ),
                 ),
               ),
-
-              Divider(height: 1, color: context.colors.border),
-
-              InkWell(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(16),
-                ),
-                onTap: () => _showServicePicker(item, invoice!),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: context.colors.background,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          CupertinoIcons.tag,
-                          color: context.colors.textSecondary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Text(
-                        context.tr('add_service'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -909,43 +865,50 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   }
 
   void _showClientPicker(ClientProvider client) {
-    final savedClients =
-        Provider.of<SavedClientProvider>(context, listen: false).clients;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (_) => _ClientPickerSheet(
-            savedClients: savedClients,
-            onSelect: (c) {
-              client.selectClient(c.name, c.address, c.phone, c.email, c.id);
-              client.client.add(
-                ClientModel(
-                  name: c.name,
-                  id: c.id,
-                  email: c.email,
-                  address: c.address,
-                  phone: c.phone,
-                  duplicate: false,
-                ),
-              );
-            },
-            onAddNew: () => Navigation.go(context, const AddClientScreen()),
-          ),
+      builder: (_) => Consumer<SavedClientProvider>(
+        builder: (_, savedClientProvider, __) => _ClientPickerSheet(
+          savedClients: savedClientProvider.clients,
+          onSelect: (c) {
+            client.client.clear(); // replace any previously-set client
+            client.selectClient(c.name, c.address, c.phone, c.email, c.id);
+            client.client.add(
+              ClientModel(
+                name: c.name,
+                id: c.id,
+                email: c.email,
+                address: c.address,
+                phone: c.phone,
+                duplicate: false,
+              ),
+            );
+          },
+          onAddNew: () => Navigation.go(context, const AddClientScreen()),
+        ),
+      ),
     );
   }
 
-  void _showServicePicker(ItemProvider item, InvoiceProvider invoice) {
+  void _showAddLineItemPicker(ItemProvider item, InvoiceProvider invoice) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Consumer<ServiceProvider>(
-        builder: (_, serviceProvider, __) => _ServicePickerSheet(
+        builder: (_, serviceProvider, __) => _AddLineItemSheet(
           services: serviceProvider.services,
-          onConfirm: (selected) {
+          onNewItem: () {
+            Navigator.pop(context);
+            if (invoice.invoice.isNotEmpty) {
+              Navigation.go(context, ItemsScreen());
+            } else {
+              Navigation.go(context, AddItemScreen(invoice: widget.invoice));
+            }
+          },
+          onConfirmServices: (selected) {
             for (final service in selected) {
               final itemModel = ItemModel(
                 itemName: service.name,
@@ -955,10 +918,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 duplicate: false,
               );
               if (_isEditMode) {
-                invoice.addMoreInvoices(
-                  widget.invoice!.invoiceId!,
-                  itemModel,
-                );
+                invoice.addMoreInvoices(widget.invoice!.invoiceId!, itemModel);
               } else {
                 item.addItems(itemModel);
               }
@@ -1192,6 +1152,50 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   }
 
   // ── Bottom action bar ──────────────────────────────────────────────────────
+  void _showPreview(BuildContext context, ClientProvider client, ItemProvider item, InvoiceProvider invoice) {
+    final bp = Provider.of<BusinessProvider>(context, listen: false);
+    final tp = Provider.of<TemplatesColorsProvider>(context, listen: false);
+    final biz = _selectedBusiness ?? bp.defaultBusiness ?? bp.activeBusiness;
+
+    final previewInvoice = InvoiceModel(
+      invoiceId: _isEditMode ? widget.invoice!.invoiceId : invoice.lastId + 1,
+      documentType: _documentType,
+      businessId: biz?.id,
+      businessName: biz?.businessName,
+      date: selectDate,
+      dueDate: _dueDate,
+      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+      bank: _selectedBank,
+      items: item.item
+          .map((e) => ItemModel(
+                itemName: e.itemName,
+                note: e.note,
+                price: e.price,
+                qty: e.qty,
+                id: e.id,
+              ))
+          .toList(),
+      clients: client.client
+          .map((e) => ClientModel(
+                name: e.name,
+                phone: e.phone,
+                email: e.email,
+                address: e.address,
+                id: e.id,
+              ))
+          .toList(),
+    );
+
+    Navigation.go(
+      context,
+      InvoicePreviewScreen(
+        invoice: previewInvoice,
+        template: tp.template,
+        accentColor: tp.color,
+      ),
+    );
+  }
+
   Widget _buildBottomBar(
     BuildContext context,
     ClientProvider client,
@@ -1204,7 +1208,37 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         border: Border(top: BorderSide(color: context.colors.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      child: AppButton(
+      child: Row(
+        children: [
+          Expanded(
+            flex: 1,
+            child: SizedBox(
+              height: 54,
+              child: OutlinedButton.icon(
+                onPressed: () => _showPreview(context, client, item, invoice),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: context.colors.border, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: Icon(CupertinoIcons.eye,
+                    size: 18, color: context.colors.textPrimary),
+                label: Text(
+                  context.tr('preview'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: AppButton(
         txt: _isEditMode
             ? (_documentType == 'Quote'
                 ? context.tr('update_quote')
@@ -1316,34 +1350,41 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   );
                 },
       ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _ServicePickerSheet extends StatefulWidget {
+class _AddLineItemSheet extends StatefulWidget {
   final List<ServiceModel> services;
-  final void Function(List<ServiceModel>) onConfirm;
+  final VoidCallback onNewItem;
+  final void Function(List<ServiceModel>) onConfirmServices;
 
-  const _ServicePickerSheet({required this.services, required this.onConfirm});
+  const _AddLineItemSheet({
+    required this.services,
+    required this.onNewItem,
+    required this.onConfirmServices,
+  });
 
   @override
-  State<_ServicePickerSheet> createState() => _ServicePickerSheetState();
+  State<_AddLineItemSheet> createState() => _AddLineItemSheetState();
 }
 
-class _ServicePickerSheetState extends State<_ServicePickerSheet> {
+class _AddLineItemSheetState extends State<_AddLineItemSheet> {
   final Set<int> _selected = {};
 
   @override
   Widget build(BuildContext context) {
     final sym = Provider.of<CurrencyProvider>(context, listen: false).symbol;
+    final cl = context.colors;
     return Container(
       decoration: BoxDecoration(
-        color: context.colors.background,
+        color: cl.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SafeArea(
         top: false,
         child: Column(
@@ -1351,69 +1392,72 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
           children: [
             const SizedBox(height: 12),
             Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    context.tr('select_services'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: context.colors.textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${_selected.length} ${context.tr('selected')}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ],
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  context.tr('add_item'),
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary),
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            if (widget.services.isEmpty)
+            // ── New custom item row ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: GestureDetector(
+                onTap: widget.onNewItem,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cl.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kPrimary.withValues(alpha: 0.3)),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(CupertinoIcons.add, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(context.tr('add_item'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: kPrimary)),
+                            Text('Enter name, price & quantity', style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
+                          ],
+                        ),
+                      ),
+                      Icon(CupertinoIcons.chevron_right, size: 14, color: cl.textSecondary),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // ── Saved services section ───────────────────────────────────────
+            if (widget.services.isNotEmpty) ...[
+              const SizedBox(height: 16),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Column(
-                  children: [
-                    Icon(CupertinoIcons.tag, size: 40, color: context.colors.textHint),
-                    const SizedBox(height: 12),
-                    Text(
-                      context.tr('no_services_added'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: context.colors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      context.tr('go_settings_services'),
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: context.colors.textHint,
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    context.tr('services_title').toUpperCase(),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: cl.textSecondary, letterSpacing: 0.7),
+                  ),
                 ),
-              )
-            else
+              ),
+              const SizedBox(height: 8),
               ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.45,
-                ),
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.35),
                 child: ListView.separated(
                   shrinkWrap: true,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1423,47 +1467,32 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                     final service = widget.services[index];
                     final isChosen = _selected.contains(service.id);
                     return GestureDetector(
-                      onTap:
-                          () => setState(() {
-                            if (isChosen) {
-                              _selected.remove(service.id);
-                            } else {
-                              _selected.add(service.id!);
-                            }
-                          }),
+                      onTap: () => setState(() {
+                        if (isChosen) {
+                          _selected.remove(service.id);
+                        } else {
+                          _selected.add(service.id!);
+                        }
+                      }),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isChosen ? context.colors.primaryLight :context.colors.surface,
+                          color: isChosen ? cl.primaryLight : cl.surface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isChosen ? kPrimary : context.colors.border,
-                            width: isChosen ? 1.5 : 1,
-                          ),
+                          border: Border.all(color: isChosen ? kPrimary : cl.border, width: isChosen ? 1.5 : 1),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         child: Row(
                           children: [
                             Container(
-                              width: 36,
-                              height: 36,
+                              width: 36, height: 36,
                               decoration: BoxDecoration(
-                                color: isChosen ? kPrimary : context.colors.background,
+                                color: isChosen ? kPrimary : cl.background,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                (service.name?.isNotEmpty ?? false)
-                                    ? service.name![0].toUpperCase()
-                                    : 'S',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color:
-                                      isChosen ? Colors.white : context.colors.textSecondary,
-                                ),
+                                (service.name?.isNotEmpty ?? false) ? service.name![0].toUpperCase() : 'S',
+                                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: isChosen ? Colors.white : cl.textSecondary),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1471,42 +1500,18 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    service.name ?? '',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: context.colors.textPrimary,
-                                    ),
-                                  ),
+                                  Text(service.name ?? '', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: cl.textPrimary)),
                                   if (service.description?.isNotEmpty ?? false)
-                                    Text(
-                                      service.description!,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: context.colors.textSecondary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                    Text(service.description!, style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ],
                               ),
                             ),
                             if (service.price != null)
-                              Text(
-                                '$sym${service.price!.toStringAsFixed(2)}',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: isChosen ? kPrimary : context.colors.textSecondary,
-                                ),
-                              ),
+                              Text('$sym${service.price!.toStringAsFixed(2)}', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: isChosen ? kPrimary : cl.textSecondary)),
                             const SizedBox(width: 8),
                             Icon(
-                              isChosen
-                                  ? CupertinoIcons.checkmark_circle_fill
-                                  : CupertinoIcons.circle,
-                              color: isChosen ? kPrimary : context.colors.textHint,
+                              isChosen ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+                              color: isChosen ? kPrimary : cl.textHint,
                               size: 20,
                             ),
                           ],
@@ -1516,27 +1521,20 @@ class _ServicePickerSheetState extends State<_ServicePickerSheet> {
                   },
                 ),
               ),
+            ],
             const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: AppButton(
-                txt:
-                    _selected.isEmpty
-                        ? context.tr('select_services')
-                        : '${context.tr('add')} ${_selected.length} ${context.tr('services_title')}',
-                onTap:
-                    _selected.isEmpty
-                        ? null
-                        : () {
-                          final chosen =
-                              widget.services
-                                  .where((s) => _selected.contains(s.id))
-                                  .toList();
-                          Navigator.pop(context);
-                          widget.onConfirm(chosen);
-                        },
+            if (_selected.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: AppButton(
+                  txt: '${context.tr('add')} ${_selected.length} ${context.tr('services_title')}',
+                  onTap: () {
+                    final chosen = widget.services.where((s) => _selected.contains(s.id)).toList();
+                    Navigator.pop(context);
+                    widget.onConfirmServices(chosen);
+                  },
+                ),
               ),
-            ),
             const SizedBox(height: 8),
           ],
         ),

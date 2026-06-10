@@ -7,6 +7,7 @@ import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +19,7 @@ class ManageBusinessesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer<BusinessProvider>(
       builder: (context, business, _) {

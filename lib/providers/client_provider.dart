@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
@@ -24,8 +22,6 @@ class ClientProvider extends ChangeNotifier {
     clientModel.id = lastId;
 
     client.add(clientModel);
-
-    print('client-->${jsonEncode(client)}');
     notifyListeners();
   }
 
@@ -46,6 +42,7 @@ class ClientProvider extends ChangeNotifier {
   }
 
   clearClientFromList() {
+    client.clear();
     name = null;
     address = null;
     phone = null;
@@ -73,8 +70,6 @@ class ClientProvider extends ChangeNotifier {
       client[index!].address = clientAddress;
 
       notifyListeners();
-    } else {
-      print("Client with id $id not found.");
     }
   }
 }

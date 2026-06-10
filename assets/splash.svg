@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <!-- White/light background for splash -->
+  <rect width="1080" height="1920" fill="#F0FAFA"/>
+  <!-- Icon centered -->
+  <g transform="translate(340, 620)">
+    <rect x="0" y="0" width="400" height="400" rx="88" fill="#0D7377"/>
+    <clipPath id="sc">
+      <rect x="0" y="0" width="400" height="400" rx="88"/>
+    </clipPath>
+    <rect x="284" y="0" width="116" height="116" fill="#0A5C60" clip-path="url(#sc)"/>
+    <text x="200" y="300" text-anchor="middle"
+          font-size="230" font-family="Arial Black, Helvetica Neue, sans-serif"
+          font-weight="900" fill="white">P</text>
+    <polygon points="200,316 164,264 236,264" fill="white" opacity="0.9"/>
+    <rect x="188" y="314" width="24" height="42" rx="6" fill="white" opacity="0.9"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="540" y="1118" text-anchor="middle"
+        font-size="96" font-family="Arial, Helvetica, sans-serif"
+        font-weight="400">
+    <tspan fill="#0A5C60">Paper</tspan><tspan fill="#0D7377">Push</tspan>
+  </text>
+  <!-- Tagline -->
+  <text x="540" y="1190" text-anchor="middle"
+        font-size="34" font-family="Arial, Helvetica, sans-serif"
+        font-weight="400" fill="#5AADAF" letter-spacing="6">invoices · quotes · estimates</text>
+</svg>

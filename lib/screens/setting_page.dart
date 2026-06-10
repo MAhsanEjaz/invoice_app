@@ -35,6 +35,7 @@ class _SettingPageState extends State<SettingPage> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer4<BusinessProvider, CurrencyProvider, TermsProvider,
         ThemeProvider>(

@@ -1,4 +1,4 @@
-package com.example.invoicemaker
+package com.invoice.paperpush
 
 import io.flutter.embedding.android.FlutterActivity
 

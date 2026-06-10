@@ -18,8 +18,6 @@ import 'package:provider/provider.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/screens/splash_screen.dart';
 
-bool duplicate = false;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.initialize();
@@ -38,15 +36,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // ignore: use_build_context_synchronously
-      context.read<TemplatesColorsProvider>().load();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return MultiProvider(

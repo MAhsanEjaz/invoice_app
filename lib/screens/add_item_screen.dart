@@ -7,6 +7,7 @@ import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/items_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../models/invoice_model.dart';
@@ -68,6 +69,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer2<ItemProvider, InvoiceProvider>(
       builder: (context, item, invoice, _) {
@@ -332,6 +334,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
               noteCont.text,
               double.tryParse(priceCont.text) ?? 0,
               int.tryParse(qtyCont.text) ?? 1,
+              invoiceId: widget.invoice?.invoiceId,
             );
           }
 

@@ -59,14 +59,9 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(28, topPad + 36, 28, 0),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Container(
-                      width: 60, height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
-                      ),
-                      child: const Icon(CupertinoIcons.doc_text_fill, color: Colors.white, size: 28),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.asset('assets/icon.png', width: 60, height: 60, fit: BoxFit.cover),
                     ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.7, 0.7), duration: 500.ms, curve: Curves.easeOut),
                     const SizedBox(height: 22),
                     Text('Set up your\nbusiness', style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5))
@@ -122,9 +117,11 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                         AppButton(
                           txt: 'Continue',
                           color: _hasInput ? kPrimary : cl.textHint,
-                          onTap: _hasInput ? () {
-                            business.addBusinessData(BusinessModel(businessName: _nameCont.text.trim()));
-                            business.getSaveBusinessModel();
+                          onTap: _hasInput ? () async {
+                            await business.addBusinessData(
+                              BusinessModel(businessName: _nameCont.text.trim()),
+                            );
+                            if (!context.mounted) return;
                             Navigation.go(context, const InvoiceDummy());
                           } : null,
                         ),

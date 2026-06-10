@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:invoicemaker/models/currency_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +27,9 @@ class CurrencyProvider extends ChangeNotifier {
           jsonDecode(raw) as Map<String, dynamic>,
         );
         notifyListeners();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('CurrencyProvider: failed to parse saved currency — $e');
+      }
     }
   }
 

@@ -40,6 +40,10 @@ class TemplatesColorsProvider extends ChangeNotifier {
   String colorCode = 'FF0D7377';
   InvoiceTemplate template = InvoiceTemplate.classic;
 
+  TemplatesColorsProvider() {
+    load();
+  }
+
   final List<Color> colors = const [
     Color(0xFF0D7377), // Teal (default)
     Color(0xFF1E40AF), // Indigo

@@ -201,8 +201,8 @@ class BusinessProvider extends ChangeNotifier {
 
   // ── Legacy methods kept for backward compat ──────────────────────────────
 
-  void addBusinessData(BusinessModel ourBusiness) {
-    addBusiness(ourBusiness.businessName ?? '');
+  Future<void> addBusinessData(BusinessModel ourBusiness) async {
+    await addBusiness(ourBusiness.businessName ?? '');
   }
 
   Future<BusinessModel?> getString() async {

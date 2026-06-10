@@ -42,17 +42,11 @@ class InvoiceProvider extends ChangeNotifier {
     String? price,
     String? note,
   ) {
-    for (var element in invoice) {
-      model = element.items!.firstWhere(
-        (element) => element.id == model.id,
-        orElse: () => ItemModel(duplicate: false),
-      );
-
-      model.itemName = itemName;
-      model.qty = int.tryParse(qty!);
-      model.price = double.parse(price!);
-      model.note = note;
-    }
+    // Update the item in-place via its existing reference — no cross-invoice loop
+    model.itemName = itemName;
+    model.qty = int.tryParse(qty ?? '');
+    model.price = double.tryParse(price ?? '');
+    model.note = note;
 
     item.add(
       ItemModel(
@@ -65,6 +59,7 @@ class InvoiceProvider extends ChangeNotifier {
       ),
     );
 
+    saveInvoice();
     notifyListeners();
   }
 
@@ -141,18 +136,23 @@ class InvoiceProvider extends ChangeNotifier {
     String? itemName,
     String? note,
     double price,
-    int qty,
-  ) {
-    for (var element in invoice) {
-      final itemsUpdate = element.items!.firstWhere(
-        (element) => element.id == itemId,
-        orElse: () => ItemModel(duplicate: false),
-      );
+    int qty, {
+    int? invoiceId,
+  }) {
+    // When invoiceId is provided, only touch that invoice; otherwise fall back
+    // to updating the first invoice that contains the item (legacy behaviour).
+    final targets = invoiceId != null
+        ? invoice.where((e) => e.invoiceId == invoiceId)
+        : invoice;
 
-      itemsUpdate.itemName = itemName!;
-      itemsUpdate.note = note!;
-      itemsUpdate.qty = qty;
-      itemsUpdate.price = price;
+    for (final element in targets) {
+      if (element.items == null) continue;
+      final idx = element.items!.indexWhere((e) => e.id == itemId);
+      if (idx < 0) continue;
+      element.items![idx].itemName = itemName ?? '';
+      element.items![idx].note = note ?? '';
+      element.items![idx].qty = qty;
+      element.items![idx].price = price;
     }
 
     saveInvoice();
@@ -194,8 +194,8 @@ class InvoiceProvider extends ChangeNotifier {
     final myPrice = data.items!.fold<num>(
       0,
       (pre, newPrice) =>
-          double.parse(pre.toString()) +
-          double.parse(newPrice.price.toString()) * newPrice.qty!,
+          pre.toDouble() +
+          (newPrice.price?.toDouble() ?? 0.0) * (newPrice.qty ?? 1),
     );
 
     myCalPrice = myPrice;
@@ -207,16 +207,18 @@ class InvoiceProvider extends ChangeNotifier {
       (element) => element.invoiceId == invoiceId,
     );
 
-    // Step 1: Calculate highest existing ID
-    newItemId = 1;
+    myInvoice.items ??= [];
+
+    // Find the highest existing item ID in this invoice, starting from 0
+    int maxId = 0;
     for (var element in myInvoice.items!) {
-      if (element.id != null && element.id! > newItemId) {
-        newItemId = element.id!;
+      if (element.id != null && element.id! > maxId) {
+        maxId = element.id!;
       }
     }
 
-    // Step 2: Assign next ID to new item
-    itemModel!.id = newItemId + 1;
+    itemModel!.id = maxId + 1;
+    newItemId = itemModel.id!; // keep field in sync for external readers
     myInvoice.items!.add(itemModel);
 
     saveInvoice();

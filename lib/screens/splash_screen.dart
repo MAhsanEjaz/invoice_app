@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/screens/home_screen.dart';
@@ -27,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
     );
     final data = await businessProvider.getString();
 
-    Timer(const Duration(milliseconds: 2400), () {
+    Timer(const Duration(milliseconds: 2000), () {
       if (!mounted) return;
       if (data != null) {
         Navigation.clearAll(context, const HomeScreen());
@@ -45,96 +44,16 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: kPrimary,
       body: Stack(
         children: [
-          // ── Decorative background circles ────────────────────────────────
-          Positioned(
-            top: -size.width * 0.3,
-            right: -size.width * 0.25,
-            child: _DecorCircle(size.width * 0.7),
-          ),
-          Positioned(
-            bottom: -size.width * 0.2,
-            left: -size.width * 0.2,
-            child: _DecorCircle(size.width * 0.55),
-          ),
-          Positioned(
-            top: size.height * 0.35,
-            left: -size.width * 0.1,
-            child: _DecorCircle(size.width * 0.3, opacity: 0.04),
-          ),
-
-          // ── Main content ─────────────────────────────────────────────────
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // App icon
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(26),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.doc_text_fill,
-                    size: 44,
-                    color: Colors.white,
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 500.ms)
-                    .scale(
-                      begin: const Offset(0.65, 0.65),
-                      end: const Offset(1.0, 1.0),
-                      duration: 600.ms,
-                      curve: Curves.easeOut,
-                    ),
-
-                const SizedBox(height: 24),
-
-                // App name
-                Text(
-                  'Invoice Maker',
-                  style: GoogleFonts.poppins(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 300.ms, duration: 500.ms)
-                    .slideY(
-                      begin: 0.3,
-                      end: 0,
-                      delay: 300.ms,
-                      duration: 500.ms,
-                      curve: Curves.easeOut,
-                    ),
-
-                const SizedBox(height: 8),
-
-                // Tagline
-                Text(
-                  'Professional invoicing, simplified',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withValues(alpha: 0.65),
-                  ),
-                ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
-              ],
-            ),
+          // ── Full-screen splash image ──────────────────────────────────────
+          Positioned.fill(
+            child: SvgPicture.asset(
+              'assets/splash.svg',
+              fit: BoxFit.cover,
+            ).animate().fadeIn(duration: 600.ms),
           ),
 
           // ── Loading dots at bottom ───────────────────────────────────────
@@ -147,24 +66,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 .fadeIn(delay: 800.ms, duration: 400.ms),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DecorCircle extends StatelessWidget {
-  final double size;
-  final double opacity;
-  const _DecorCircle(this.size, {this.opacity = 0.07});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: opacity),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/service_provider.dart';
 import 'package:invoicemaker/screens/add_service_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
@@ -14,6 +15,7 @@ class ServicesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer2<ServiceProvider, CurrencyProvider>(
       builder: (context, serviceProvider, currency, _) {

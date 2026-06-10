@@ -8,6 +8,7 @@ import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/setting_page.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
@@ -29,23 +30,29 @@ class _HomeScreenState extends State<HomeScreen> {
   List<InvoiceModel> _filterForBusiness(
     List<InvoiceModel> all,
     BusinessModel? active,
+    List<BusinessModel> allBusinesses,
   ) {
     if (active == null) return all;
+    final knownIds = allBusinesses.map((b) => b.id).toSet();
     return all.where((inv) {
       if (inv.businessId == active.id) return true;
       if (inv.businessId == null && active.isDefault) return true;
+      // Invoices whose business was deleted become orphans — show them under
+      // the default business so they're never permanently hidden.
+      if (active.isDefault && !knownIds.contains(inv.businessId)) return true;
       return false;
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer3<InvoiceProvider, CurrencyProvider, BusinessProvider>(
       builder: (context, invoice, currency, business, _) {
         final sym = currency.symbol;
         final active = business.activeBusiness;
-        final filtered = _filterForBusiness(invoice.invoice, active);
+        final filtered = _filterForBusiness(invoice.invoice, active, business.businesses);
 
         // Separate invoices from quotes/estimates
         final invoices = filtered
@@ -118,16 +125,12 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     final unpaidTotal = filtered
         .where((i) => (i.documentType ?? 'Invoice') == 'Invoice' && i.invoiceStatus != 'Paid')
-        .fold<double>(
-          0,
-          (sum, inv) =>
-              sum +
-              (inv.items?.fold<double>(
-                    0,
-                    (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
-                  ) ??
-                  0),
-        );
+        .fold<double>(0, (sum, inv) {
+          final subtotal = inv.items?.fold<double>(0, (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1))) ?? 0;
+          final discount = inv.discount ?? 0;
+          final received = inv.receivedAmount ?? 0;
+          return sum + (subtotal - discount - received).clamp(0.0, double.infinity);
+        });
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -235,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSegmentControl(AppColors cl) {
     return Container(
-      height: 46,
+      height: 54,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: cl.surface,
@@ -268,8 +271,9 @@ class _HomeScreenState extends State<HomeScreen> {
           alignment: Alignment.center,
           child: Text(
             label,
+            textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: isSelected ? Colors.white : cl.textSecondary,
             ),
@@ -331,12 +335,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final clientName = (inv.clients?.isNotEmpty ?? false)
         ? (inv.clients!.first.name ?? 'Unknown Client')
         : 'Unknown Client';
-    final total =
-        inv.items?.fold<double>(
-          0,
-          (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
-        ) ??
-        0.0;
+    final subtotal = inv.items?.fold<double>(0, (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1))) ?? 0.0;
+    final total = (subtotal - (inv.discount ?? 0) - (inv.receivedAmount ?? 0)).clamp(0.0, double.infinity);
     return GestureDetector(
       onTap: () {
         final latest = invoice.invoice.firstWhere(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:intl/intl.dart';
@@ -57,8 +58,17 @@ class NotificationService {
   }) async {
     await cancelInvoiceReminder(invoiceId);
 
-    final DateTime? due = DateFormat('MMM dd, yyyy').tryParse(dueDate);
-    if (due == null) return;
+    // Try the formats the app uses, in order of likelihood
+    final dateFormats = ['MMM dd, yyyy', 'dd MMM yyyy', 'yyyy-MM-dd', 'dd/MM/yyyy'];
+    DateTime? due;
+    for (final fmt in dateFormats) {
+      due = DateFormat(fmt).tryParse(dueDate);
+      if (due != null) break;
+    }
+    if (due == null) {
+      debugPrint('NotificationService: could not parse due date "$dueDate"');
+      return;
+    }
 
     final scheduledDate = DateTime(due.year, due.month, due.day, 9, 0, 0);
     final now = DateTime.now();
