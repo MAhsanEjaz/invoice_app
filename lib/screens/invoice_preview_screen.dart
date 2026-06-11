@@ -206,8 +206,6 @@ class _InvoiceDocument extends StatelessWidget {
     switch (template) {
       case InvoiceTemplate.classic:
         return _classicHeader(context, docTitle, docNoLabel);
-      case InvoiceTemplate.modern:
-        return _modernHeader(context, docTitle, docNoLabel);
       case InvoiceTemplate.elegant:
         return _elegantHeader(context, docTitle, docNoLabel);
       case InvoiceTemplate.minimal:
@@ -216,6 +214,8 @@ class _InvoiceDocument extends StatelessWidget {
         return _waveHeader(context, docTitle, docNoLabel);
       case InvoiceTemplate.boutique:
         return _boutiqueHeader(context, docTitle, docNoLabel);
+      case InvoiceTemplate.geometric:
+        return _geometricHeader(context, docTitle, docNoLabel);
     }
   }
 
@@ -335,135 +335,6 @@ class _InvoiceDocument extends StatelessWidget {
           Text(value,
               style: GoogleFonts.poppins(
                   fontSize: 10, color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-  // ── MODERN ───────────────────────────────────────────────────────────────
-  Widget _modernHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
-    final accentLight = Color.lerp(accentColor, Colors.white, 0.88)!;
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Left white panel
-          Expanded(
-            flex: 58,
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(20, 24, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (business?.businessLogo != null) ...[
-                    _logoWidget(52, rounded: true),
-                    const SizedBox(height: 12),
-                  ],
-                  Text(
-                    business?.businessName ?? '',
-                    style: GoogleFonts.poppins(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: _textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 40,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: accentColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: accentLight,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '$docNoLabel${invoice.invoiceId ?? ''}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: accentColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Right accent panel
-          Expanded(
-            flex: 42,
-            child: Container(
-              color: accentColor,
-              padding: const EdgeInsets.fromLTRB(16, 24, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    docTitle.toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (invoice.date?.isNotEmpty ?? false)
-                    _modernMetaLine(context.tr('pdf_date'), invoice.date!),
-                  if (invoice.dueDate?.isNotEmpty ?? false)
-                    _modernMetaLine(context.tr('pdf_due'), invoice.dueDate!),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Text(
-                      _statusText(context).toUpperCase(),
-                      style: GoogleFonts.poppins(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: accentColor,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _modernMetaLine(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text('$label  ',
-              style: GoogleFonts.poppins(
-                  fontSize: 9,
-                  color: Colors.white.withValues(alpha: 0.70))),
-          Text(value,
-              style: GoogleFonts.poppins(
-                  fontSize: 9, color: Colors.white)),
         ],
       ),
     );
@@ -845,6 +716,115 @@ class _InvoiceDocument extends StatelessWidget {
     );
   }
 
+  // ── GEOMETRIC ─────────────────────────────────────────────────────────────
+  Widget _geometricHeader(
+      BuildContext context, String docTitle, String docNoLabel) {
+    final client =
+        (invoice.clients?.isNotEmpty ?? false) ? invoice.clients!.first : null;
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _GeometricBgPainter(accentColor, kPrimary),
+          ),
+        ),
+        Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // "INVOICE" title — right side reserved for corner triangles
+              Text(
+                docTitle,
+                style: GoogleFonts.poppins(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  color: _textDark,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left: date + invoice no
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${context.tr('pdf_date_issued')}:',
+                        style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _textDark),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        invoice.date ?? '',
+                        style: const TextStyle(
+                            fontSize: 10, color: _textMid),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$docNoLabel:',
+                        style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _textDark),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${invoice.invoiceId ?? ''}',
+                        style: const TextStyle(
+                            fontSize: 10, color: _textMid),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 40),
+                  // Right: issued to
+                  if (client != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${context.tr('pdf_issued_to')}:',
+                          style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: _textDark),
+                        ),
+                        const SizedBox(height: 2),
+                        if ((client.name ?? '').isNotEmpty)
+                          Text(client.name!,
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: _textDark)),
+                        if ((client.phone ?? '').isNotEmpty)
+                          Text(client.phone!,
+                              style: const TextStyle(
+                                  fontSize: 10, color: _textMid)),
+                        if ((client.email ?? '').isNotEmpty)
+                          Text(client.email!,
+                              style: const TextStyle(
+                                  fontSize: 10, color: _textMid)),
+                        if ((client.address ?? '').isNotEmpty)
+                          Text(client.address!,
+                              style: const TextStyle(
+                                  fontSize: 10, color: _textMid)),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Wave info cards ───────────────────────────────────────────────────────
   Widget _buildWaveInfoCards(BuildContext context) {
     final isInvoice =
@@ -1020,16 +1000,19 @@ class _InvoiceDocument extends StatelessWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: (template == InvoiceTemplate.minimal ||
-                    template == InvoiceTemplate.boutique)
-                ? Colors.transparent
-                : headerColor,
+            color: template == InvoiceTemplate.geometric
+                ? const Color(0xFFE7E9ED)
+                : (template == InvoiceTemplate.minimal ||
+                        template == InvoiceTemplate.boutique)
+                    ? Colors.transparent
+                    : headerColor,
             border: template == InvoiceTemplate.minimal
                 ? Border(
                     top: BorderSide(color: accentColor, width: 2),
                     bottom: const BorderSide(color: _borderGrey, width: 0.8),
                   )
-                : template == InvoiceTemplate.boutique
+                : (template == InvoiceTemplate.boutique ||
+                        template == InvoiceTemplate.geometric)
                     ? const Border(
                         top: BorderSide(color: _borderGrey, width: 0.8),
                         bottom: BorderSide(color: _borderGrey, width: 0.8),
@@ -1047,7 +1030,8 @@ class _InvoiceDocument extends StatelessWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique)
+                            template == InvoiceTemplate.boutique ||
+                            template == InvoiceTemplate.geometric)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -1063,7 +1047,8 @@ class _InvoiceDocument extends StatelessWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique)
+                            template == InvoiceTemplate.boutique ||
+                            template == InvoiceTemplate.geometric)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -1079,7 +1064,8 @@ class _InvoiceDocument extends StatelessWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique)
+                            template == InvoiceTemplate.boutique ||
+                            template == InvoiceTemplate.geometric)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -1095,7 +1081,8 @@ class _InvoiceDocument extends StatelessWidget {
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique)
+                            template == InvoiceTemplate.boutique ||
+                            template == InvoiceTemplate.geometric)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -1187,7 +1174,6 @@ class _InvoiceDocument extends StatelessWidget {
         : context.tr('pdf_total_due');
 
     if (template == InvoiceTemplate.classic ||
-        template == InvoiceTemplate.modern ||
         template == InvoiceTemplate.wave) {
       return Align(
         alignment: Alignment.centerRight,
@@ -1378,6 +1364,59 @@ class _InvoiceDocument extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Geometric: clean rows + bold plain total
+    if (template == InvoiceTemplate.geometric) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: SizedBox(
+          width: 220,
+          child: Column(
+            children: [
+              if (hasDiscount) ...[
+                _totRow(context.tr('pdf_subtotal'),
+                    '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+                const SizedBox(height: 6),
+                _totRow(context.tr('pdf_discount'),
+                    '-$currencySymbol${discount.toStringAsFixed(2)}',
+                    valueColor: kDangerColor),
+              ],
+              if (hasReceived) ...[
+                const SizedBox(height: 6),
+                _totRow(context.tr('pdf_received'),
+                    '($currencySymbol${received.toStringAsFixed(2)})',
+                    valueColor: const Color(0xFF059669)),
+              ],
+              const SizedBox(height: 8),
+              const Divider(height: 1, thickness: 0.8, color: _borderGrey),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    finalLabel.toUpperCase(),
+                    style: GoogleFonts.poppins(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: _textDark,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                  Text(
+                    '$currencySymbol${finalAmt.toStringAsFixed(2)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: _textDark,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1623,4 +1662,38 @@ class _WaveHeaderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WaveHeaderPainter old) => old.color != color;
+}
+
+// ── Geometric corner triangles painter ────────────────────────────────────────
+class _GeometricBgPainter extends CustomPainter {
+  final Color accent;
+  final Color secondary;
+  _GeometricBgPainter(this.accent, this.secondary);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    const pink = Color(0xFFEDB8B8);
+
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h), Paint()..color = Colors.white);
+
+    const r1w = 92.0, r1h = 66.0;
+    const r2 = 50.0;
+
+    // Top-right: large accent rect (behind)
+    canvas.drawRect(Rect.fromLTWH(w - r1w, 0, r1w, r1h), Paint()..color = accent);
+    // Top-right: small pink rect (front, at very corner)
+    canvas.drawRect(Rect.fromLTWH(w - r2, 0, r2, r2), Paint()..color = pink);
+
+    // Bottom-left: large accent rect (behind)
+    canvas.drawRect(Rect.fromLTWH(0, h - r1h, r1w, r1h), Paint()..color = accent);
+    // Bottom-left: small pink rect (front, at very corner)
+    canvas.drawRect(Rect.fromLTWH(0, h - r2, r2, r2), Paint()..color = pink);
+  }
+
+  @override
+  bool shouldRepaint(_GeometricBgPainter old) =>
+      old.accent != accent || old.secondary != secondary;
 }

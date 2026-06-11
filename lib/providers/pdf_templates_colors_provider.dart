@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum InvoiceTemplate { classic, modern, elegant, minimal, wave, boutique }
+enum InvoiceTemplate { classic, elegant, minimal, wave, boutique, geometric }
 
 extension InvoiceTemplateX on InvoiceTemplate {
   String get label {
     switch (this) {
       case InvoiceTemplate.classic:
         return 'Classic';
-      case InvoiceTemplate.modern:
-        return 'Modern';
       case InvoiceTemplate.elegant:
         return 'Elegant';
       case InvoiceTemplate.minimal:
@@ -18,6 +16,8 @@ extension InvoiceTemplateX on InvoiceTemplate {
         return 'Wave';
       case InvoiceTemplate.boutique:
         return 'Boutique';
+      case InvoiceTemplate.geometric:
+        return 'Geometric';
     }
   }
 
@@ -25,8 +25,6 @@ extension InvoiceTemplateX on InvoiceTemplate {
     switch (this) {
       case InvoiceTemplate.classic:
         return 'Bold colored header';
-      case InvoiceTemplate.modern:
-        return 'Two-panel layout';
       case InvoiceTemplate.elegant:
         return 'Dark premium look';
       case InvoiceTemplate.minimal:
@@ -35,6 +33,8 @@ extension InvoiceTemplateX on InvoiceTemplate {
         return 'Curved wave header';
       case InvoiceTemplate.boutique:
         return 'Editorial · clean';
+      case InvoiceTemplate.geometric:
+        return 'Dual-color corners';
     }
   }
 }

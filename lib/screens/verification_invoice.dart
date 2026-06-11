@@ -1633,8 +1633,6 @@ class _TemplatePreview extends StatelessWidget {
     switch (template) {
       case InvoiceTemplate.classic:
         return _classicPreview();
-      case InvoiceTemplate.modern:
-        return _modernPreview();
       case InvoiceTemplate.elegant:
         return _elegantPreview();
       case InvoiceTemplate.minimal:
@@ -1643,6 +1641,8 @@ class _TemplatePreview extends StatelessWidget {
         return _wavePreview();
       case InvoiceTemplate.boutique:
         return _boutiquePreview();
+      case InvoiceTemplate.geometric:
+        return _geometricPreview();
     }
   }
 
@@ -1681,64 +1681,6 @@ class _TemplatePreview extends StatelessWidget {
               _fakeLine(width: 50, color: Colors.grey.shade300, height: 4),
               const SizedBox(height: 6),
               _fakeTable(color),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Modern: white left + colored right split header
-  Widget _modernPreview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 52,
-          child: Row(
-            children: [
-              Expanded(
-                flex: 6,
-                child: Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.only(left: 10, top: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _fakeLine(width: 44, color: Colors.grey.shade800, height: 6),
-                      const SizedBox(height: 4),
-                      Container(width: 18, height: 2, color: color),
-                    ],
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: Container(
-                  color: color,
-                  padding: const EdgeInsets.only(right: 8, top: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _fakeLine(width: 36, color: Colors.white, height: 7),
-                      const SizedBox(height: 5),
-                      _fakeLine(width: 24, color: Colors.white.withValues(alpha: 0.6), height: 3),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _fakeLine(width: 50, color: Colors.grey.shade300, height: 4),
-              const SizedBox(height: 6),
-              _fakeTableModern(color),
             ],
           ),
         ),
@@ -1901,6 +1843,117 @@ class _TemplatePreview extends StatelessWidget {
     );
   }
 
+  // Geometric: white bg · dual-color corner triangles · "INVOICE" title · bordered table
+  Widget _geometricPreview() {
+    const kPrimary = Color(0xFF0D7377);
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _GeometricCornersPainter(color, kPrimary),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fakeLine(width: 44, color: const Color(0xFF1F2B3A), height: 8),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fakeLine(width: 24, color: Colors.grey.shade700, height: 3),
+                      const SizedBox(height: 2),
+                      _fakeLine(width: 18, color: Colors.grey.shade400, height: 2),
+                      const SizedBox(height: 4),
+                      _fakeLine(width: 22, color: Colors.grey.shade700, height: 3),
+                      const SizedBox(height: 2),
+                      _fakeLine(width: 14, color: Colors.grey.shade400, height: 2),
+                    ],
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fakeLine(width: 20, color: Colors.grey.shade700, height: 3),
+                      const SizedBox(height: 2),
+                      _fakeLine(width: 28, color: Colors.grey.shade400, height: 2),
+                      const SizedBox(height: 2),
+                      _fakeLine(width: 24, color: Colors.grey.shade400, height: 2),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _fakeTableGeometric(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fakeTableGeometric() {
+    return Column(
+      children: [
+        Container(
+          height: 14,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            border: Border.all(color: Colors.grey.shade300, width: 0.5),
+          ),
+          child: Row(
+            children: [
+              _tableCell(flex: 1, color: Colors.grey.shade500),
+              _tableCell(flex: 3, color: Colors.grey.shade500),
+              _tableCell(flex: 1, color: Colors.grey.shade500),
+              _tableCell(flex: 2, color: Colors.grey.shade500),
+            ],
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.symmetric(
+              vertical: BorderSide(color: Colors.grey.shade300, width: 0.5),
+            ),
+          ),
+          child: _fakeRow(Colors.white),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.symmetric(
+              vertical: BorderSide(color: Colors.grey.shade300, width: 0.5),
+            ),
+          ),
+          child: _fakeRow(Colors.white),
+        ),
+        Container(
+          height: 12,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.grey.shade300, width: 0.5),
+          ),
+          child: Row(
+            children: [
+              const Spacer(flex: 4),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Container(height: 3, color: Colors.grey.shade700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // Boutique: white bg · dark badge logo · large "INVOICE" title · clean table
   Widget _boutiquePreview() {
     return Column(
@@ -2030,29 +2083,6 @@ class _TemplatePreview extends StatelessWidget {
     );
   }
 
-  Widget _fakeTableModern(Color accent) {
-    return Column(
-      children: [
-        Container(
-          height: 14,
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: accent, width: 1.5)),
-          ),
-          child: Row(
-            children: [
-              _tableCell(flex: 4, color: accent.withValues(alpha: 0.6)),
-              _tableCell(flex: 1, color: accent.withValues(alpha: 0.6)),
-              _tableCell(flex: 2, color: accent.withValues(alpha: 0.6)),
-            ],
-          ),
-        ),
-        _fakeRow(Colors.white),
-        _fakeRow(Colors.white),
-        _fakeRow(Colors.white),
-      ],
-    );
-  }
-
   Widget _fakeTableElegant(Color dark) {
     return Column(
       children: [
@@ -2137,6 +2167,40 @@ class _TemplatePreview extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Geometric corner triangles painter for template preview ──────────────────
+class _GeometricCornersPainter extends CustomPainter {
+  final Color accent;
+  final Color secondary;
+  _GeometricCornersPainter(this.accent, this.secondary);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    const pink = Color(0xFFEDB8B8);
+
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h), Paint()..color = Colors.white);
+
+    const r1w = 35.0, r1h = 24.0;
+    const r2 = 19.0;
+
+    // Top-right: large accent rect (behind)
+    canvas.drawRect(Rect.fromLTWH(w - r1w, 0, r1w, r1h), Paint()..color = accent);
+    // Top-right: small pink rect (front, at very corner)
+    canvas.drawRect(Rect.fromLTWH(w - r2, 0, r2, r2), Paint()..color = pink);
+
+    // Bottom-left: large accent rect (behind)
+    canvas.drawRect(Rect.fromLTWH(0, h - r1h, r1w, r1h), Paint()..color = accent);
+    // Bottom-left: small pink rect (front, at very corner)
+    canvas.drawRect(Rect.fromLTWH(0, h - r2, r2, r2), Paint()..color = pink);
+  }
+
+  @override
+  bool shouldRepaint(_GeometricCornersPainter old) =>
+      old.accent != accent || old.secondary != secondary;
 }
 
 // ── Wave header painter for template preview ─────────────────────────────────

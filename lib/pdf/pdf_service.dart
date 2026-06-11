@@ -53,12 +53,13 @@ class _PdfFonts {
 }
 
 // ─── Shared palette constants ─────────────────────────────────────────────────
-const _elegantDark = PdfColor(0.067, 0.094, 0.118);   // #111826
-const _rowAlt      = PdfColor(0.976, 0.980, 0.992);   // near-white blue tint
-const _borderGrey  = PdfColor(0.882, 0.894, 0.914);
-const _textDark    = PdfColor(0.122, 0.153, 0.216);
-const _textMid     = PdfColor(0.424, 0.451, 0.522);
-const _textMuted   = PdfColor(0.62,  0.643, 0.710);
+const _elegantDark  = PdfColor(0.067, 0.094, 0.118);   // #111826
+const _rowAlt       = PdfColor(0.976, 0.980, 0.992);   // near-white blue tint
+const _borderGrey   = PdfColor(0.882, 0.894, 0.914);
+const _textDark     = PdfColor(0.122, 0.153, 0.216);
+const _textMid      = PdfColor(0.424, 0.451, 0.522);
+const _textMuted    = PdfColor(0.62,  0.643, 0.710);
+const _kPrimaryPdf  = PdfColor(0.051, 0.451, 0.467);   // kPrimary = 0xFF0D7377
 
 // ─── PDF Generator ────────────────────────────────────────────────────────────
 
@@ -141,9 +142,6 @@ class PdfService {
       case InvoiceTemplate.classic:
         pdf.addPage(_classicPage(invoice, business, accentColor, logoImage,
             items, subtotal, currencySymbol, l, customFont, appLogo));
-      case InvoiceTemplate.modern:
-        pdf.addPage(_modernPage(invoice, business, accentColor, logoImage,
-            items, subtotal, currencySymbol, l, customFont, appLogo));
       case InvoiceTemplate.elegant:
         pdf.addPage(_elegantPage(invoice, business, accentColor, logoImage,
             items, subtotal, currencySymbol, l, customFont, appLogo));
@@ -155,6 +153,9 @@ class PdfService {
             items, subtotal, currencySymbol, l, customFont, appLogo));
       case InvoiceTemplate.boutique:
         pdf.addPage(_boutiquePage(invoice, business, accentColor, logoImage,
+            items, subtotal, currencySymbol, l, customFont, appLogo));
+      case InvoiceTemplate.geometric:
+        pdf.addPage(_geometricPage(invoice, business, accentColor, logoImage,
             items, subtotal, currencySymbol, l, customFont, appLogo));
     }
 
@@ -476,363 +477,6 @@ class PdfService {
                             ? l.t('pdf_balance_due')
                             : l.t('pdf_total_due'))
                         .toUpperCase(),
-                    style: pw.TextStyle(
-                        font: bold,
-                        fontSize: 10,
-                        color: PdfColors.white,
-                        letterSpacing: 0.5),
-                  ),
-                  pw.Text(
-                    '$sym${(hasAdj ? balanceDue : subtotal).toStringAsFixed(2)}',
-                    style: pw.TextStyle(
-                        font: bold, fontSize: 16, color: PdfColors.white),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // TEMPLATE 2 – MODERN  (split white/accent · bold · tech-forward)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  pw.Page _modernPage(
-    InvoiceModel invoice, BusinessModel? business, PdfColor accent,
-    pw.MemoryImage? logo, List items, double subtotal,
-    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
-  ) {
-    return pw.MultiPage(
-      pageTheme: _pageTheme(l),
-      build: (ctx) => [
-        _modernHeader(invoice, business, accent, logo, l, font),
-        pw.Padding(
-          padding: const pw.EdgeInsets.fromLTRB(40, 32, 40, 0),
-          child: pw.Column(
-            mainAxisSize: pw.MainAxisSize.min,
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              _fromToSection(invoice, business, l, font),
-              pw.SizedBox(height: 28),
-              _modernTable(items, accent, sym, l, font),
-              pw.SizedBox(height: 20),
-              _modernTotals(subtotal, invoice.discount ?? 0,
-                  invoice.receivedAmount ?? 0, sym, accent, l, font),
-              if (invoice.notes?.isNotEmpty ?? false) ...[
-                pw.SizedBox(height: 20),
-                _notes(invoice.notes!, l, font),
-              ],
-              pw.SizedBox(height: 40),
-              _footer(invoice.termsConditions, l, font),
-              pw.SizedBox(height: 20),
-              _appBrandFooter(appLogo, accent, font),
-              pw.SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ],
-    ) as pw.Page;
-  }
-
-  pw.Widget _modernHeader(
-    InvoiceModel invoice, BusinessModel? business, PdfColor accent,
-    pw.MemoryImage? logo, _PdfLabels l, pw.Font? font,
-  ) {
-    final businessName =
-        invoice.businessName ?? business?.businessName ?? l.t('pdf_your_business');
-    final regular = font ?? pw.Font.helvetica();
-    final bold = font ?? pw.Font.helveticaBold();
-    final accentLight = _lighten(accent, 0.88);
-
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: [
-          // Left white panel
-          pw.Expanded(
-            flex: 58,
-            child: pw.Container(
-              decoration: const pw.BoxDecoration(color: PdfColors.white),
-              padding: const pw.EdgeInsets.fromLTRB(40, 36, 28, 36),
-              child: pw.Column(
-                mainAxisSize: pw.MainAxisSize.min,
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                children: [
-                  if (logo != null) ...[
-                    pw.ClipRRect(
-                      horizontalRadius: 10,
-                      verticalRadius: 10,
-                      child: pw.Image(logo,
-                          width: 60, height: 60, fit: pw.BoxFit.cover),
-                    ),
-                    pw.SizedBox(height: 14),
-                  ],
-                  pw.Text(
-                    businessName,
-                    style: pw.TextStyle(
-                        font: bold, fontSize: 22, color: _textDark),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Container(
-                    width: 48,
-                    height: 4,
-                    decoration: pw.BoxDecoration(
-                      color: accent,
-                      borderRadius:
-                          const pw.BorderRadius.all(pw.Radius.circular(2)),
-                    ),
-                  ),
-                  pw.SizedBox(height: 10),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: pw.BoxDecoration(
-                      color: accentLight,
-                      borderRadius:
-                          const pw.BorderRadius.all(pw.Radius.circular(4)),
-                    ),
-                    child: pw.Text(
-                      '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
-                      style: pw.TextStyle(
-                          font: bold, fontSize: 9, color: accent),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Right accent panel
-          pw.Expanded(
-            flex: 42,
-            child: pw.Container(
-              decoration: pw.BoxDecoration(color: accent),
-              padding: const pw.EdgeInsets.fromLTRB(24, 36, 40, 36),
-              child: pw.Column(
-                mainAxisSize: pw.MainAxisSize.min,
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                children: [
-                  pw.Text(
-                    _docTypeTitle(invoice.documentType, l).toUpperCase(),
-                    style: pw.TextStyle(
-                        font: bold,
-                        fontSize: 26,
-                        color: PdfColors.white,
-                        letterSpacing: l.isRtl ? 0 : 3),
-                  ),
-                  pw.SizedBox(height: 16),
-                  if (invoice.date?.isNotEmpty ?? false)
-                    _modernInfoLine(l.t('pdf_date'), invoice.date!, regular),
-                  if (invoice.dueDate?.isNotEmpty ?? false)
-                    _modernInfoLine(l.t('pdf_due'), invoice.dueDate!, regular),
-                  pw.SizedBox(height: 10),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 5),
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.white,
-                      borderRadius:
-                          const pw.BorderRadius.all(pw.Radius.circular(5)),
-                    ),
-                    child: pw.Text(
-                      _localizedStatus(invoice.invoiceStatus, l).toUpperCase(),
-                      style: pw.TextStyle(
-                          font: bold,
-                          fontSize: 9,
-                          color: accent,
-                          letterSpacing: 0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-    );
-  }
-
-  pw.Widget _modernInfoLine(String label, String value, pw.Font regular) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.end,
-        children: [
-          pw.Text('$label  ',
-              style: pw.TextStyle(
-                  font: regular,
-                  fontSize: 9,
-                  color: const PdfColor(0.85, 0.87, 0.92))),
-          pw.Text(value,
-              style: pw.TextStyle(
-                  font: regular, fontSize: 9, color: PdfColors.white)),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _modernTable(
-      List items, PdfColor accent, String sym, _PdfLabels l, pw.Font? font) {
-    final bold = font ?? pw.Font.helveticaBold();
-    final regular = font ?? pw.Font.helvetica();
-    return pw.Table(
-      border: pw.TableBorder(
-        horizontalInside:
-            const pw.BorderSide(color: _borderGrey, width: 0.5),
-        bottom: const pw.BorderSide(color: _borderGrey, width: 0.5),
-      ),
-      columnWidths: const {
-        0: pw.FlexColumnWidth(4.5),
-        1: pw.FlexColumnWidth(1),
-        2: pw.FlexColumnWidth(2),
-        3: pw.FlexColumnWidth(2),
-      },
-      children: [
-        pw.TableRow(
-          decoration: pw.BoxDecoration(
-            border: pw.Border(
-                bottom: pw.BorderSide(color: accent, width: 2.5)),
-          ),
-          children: [
-            _modernTh(l.t('pdf_description'), accent, font: font),
-            _modernTh(l.t('pdf_qty'), accent,
-                align: pw.Alignment.center, font: font),
-            _modernTh(l.t('pdf_unit_price'), accent,
-                align: pw.Alignment.centerRight, font: font),
-            _modernTh(l.t('pdf_amount'), accent,
-                align: pw.Alignment.centerRight, font: font),
-          ],
-        ),
-        ...items.asMap().entries.map((e) {
-          final item = e.value;
-          final unitPrice = item.price?.toDouble() ?? 0;
-          final qty = item.qty ?? 1;
-          return pw.TableRow(
-            children: [
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 10),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(item.itemName ?? '',
-                        style: pw.TextStyle(
-                            font: bold, fontSize: 10, color: _textDark)),
-                    if ((item.note ?? '').isNotEmpty) ...[
-                      pw.SizedBox(height: 2),
-                      pw.Text(item.note!,
-                          style: pw.TextStyle(
-                              font: regular,
-                              fontSize: 8,
-                              color: _textMuted)),
-                    ],
-                  ],
-                ),
-              ),
-              _td('${item.qty ?? 1}',
-                  align: pw.Alignment.center, font: font),
-              _td('$sym${unitPrice.toStringAsFixed(2)}',
-                  align: pw.Alignment.centerRight, font: font),
-              _td('$sym${(unitPrice * qty).toStringAsFixed(2)}',
-                  align: pw.Alignment.centerRight, bold: true, font: font),
-            ],
-          );
-        }),
-      ],
-    );
-  }
-
-  pw.Widget _modernTh(String text, PdfColor accent,
-      {pw.Alignment align = pw.Alignment.centerLeft, pw.Font? font}) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-      alignment: align,
-      child: pw.Text(text,
-          style: pw.TextStyle(
-              font: font ?? pw.Font.helveticaBold(),
-              fontSize: 9,
-              color: accent,
-              letterSpacing: 0.6)),
-    );
-  }
-
-  pw.Widget _modernTotals(
-    double subtotal, double discount, double received,
-    String sym, PdfColor accent, _PdfLabels l, pw.Font? font,
-  ) {
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
-    final balanceDue = (total - received).clamp(0.0, double.infinity);
-    final hasDiscount = discount > 0;
-    final hasReceived = received > 0;
-    final hasAdj = hasDiscount || hasReceived;
-    final regular = font ?? pw.Font.helvetica();
-    final bold = font ?? pw.Font.helveticaBold();
-
-    return pw.Align(
-      alignment: pw.Alignment.centerRight,
-      child: pw.SizedBox(
-        width: 260,
-        child: pw.Column(
-          children: [
-            if (hasDiscount || hasReceived) ...[
-              pw.Container(
-                padding: const pw.EdgeInsets.fromLTRB(16, 12, 16, 12),
-                decoration: pw.BoxDecoration(
-                  color: _rowAlt,
-                  borderRadius: const pw.BorderRadius.only(
-                    topLeft: pw.Radius.circular(8),
-                    topRight: pw.Radius.circular(8),
-                  ),
-                ),
-                child: pw.Column(
-                  children: [
-                    _totRow(l.t('pdf_subtotal'),
-                        '$sym${subtotal.toStringAsFixed(2)}', regular, bold),
-                    if (hasDiscount) ...[
-                      pw.SizedBox(height: 6),
-                      _totRow(l.t('pdf_discount'),
-                          '-$sym${discount.toStringAsFixed(2)}', regular, bold,
-                          valueColor: PdfColors.orange700),
-                    ],
-                    if (hasReceived) ...[
-                      pw.SizedBox(height: 6),
-                      _totRow(l.t('pdf_received'),
-                          '($sym${received.toStringAsFixed(2)})', regular, bold,
-                          valueColor: PdfColors.green700),
-                    ],
-                  ],
-                ),
-              ),
-            ] else ...[
-              _totRow(l.t('pdf_subtotal'),
-                  '$sym${subtotal.toStringAsFixed(2)}', regular, bold),
-              pw.SizedBox(height: 8),
-            ],
-            pw.Container(
-              decoration: pw.BoxDecoration(
-                color: accent,
-                borderRadius: pw.BorderRadius.only(
-                  topLeft: hasAdj
-                      ? pw.Radius.zero
-                      : const pw.Radius.circular(8),
-                  topRight: hasAdj
-                      ? pw.Radius.zero
-                      : const pw.Radius.circular(8),
-                  bottomLeft: const pw.Radius.circular(8),
-                  bottomRight: const pw.Radius.circular(8),
-                ),
-              ),
-              padding: const pw.EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    hasAdj
-                        ? l.t('pdf_balance_due').toUpperCase()
-                        : l.t('pdf_total_due').toUpperCase(),
                     style: pw.TextStyle(
                         font: bold,
                         fontSize: 10,
@@ -2306,6 +1950,454 @@ class PdfService {
             ],
           ],
         ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TEMPLATE 7 – GEOMETRIC  (dual-color corner triangles · clean bordered table)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pw.Page _geometricPage(
+    InvoiceModel invoice, BusinessModel? business, PdfColor accent,
+    pw.MemoryImage? logo, List items, double subtotal,
+    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
+  ) {
+    return pw.MultiPage(
+      pageTheme: _geometricPageTheme(l, accent, _kPrimaryPdf),
+      build: (ctx) => [
+        pw.Padding(
+          padding: const pw.EdgeInsets.fromLTRB(44, 44, 44, 0),
+          child: pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              _geometricHeader(invoice, accent, l, font),
+              pw.SizedBox(height: 28),
+              _geometricTable(items, subtotal, invoice.discount ?? 0,
+                  invoice.receivedAmount ?? 0, sym, l, font),
+              pw.SizedBox(height: 20),
+              _geometricNoteSignature(invoice, l, font),
+              if (invoice.notes?.isNotEmpty ?? false) ...[
+                pw.SizedBox(height: 16),
+                _notes(invoice.notes!, l, font),
+              ],
+              if (invoice.termsConditions?.isNotEmpty ?? false) ...[
+                pw.SizedBox(height: 16),
+                _footer(invoice.termsConditions, l, font),
+              ],
+              pw.SizedBox(height: 20),
+              _appBrandFooter(appLogo, accent, font),
+              pw.SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ],
+    ) as pw.Page;
+  }
+
+  pw.PageTheme _geometricPageTheme(
+      _PdfLabels l, PdfColor accent, PdfColor secondary) {
+    return pw.PageTheme(
+      pageFormat: PdfPageFormat.a4,
+      margin: pw.EdgeInsets.zero,
+      textDirection: l.isRtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+      buildBackground: (_) => pw.FullPage(
+        ignoreMargins: true,
+        child: pw.CustomPaint(
+          painter: (PdfGraphics canvas, PdfPoint size) {
+            final w = size.x;
+            final h = size.y;
+
+            const pink = PdfColor(0.929, 0.722, 0.722); // #EDB8B8
+
+            // White background
+            canvas
+              ..setFillColor(PdfColors.white)
+              ..moveTo(0, 0)
+              ..lineTo(w, 0)
+              ..lineTo(w, h)
+              ..lineTo(0, h)
+              ..closePath()
+              ..fillPath();
+
+            const r1w = 132.0, r1h = 95.0;
+            const r2 = 72.0;
+
+            // Top-right: large accent rect (behind)
+            canvas
+              ..setFillColor(accent)
+              ..moveTo(w - r1w, 0)
+              ..lineTo(w, 0)
+              ..lineTo(w, r1h)
+              ..lineTo(w - r1w, r1h)
+              ..closePath()
+              ..fillPath();
+
+            // Top-right: small pink rect (front, at very corner)
+            canvas
+              ..setFillColor(pink)
+              ..moveTo(w - r2, 0)
+              ..lineTo(w, 0)
+              ..lineTo(w, r2)
+              ..lineTo(w - r2, r2)
+              ..closePath()
+              ..fillPath();
+
+            // Bottom-left: large accent rect (behind)
+            canvas
+              ..setFillColor(accent)
+              ..moveTo(0, h - r1h)
+              ..lineTo(r1w, h - r1h)
+              ..lineTo(r1w, h)
+              ..lineTo(0, h)
+              ..closePath()
+              ..fillPath();
+
+            // Bottom-left: small pink rect (front, at very corner)
+            canvas
+              ..setFillColor(pink)
+              ..moveTo(0, h - r2)
+              ..lineTo(r2, h - r2)
+              ..lineTo(r2, h)
+              ..lineTo(0, h)
+              ..closePath()
+              ..fillPath();
+          },
+          child: pw.Container(
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _geometricHeader(
+    InvoiceModel invoice, PdfColor accent,
+    _PdfLabels l, pw.Font? font,
+  ) {
+    final client = (invoice.clients?.isNotEmpty ?? false)
+        ? invoice.clients!.first
+        : null;
+    final regular = font ?? pw.Font.helvetica();
+    final bold = font ?? pw.Font.helveticaBold();
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          _docTypeTitle(invoice.documentType, l),
+          style: pw.TextStyle(
+            font: bold,
+            fontSize: 42,
+            color: _textDark,
+            letterSpacing: l.isRtl ? 0 : 1.5,
+          ),
+        ),
+        pw.SizedBox(height: 32),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            // Left: date issued + invoice no
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('${l.t('pdf_date_issued')}:',
+                    style: pw.TextStyle(font: bold, fontSize: 10, color: _textDark)),
+                pw.SizedBox(height: 3),
+                pw.Text(invoice.date ?? '',
+                    style: pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
+                pw.SizedBox(height: 10),
+                pw.Text('${_docTypeNo(invoice.documentType, l)}:',
+                    style: pw.TextStyle(font: bold, fontSize: 10, color: _textDark)),
+                pw.SizedBox(height: 3),
+                pw.Text('${invoice.invoiceId ?? ''}',
+                    style: pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
+              ],
+            ),
+            pw.SizedBox(width: 60),
+            // Right: issued to (client info)
+            if (client != null)
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('${l.t('pdf_issued_to')}:',
+                      style: pw.TextStyle(font: bold, fontSize: 10, color: _textDark)),
+                  pw.SizedBox(height: 3),
+                  pw.Text(client.name ?? '',
+                      style: pw.TextStyle(font: bold, fontSize: 11, color: _textDark)),
+                  if (client.phone?.isNotEmpty ?? false) ...[
+                    pw.SizedBox(height: 2),
+                    pw.Text(client.phone!,
+                        style: pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
+                  ],
+                  if (client.email?.isNotEmpty ?? false) ...[
+                    pw.SizedBox(height: 2),
+                    pw.Text(client.email!,
+                        style: pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
+                  ],
+                  if (client.address?.isNotEmpty ?? false) ...[
+                    pw.SizedBox(height: 2),
+                    pw.Text(client.address!,
+                        style: pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
+                  ],
+                ],
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _geometricTable(
+    List items, double subtotal, double discount, double received,
+    String sym, _PdfLabels l, pw.Font? font,
+  ) {
+    final total = (subtotal - discount).clamp(0.0, double.infinity);
+    final balanceDue = (total - received).clamp(0.0, double.infinity);
+    final hasDiscount = discount > 0;
+    final hasReceived = received > 0;
+    final hasAdj = hasDiscount || hasReceived;
+    final bold = font ?? pw.Font.helveticaBold();
+    final regular = font ?? pw.Font.helvetica();
+
+    const headerBg = PdfColor(0.906, 0.914, 0.925);
+
+    pw.Widget gTh(String text,
+        {pw.Alignment align = pw.Alignment.centerLeft}) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+        alignment: align,
+        child: pw.Text(text,
+            style: pw.TextStyle(
+                font: bold, fontSize: 8, color: _textDark, letterSpacing: 0.5)),
+      );
+    }
+
+    pw.Widget gTd(String text,
+        {pw.Alignment align = pw.Alignment.centerLeft, bool isBold = false}) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+        alignment: align,
+        child: pw.Text(text,
+            style: pw.TextStyle(
+                font: isBold ? bold : regular,
+                fontSize: 10,
+                color: _textDark)),
+      );
+    }
+
+    pw.Widget gTotCell(String text, PdfColor color,
+        {bool isLarge = false}) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        alignment: pw.Alignment.centerRight,
+        child: pw.Text(text,
+            style: pw.TextStyle(
+                font: bold,
+                fontSize: isLarge ? 12 : 9,
+                color: color)),
+      );
+    }
+
+    pw.Widget gTotLabel(String text) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        alignment: pw.Alignment.centerRight,
+        child: pw.Text(text,
+            style:
+                pw.TextStyle(font: regular, fontSize: 9, color: _textMid)),
+      );
+    }
+
+    final List<pw.TableRow> rows = [
+      // Header
+      pw.TableRow(
+        decoration: pw.BoxDecoration(color: headerBg),
+        children: [
+          gTh(l.t('pdf_no'), align: pw.Alignment.center),
+          gTh(l.t('pdf_description')),
+          gTh(l.t('pdf_qty'), align: pw.Alignment.center),
+          gTh(l.t('pdf_unit_price'), align: pw.Alignment.centerRight),
+          gTh('SUBTOTAL', align: pw.Alignment.centerRight),
+        ],
+      ),
+      // Item rows
+      ...items.asMap().entries.map((e) {
+        final idx = e.key;
+        final item = e.value;
+        final unitPrice = item.price?.toDouble() ?? 0;
+        final qty = item.qty ?? 1;
+        return pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.white),
+          children: [
+            gTd('${idx + 1}', align: pw.Alignment.center),
+            pw.Container(
+              padding:
+                  const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(item.itemName ?? '',
+                      style: pw.TextStyle(
+                          font: bold, fontSize: 10, color: _textDark)),
+                  if ((item.note ?? '').isNotEmpty) ...[
+                    pw.SizedBox(height: 2),
+                    pw.Text(item.note!,
+                        style: pw.TextStyle(
+                            font: regular, fontSize: 8, color: _textMuted)),
+                  ],
+                ],
+              ),
+            ),
+            gTd('$qty', align: pw.Alignment.center),
+            gTd('$sym${unitPrice.toStringAsFixed(2)}',
+                align: pw.Alignment.centerRight),
+            gTd('$sym${(unitPrice * qty).toStringAsFixed(2)}',
+                align: pw.Alignment.centerRight, isBold: true),
+          ],
+        );
+      }),
+    ];
+
+    // Optional adjustment rows
+    if (hasDiscount) {
+      rows.add(pw.TableRow(
+        decoration: pw.BoxDecoration(color: PdfColors.white),
+        children: [
+          pw.Container(), pw.Container(), pw.Container(),
+          gTotLabel(l.t('pdf_subtotal')),
+          gTotCell('$sym${subtotal.toStringAsFixed(2)}', _textDark),
+        ],
+      ));
+      rows.add(pw.TableRow(
+        decoration: pw.BoxDecoration(color: PdfColors.white),
+        children: [
+          pw.Container(), pw.Container(), pw.Container(),
+          gTotLabel(l.t('pdf_discount')),
+          gTotCell('-$sym${discount.toStringAsFixed(2)}',
+              PdfColors.orange700),
+        ],
+      ));
+    }
+    if (hasReceived) {
+      rows.add(pw.TableRow(
+        decoration: pw.BoxDecoration(color: PdfColors.white),
+        children: [
+          pw.Container(), pw.Container(), pw.Container(),
+          gTotLabel(l.t('pdf_received')),
+          gTotCell('($sym${received.toStringAsFixed(2)})',
+              PdfColors.green700),
+        ],
+      ));
+    }
+
+    // Grand total row
+    final grandLabel = hasAdj
+        ? l.t('pdf_balance_due').toUpperCase()
+        : l.t('pdf_grand_total').toUpperCase();
+    final grandAmount = hasAdj ? balanceDue : subtotal;
+
+    rows.add(pw.TableRow(
+      decoration: pw.BoxDecoration(color: PdfColors.white),
+      children: [
+        pw.Container(), pw.Container(), pw.Container(),
+        pw.Container(
+          padding:
+              const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text(grandLabel,
+              style: pw.TextStyle(
+                  font: bold,
+                  fontSize: 9,
+                  color: _textDark,
+                  letterSpacing: 0.4)),
+        ),
+        pw.Container(
+          padding:
+              const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text(
+            '$sym${grandAmount.toStringAsFixed(2)}',
+            style: pw.TextStyle(font: bold, fontSize: 14, color: _textDark),
+          ),
+        ),
+      ],
+    ));
+
+    return pw.Table(
+      border: pw.TableBorder.all(color: _borderGrey, width: 0.5),
+      columnWidths: const {
+        0: pw.FixedColumnWidth(28),
+        1: pw.FlexColumnWidth(4.0),
+        2: pw.FlexColumnWidth(1.0),
+        3: pw.FlexColumnWidth(1.8),
+        4: pw.FlexColumnWidth(1.8),
+      },
+      children: rows,
+    );
+  }
+
+  pw.Widget _geometricNoteSignature(
+      InvoiceModel invoice, _PdfLabels l, pw.Font? font) {
+    final bank = invoice.bank;
+    final regular = font ?? pw.Font.helvetica();
+    final bold = font ?? pw.Font.helveticaBold();
+    final hasBank = bank != null &&
+        ((bank.bankName?.isNotEmpty ?? false) ||
+            (bank.accountNumber?.isNotEmpty ?? false));
+
+    final signatureCol = pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.SizedBox(height: 30),
+        pw.Container(
+          width: 130,
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+                bottom: pw.BorderSide(color: _borderGrey, width: 0.8)),
+          ),
+        ),
+        pw.SizedBox(height: 5),
+        pw.Text(l.t('pdf_signature'),
+            style: pw.TextStyle(font: regular, fontSize: 9, color: _textMuted)),
+      ],
+    );
+
+    if (!hasBank) {
+      return pw.Align(
+          alignment: pw.Alignment.centerRight, child: signatureCol);
+    }
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('${l.t('pdf_note')}:',
+                  style: pw.TextStyle(
+                      font: bold, fontSize: 10, color: _textDark)),
+              pw.SizedBox(height: 5),
+              if (bank.bankName?.isNotEmpty ?? false)
+                pw.Text(bank.bankName!,
+                    style: pw.TextStyle(
+                        font: regular, fontSize: 10, color: _textMid)),
+              if (bank.title?.isNotEmpty ?? false)
+                pw.Text(bank.title!,
+                    style: pw.TextStyle(
+                        font: regular, fontSize: 10, color: _textMid)),
+              if (bank.accountNumber?.isNotEmpty ?? false)
+                pw.Text(
+                    '${l.t('pdf_account_number')}: ${bank.accountNumber!}',
+                    style: pw.TextStyle(
+                        font: regular, fontSize: 10, color: _textMid)),
+            ],
+          ),
+        ),
+        signatureCol,
       ],
     );
   }
