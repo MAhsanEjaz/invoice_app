@@ -828,7 +828,40 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
           // ── Bank / Payment Details ────────────────────────────────────────
           const SizedBox(height: 20),
-          sectionLabel(context, context.tr('pdf_payment_details')),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Row(
+              children: [
+                Text(
+                  context.tr('pdf_payment_details').toUpperCase(),
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.textSecondary,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const Spacer(),
+                if (liveInvoice.bank != null)
+                  GestureDetector(
+                    onTap: () async {
+                      final bank = liveInvoice.bank!;
+                      final parts = <String>[];
+                      if ((bank.bankName ?? '').isNotEmpty) parts.add(bank.bankName!);
+                      if ((bank.title ?? '').isNotEmpty) parts.add(bank.title!);
+                      if ((bank.accountNumber ?? '').isNotEmpty) parts.add(bank.accountNumber!);
+                      await Clipboard.setData(ClipboardData(text: parts.join('\n')));
+                      if (mounted) _showToast(context.tr('copied'));
+                    },
+                    child: Icon(
+                      CupertinoIcons.doc_on_clipboard,
+                      size: 16,
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
           Container(
             decoration: context.cardDecoration,
             child: ClipRRect(
@@ -838,20 +871,20 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                 child: Column(
                   children: [
                     if (liveInvoice.bank != null) ...[
-                      _copyableInfoRow(
+                      _infoRow(
                         CupertinoIcons.creditcard,
                         context.tr('pdf_bank'),
                         liveInvoice.bank!.bankName ?? '',
                       ),
                       Divider(height: 1, color: context.colors.border),
-                      _copyableInfoRow(
+                      _infoRow(
                         CupertinoIcons.person,
                         context.tr('pdf_account_title'),
                         liveInvoice.bank!.title ?? '',
                       ),
                       if ((liveInvoice.bank!.accountNumber ?? '').isNotEmpty) ...[
                         Divider(height: 1, color: context.colors.border),
-                        _copyableInfoRow(
+                        _infoRow(
                           CupertinoIcons.number,
                           context.tr('account_no'),
                           liveInvoice.bank!.accountNumber!,
@@ -1148,44 +1181,6 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ── Copyable info row (shows clipboard icon, tap to copy) ──────────────────
-  Widget _copyableInfoRow(IconData icon, String label, String value) {
-    final cl = context.colors;
-    return GestureDetector(
-      onTap: () async {
-        await Clipboard.setData(ClipboardData(text: value));
-        if (mounted) _showToast(context.tr('copied'));
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: cl.textSecondary),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
-            ),
-            const Spacer(),
-            Flexible(
-              child: Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: cl.textPrimary,
-                ),
-                textAlign: TextAlign.end,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(CupertinoIcons.doc_on_clipboard, size: 14, color: cl.textSecondary),
-          ],
-        ),
       ),
     );
   }
@@ -1646,6 +1641,8 @@ class _TemplatePreview extends StatelessWidget {
         return _minimalPreview();
       case InvoiceTemplate.wave:
         return _wavePreview();
+      case InvoiceTemplate.boutique:
+        return _boutiquePreview();
     }
   }
 
@@ -1897,6 +1894,103 @@ class _TemplatePreview extends StatelessWidget {
               _fakeLine(width: 50, color: Colors.grey.shade300, height: 4),
               const SizedBox(height: 6),
               _fakeTable(color),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Boutique: white bg · dark badge logo · large "INVOICE" title · clean table
+  Widget _boutiquePreview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          color: Colors.white,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1F2B3A),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Center(
+                      child: Container(width: 10, height: 2, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  _fakeLine(width: 30, color: Colors.grey.shade700, height: 4),
+                ],
+              ),
+              _fakeLine(width: 34, color: const Color(0xFF1F2B3A), height: 7),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fakeLine(width: 46, color: Colors.grey.shade300, height: 4),
+              const SizedBox(height: 6),
+              _fakeTableBoutique(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fakeTableBoutique() {
+    return Column(
+      children: [
+        Container(
+          height: 14,
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.grey.shade300, width: 0.8),
+              bottom: BorderSide(color: Colors.grey.shade300, width: 0.8),
+            ),
+          ),
+          child: Row(
+            children: [
+              _tableCell(flex: 4, color: Colors.grey.shade400),
+              _tableCell(flex: 1, color: Colors.grey.shade400),
+              _tableCell(flex: 2, color: Colors.grey.shade400),
+            ],
+          ),
+        ),
+        _fakeRow(Colors.white),
+        _fakeRow(Colors.white),
+        Container(
+          height: 12,
+          color: const Color(0xFF1F2B3A),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 5,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Container(height: 3, color: Colors.white.withValues(alpha: 0.6)),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Container(height: 3, color: Colors.white),
+                ),
+              ),
             ],
           ),
         ),

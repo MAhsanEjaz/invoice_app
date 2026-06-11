@@ -53,7 +53,6 @@ class _PdfFonts {
 }
 
 // ─── Shared palette constants ─────────────────────────────────────────────────
-const _classicNavy = PdfColor(0.059, 0.090, 0.149);   // #0F1726
 const _elegantDark = PdfColor(0.067, 0.094, 0.118);   // #111826
 const _rowAlt      = PdfColor(0.976, 0.980, 0.992);   // near-white blue tint
 const _borderGrey  = PdfColor(0.882, 0.894, 0.914);
@@ -123,6 +122,12 @@ class PdfService {
       } catch (_) {}
     }
 
+    pw.MemoryImage? appLogo;
+    try {
+      final data = await rootBundle.load('assets/icon.png');
+      appLogo = pw.MemoryImage(data.buffer.asUint8List());
+    } catch (_) {}
+
     pw.Font? customFont;
     if (locale == 'hi') {
       customFont = await _PdfFonts.devanagari();
@@ -135,19 +140,22 @@ class PdfService {
     switch (template) {
       case InvoiceTemplate.classic:
         pdf.addPage(_classicPage(invoice, business, accentColor, logoImage,
-            items, subtotal, currencySymbol, l, customFont));
+            items, subtotal, currencySymbol, l, customFont, appLogo));
       case InvoiceTemplate.modern:
         pdf.addPage(_modernPage(invoice, business, accentColor, logoImage,
-            items, subtotal, currencySymbol, l, customFont));
+            items, subtotal, currencySymbol, l, customFont, appLogo));
       case InvoiceTemplate.elegant:
         pdf.addPage(_elegantPage(invoice, business, accentColor, logoImage,
-            items, subtotal, currencySymbol, l, customFont));
+            items, subtotal, currencySymbol, l, customFont, appLogo));
       case InvoiceTemplate.minimal:
         pdf.addPage(_minimalPage(invoice, business, accentColor, logoImage,
-            items, subtotal, currencySymbol, l, customFont));
+            items, subtotal, currencySymbol, l, customFont, appLogo));
       case InvoiceTemplate.wave:
         pdf.addPage(_wavePage(invoice, business, accentColor, logoImage,
-            items, subtotal, currencySymbol, l, customFont));
+            items, subtotal, currencySymbol, l, customFont, appLogo));
+      case InvoiceTemplate.boutique:
+        pdf.addPage(_boutiquePage(invoice, business, accentColor, logoImage,
+            items, subtotal, currencySymbol, l, customFont, appLogo));
     }
 
     return pdf.save();
@@ -170,7 +178,7 @@ class PdfService {
   pw.Page _classicPage(
     InvoiceModel invoice, BusinessModel? business, PdfColor accent,
     pw.MemoryImage? logo, List items, double subtotal,
-    String sym, _PdfLabels l, pw.Font? font,
+    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
   ) {
     return pw.MultiPage(
       pageTheme: _pageTheme(l),
@@ -194,6 +202,9 @@ class PdfService {
               ],
               pw.SizedBox(height: 40),
               _footer(invoice.termsConditions, l, font),
+              pw.SizedBox(height: 20),
+              _appBrandFooter(appLogo, accent, font),
+              pw.SizedBox(height: 16),
             ],
           ),
         ),
@@ -209,13 +220,13 @@ class PdfService {
         invoice.businessName ?? business?.businessName ?? l.t('pdf_your_business');
     final regular = font ?? pw.Font.helvetica();
     final bold = font ?? pw.Font.helveticaBold();
-    final navyLight = PdfColor(0.141, 0.192, 0.294); // lighter navy for badge bg
+    final accentDark = _darken(accent, 0.20);
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: [
         pw.Container(
-          decoration: const pw.BoxDecoration(color: _classicNavy),
+          decoration: pw.BoxDecoration(color: accent),
           padding: const pw.EdgeInsets.fromLTRB(40, 38, 40, 34),
           child: pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -256,7 +267,7 @@ class PdfService {
                         padding: const pw.EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
                         decoration: pw.BoxDecoration(
-                          color: navyLight,
+                          color: accentDark,
                           borderRadius:
                               const pw.BorderRadius.all(pw.Radius.circular(5)),
                         ),
@@ -297,7 +308,7 @@ class PdfService {
                     padding: const pw.EdgeInsets.symmetric(
                         horizontal: 12, vertical: 5),
                     decoration: pw.BoxDecoration(
-                      color: accent,
+                      color: PdfColors.white,
                       borderRadius:
                           const pw.BorderRadius.all(pw.Radius.circular(5)),
                     ),
@@ -306,7 +317,7 @@ class PdfService {
                       style: pw.TextStyle(
                           font: bold,
                           fontSize: 9,
-                          color: PdfColors.white,
+                          color: accent,
                           letterSpacing: 0.8),
                     ),
                   ),
@@ -315,7 +326,7 @@ class PdfService {
             ],
           ),
         ),
-        pw.Container(height: 4, color: accent),
+        pw.Container(height: 4, color: accentDark),
       ],
     );
   }
@@ -351,7 +362,7 @@ class PdfService {
       },
       children: [
         pw.TableRow(
-          decoration: const pw.BoxDecoration(color: _classicNavy),
+          decoration: pw.BoxDecoration(color: accent),
           children: [
             _th(l.t('pdf_description'), font: font),
             _th(l.t('pdf_qty'), align: pw.Alignment.center, font: font),
@@ -449,7 +460,7 @@ class PdfService {
             ),
             pw.Container(
               decoration: pw.BoxDecoration(
-                color: _classicNavy,
+                color: accent,
                 borderRadius: const pw.BorderRadius.only(
                   bottomLeft: pw.Radius.circular(8),
                   bottomRight: pw.Radius.circular(8),
@@ -492,7 +503,7 @@ class PdfService {
   pw.Page _modernPage(
     InvoiceModel invoice, BusinessModel? business, PdfColor accent,
     pw.MemoryImage? logo, List items, double subtotal,
-    String sym, _PdfLabels l, pw.Font? font,
+    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
   ) {
     return pw.MultiPage(
       pageTheme: _pageTheme(l),
@@ -516,6 +527,9 @@ class PdfService {
               ],
               pw.SizedBox(height: 40),
               _footer(invoice.termsConditions, l, font),
+              pw.SizedBox(height: 20),
+              _appBrandFooter(appLogo, accent, font),
+              pw.SizedBox(height: 16),
             ],
           ),
         ),
@@ -846,7 +860,7 @@ class PdfService {
   pw.Page _elegantPage(
     InvoiceModel invoice, BusinessModel? business, PdfColor accent,
     pw.MemoryImage? logo, List items, double subtotal,
-    String sym, _PdfLabels l, pw.Font? font,
+    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
   ) {
     return pw.MultiPage(
       pageTheme: _pageTheme(l),
@@ -870,6 +884,9 @@ class PdfService {
               ],
               pw.SizedBox(height: 40),
               _footer(invoice.termsConditions, l, font),
+              pw.SizedBox(height: 20),
+              _appBrandFooter(appLogo, accent, font),
+              pw.SizedBox(height: 16),
             ],
           ),
         ),
@@ -1017,7 +1034,7 @@ class PdfService {
       },
       children: [
         pw.TableRow(
-          decoration: const pw.BoxDecoration(color: _elegantDark),
+          decoration: pw.BoxDecoration(color: accent),
           children: [
             _th(l.t('pdf_description'), font: font),
             _th(l.t('pdf_qty'), align: pw.Alignment.center, font: font),
@@ -1139,7 +1156,7 @@ class PdfService {
   pw.Page _minimalPage(
     InvoiceModel invoice, BusinessModel? business, PdfColor accent,
     pw.MemoryImage? logo, List items, double subtotal,
-    String sym, _PdfLabels l, pw.Font? font,
+    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
   ) {
     return pw.MultiPage(
       pageTheme: _pageTheme(l),
@@ -1167,6 +1184,9 @@ class PdfService {
               ],
               pw.SizedBox(height: 48),
               _footer(invoice.termsConditions, l, font),
+              pw.SizedBox(height: 20),
+              _appBrandFooter(appLogo, accent, font),
+              pw.SizedBox(height: 16),
             ],
           ),
         ),
@@ -1425,7 +1445,7 @@ class PdfService {
   pw.Page _wavePage(
     InvoiceModel invoice, BusinessModel? business, PdfColor accent,
     pw.MemoryImage? logo, List items, double subtotal,
-    String sym, _PdfLabels l, pw.Font? font,
+    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
   ) {
     return pw.MultiPage(
       pageTheme: _pageTheme(l),
@@ -1451,6 +1471,9 @@ class PdfService {
               ],
               pw.SizedBox(height: 40),
               _footer(invoice.termsConditions, l, font),
+              pw.SizedBox(height: 20),
+              _appBrandFooter(appLogo, accent, font),
+              pw.SizedBox(height: 16),
             ],
           ),
         ),
@@ -1848,6 +1871,446 @@ class PdfService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // TEMPLATE 6 – BOUTIQUE  (editorial · clean · white · hexagon logo)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pw.Page _boutiquePage(
+    InvoiceModel invoice, BusinessModel? business, PdfColor accent,
+    pw.MemoryImage? logo, List items, double subtotal,
+    String sym, _PdfLabels l, pw.Font? font, pw.MemoryImage? appLogo,
+  ) {
+    return pw.MultiPage(
+      pageTheme: _pageTheme(l),
+      build: (ctx) => [
+        pw.Padding(
+          padding: const pw.EdgeInsets.fromLTRB(44, 40, 44, 0),
+          child: pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              _boutiqueHeader(invoice, business, accent, logo, l, font),
+              pw.SizedBox(height: 28),
+              pw.Container(height: 0.6, color: _borderGrey),
+              pw.SizedBox(height: 20),
+              _boutiqueBilledTo(invoice, business, l, font),
+              pw.SizedBox(height: 24),
+              _boutiqueTable(items, sym, l, font),
+              pw.SizedBox(height: 20),
+              _boutiqueTotals(subtotal, invoice.discount ?? 0,
+                  invoice.receivedAmount ?? 0, sym, accent, l, font),
+              pw.SizedBox(height: 28),
+              _boutiqueThankYou(accent, font),
+              pw.SizedBox(height: 20),
+              pw.Container(height: 0.6, color: _borderGrey),
+              pw.SizedBox(height: 16),
+              _boutiquePaymentInfo(invoice, l, font),
+              if (invoice.notes?.isNotEmpty ?? false) ...[
+                pw.SizedBox(height: 20),
+                _notes(invoice.notes!, l, font),
+              ],
+              if (invoice.termsConditions?.isNotEmpty ?? false) ...[
+                pw.SizedBox(height: 20),
+                _footer(invoice.termsConditions, l, font),
+              ],
+              pw.SizedBox(height: 20),
+              _appBrandFooter(appLogo, accent, font),
+              pw.SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ],
+    ) as pw.Page;
+  }
+
+  pw.Widget _boutiqueHeader(
+    InvoiceModel invoice, BusinessModel? business, PdfColor accent,
+    pw.MemoryImage? logo, _PdfLabels l, pw.Font? font,
+  ) {
+    final businessName =
+        invoice.businessName ?? business?.businessName ?? l.t('pdf_your_business');
+    final bold = font ?? pw.Font.helveticaBold();
+
+    // Build hexagonal-style badge for logo / initials
+    final initials = businessName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
+
+    final logoBadge = pw.Container(
+      width: 54,
+      height: 54,
+      decoration: pw.BoxDecoration(
+        color: accent,
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(14)),
+      ),
+      alignment: pw.Alignment.center,
+      child: logo != null
+          ? pw.ClipRRect(
+              horizontalRadius: 14,
+              verticalRadius: 14,
+              child: pw.Image(logo, width: 54, height: 54, fit: pw.BoxFit.cover),
+            )
+          : pw.Text(
+              initials.isEmpty ? '?' : initials,
+              style: pw.TextStyle(
+                  font: bold, fontSize: 20, color: PdfColors.white),
+            ),
+    );
+
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            logoBadge,
+            pw.SizedBox(width: 14),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(businessName,
+                    style: pw.TextStyle(
+                        font: bold, fontSize: 14, color: _textDark)),
+              ],
+            ),
+          ],
+        ),
+        pw.Text(
+          _docTypeTitle(invoice.documentType, l).toUpperCase(),
+          style: pw.TextStyle(
+            font: bold,
+            fontSize: 32,
+            color: _textDark,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _boutiqueBilledTo(
+    InvoiceModel invoice, BusinessModel? business,
+    _PdfLabels l, pw.Font? font,
+  ) {
+    final client = (invoice.clients?.isNotEmpty ?? false)
+        ? invoice.clients!.first
+        : null;
+    final bold = font ?? pw.Font.helveticaBold();
+    final regular = font ?? pw.Font.helvetica();
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                '${l.t('pdf_invoice_to')}:',
+                style: pw.TextStyle(
+                    font: bold, fontSize: 10, color: _textDark),
+              ),
+              pw.SizedBox(height: 8),
+              if (client != null) ...[
+                pw.Text(client.name ?? '',
+                    style: pw.TextStyle(
+                        font: bold, fontSize: 12, color: _textDark)),
+                if (client.phone?.isNotEmpty ?? false) ...[
+                  pw.SizedBox(height: 3),
+                  pw.Text(client.phone!,
+                      style: pw.TextStyle(
+                          font: regular, fontSize: 10, color: _textMid)),
+                ],
+                if (client.email?.isNotEmpty ?? false) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Text(client.email!,
+                      style: pw.TextStyle(
+                          font: regular, fontSize: 10, color: _textMid)),
+                ],
+                if (client.address?.isNotEmpty ?? false) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Text(client.address!,
+                      style: pw.TextStyle(
+                          font: regular, fontSize: 10, color: _textMid)),
+                ],
+              ],
+            ],
+          ),
+        ),
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.end,
+          children: [
+            pw.Text(
+              '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? ''}',
+              style: pw.TextStyle(
+                  font: bold, fontSize: 10, color: _textDark),
+            ),
+            if (invoice.date?.isNotEmpty ?? false) ...[
+              pw.SizedBox(height: 4),
+              pw.Text(invoice.date!,
+                  style: pw.TextStyle(
+                      font: regular, fontSize: 10, color: _textMid)),
+            ],
+            if (invoice.dueDate?.isNotEmpty ?? false) ...[
+              pw.SizedBox(height: 4),
+              pw.Text('${l.t('pdf_due')} ${invoice.dueDate!}',
+                  style: pw.TextStyle(
+                      font: bold, fontSize: 10, color: _textDark)),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _boutiqueTable(
+      List items, String sym, _PdfLabels l, pw.Font? font) {
+    final bold = font ?? pw.Font.helveticaBold();
+    final regular = font ?? pw.Font.helvetica();
+
+    pw.Widget bTh(String text,
+        {pw.Alignment align = pw.Alignment.centerLeft}) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 9),
+        alignment: align,
+        child: pw.Text(text,
+            style: pw.TextStyle(
+                font: bold,
+                fontSize: 9,
+                color: _textMid,
+                letterSpacing: 0.6)),
+      );
+    }
+
+    pw.Widget bTd(String text,
+        {pw.Alignment align = pw.Alignment.centerLeft, bool isBold = false}) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        alignment: align,
+        child: pw.Text(text,
+            style: pw.TextStyle(
+                font: isBold ? bold : regular,
+                fontSize: 10,
+                color: _textDark)),
+      );
+    }
+
+    return pw.Table(
+      border: pw.TableBorder(
+        top: const pw.BorderSide(color: _borderGrey, width: 0.8),
+        bottom: const pw.BorderSide(color: _borderGrey, width: 0.8),
+        horizontalInside:
+            const pw.BorderSide(color: _borderGrey, width: 0.4),
+      ),
+      columnWidths: const {
+        0: pw.FlexColumnWidth(4.5),
+        1: pw.FlexColumnWidth(1.2),
+        2: pw.FlexColumnWidth(1.8),
+        3: pw.FlexColumnWidth(1.8),
+      },
+      children: [
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.white),
+          children: [
+            bTh(l.t('pdf_description')),
+            bTh(l.t('pdf_qty'), align: pw.Alignment.center),
+            bTh(l.t('pdf_unit_price'), align: pw.Alignment.centerRight),
+            bTh(l.t('pdf_amount'), align: pw.Alignment.centerRight),
+          ],
+        ),
+        ...items.map((item) {
+          final unitPrice = item.price?.toDouble() ?? 0;
+          final qty = item.qty ?? 1;
+          return pw.TableRow(
+            decoration: const pw.BoxDecoration(color: PdfColors.white),
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 6, vertical: 10),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(item.itemName ?? '',
+                        style: pw.TextStyle(
+                            font: bold, fontSize: 10, color: _textDark)),
+                    if ((item.note ?? '').isNotEmpty) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Text(item.note!,
+                          style: pw.TextStyle(
+                              font: regular, fontSize: 8, color: _textMuted)),
+                    ],
+                  ],
+                ),
+              ),
+              bTd('$qty', align: pw.Alignment.center),
+              bTd('$sym${unitPrice.toStringAsFixed(2)}',
+                  align: pw.Alignment.centerRight),
+              bTd('$sym${(unitPrice * qty).toStringAsFixed(2)}',
+                  align: pw.Alignment.centerRight, isBold: true),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  pw.Widget _boutiqueTotals(
+    double subtotal, double discount, double received,
+    String sym, PdfColor accent, _PdfLabels l, pw.Font? font,
+  ) {
+    final total = (subtotal - discount).clamp(0.0, double.infinity);
+    final balanceDue = (total - received).clamp(0.0, double.infinity);
+    final hasDiscount = discount > 0;
+    final hasReceived = received > 0;
+    final hasAdj = hasDiscount || hasReceived;
+    final regular = font ?? pw.Font.helvetica();
+    final bold = font ?? pw.Font.helveticaBold();
+
+    return pw.Align(
+      alignment: pw.Alignment.centerRight,
+      child: pw.SizedBox(
+        width: 240,
+        child: pw.Column(
+          children: [
+            _totRow(l.t('pdf_subtotal'),
+                '$sym${subtotal.toStringAsFixed(2)}', regular, bold),
+            if (hasDiscount) ...[
+              pw.SizedBox(height: 6),
+              _totRow(l.t('pdf_discount'),
+                  '-$sym${discount.toStringAsFixed(2)}', regular, bold,
+                  valueColor: PdfColors.orange700),
+            ],
+            if (hasReceived) ...[
+              pw.SizedBox(height: 6),
+              _totRow(l.t('pdf_received'),
+                  '($sym${received.toStringAsFixed(2)})', regular, bold,
+                  valueColor: PdfColors.green700),
+            ],
+            pw.SizedBox(height: 8),
+            pw.Container(
+              width: double.infinity,
+              padding:
+                  const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              color: accent,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    hasAdj
+                        ? l.t('pdf_balance_due').toUpperCase()
+                        : l.t('pdf_total_due').toUpperCase(),
+                    style: pw.TextStyle(
+                        font: bold,
+                        fontSize: 10,
+                        color: PdfColors.white,
+                        letterSpacing: 0.5),
+                  ),
+                  pw.Text(
+                    '$sym${(hasAdj ? balanceDue : subtotal).toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                        font: bold, fontSize: 18, color: PdfColors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _boutiqueThankYou(PdfColor accent, pw.Font? font) {
+    return pw.Text(
+      'Thank You!',
+      style: pw.TextStyle(
+        font: pw.Font.timesBoldItalic(),
+        fontSize: 26,
+        color: accent,
+      ),
+    );
+  }
+
+  pw.Widget _boutiquePaymentInfo(
+      InvoiceModel invoice, _PdfLabels l, pw.Font? font) {
+    final bank = invoice.bank;
+    final client = (invoice.clients?.isNotEmpty ?? false)
+        ? invoice.clients!.first
+        : null;
+    final bold = font ?? pw.Font.helveticaBold();
+    final regular = font ?? pw.Font.helvetica();
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              if (bank != null) ...[
+                pw.Text(
+                  l.t('pdf_payment_info').toUpperCase(),
+                  style: pw.TextStyle(
+                      font: bold,
+                      fontSize: 8,
+                      color: _textMuted,
+                      letterSpacing: 1.4),
+                ),
+                pw.SizedBox(height: 8),
+                if (bank.bankName?.isNotEmpty ?? false)
+                  pw.Text(bank.bankName!,
+                      style: pw.TextStyle(
+                          font: bold, fontSize: 10, color: _textDark)),
+                if (bank.title?.isNotEmpty ?? false)
+                  pw.Text(bank.title!,
+                      style: pw.TextStyle(
+                          font: regular, fontSize: 10, color: _textMid)),
+                if (bank.accountNumber?.isNotEmpty ?? false)
+                  pw.Text(bank.accountNumber!,
+                      style: pw.TextStyle(
+                          font: regular, fontSize: 10, color: _textMid)),
+                if (invoice.dueDate?.isNotEmpty ?? false) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Text('${l.t('pdf_due')} ${invoice.dueDate!}',
+                      style: pw.TextStyle(
+                          font: bold, fontSize: 10, color: _textDark)),
+                ],
+              ],
+            ],
+          ),
+        ),
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.end,
+          children: [
+            pw.SizedBox(height: 30),
+            pw.Container(
+              width: 130,
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(
+                    bottom: pw.BorderSide(color: _borderGrey, width: 0.8)),
+              ),
+            ),
+            pw.SizedBox(height: 5),
+            pw.Text(
+              l.t('pdf_signature'),
+              style: pw.TextStyle(
+                  font: regular, fontSize: 9, color: _textMuted),
+            ),
+            if (client?.address?.isNotEmpty ?? false) ...[
+              pw.SizedBox(height: 8),
+              pw.Text(client!.address!,
+                  style: pw.TextStyle(
+                      font: regular, fontSize: 9, color: _textMid)),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // SHARED HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2073,6 +2536,42 @@ class PdfService {
         ),
         pw.SizedBox(width: 40),
         signatureWidget,
+      ],
+    );
+  }
+
+  pw.Widget _appBrandFooter(
+      pw.MemoryImage? appLogo, PdfColor accent, pw.Font? font) {
+    final regular = font ?? pw.Font.helvetica();
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.center,
+      children: [
+        pw.Container(
+          width: 16,
+          height: 16,
+          decoration: pw.BoxDecoration(
+            color: accent,
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+          ),
+          alignment: pw.Alignment.center,
+          child: appLogo != null
+              ? pw.ClipRRect(
+                  horizontalRadius: 4,
+                  verticalRadius: 4,
+                  child: pw.Image(appLogo,
+                      width: 16, height: 16, fit: pw.BoxFit.cover),
+                )
+              : pw.Text('I',
+                  style: pw.TextStyle(
+                      font: font ?? pw.Font.helveticaBold(),
+                      fontSize: 10,
+                      color: PdfColors.white)),
+        ),
+        pw.SizedBox(width: 6),
+        pw.Text(
+          'Made with PaperPush',
+          style: pw.TextStyle(font: regular, fontSize: 9, color: _textMuted),
+        ),
       ],
     );
   }

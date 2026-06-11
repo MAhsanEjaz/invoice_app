@@ -214,6 +214,8 @@ class _InvoiceDocument extends StatelessWidget {
         return _minimalHeader(context, docTitle, docNoLabel);
       case InvoiceTemplate.wave:
         return _waveHeader(context, docTitle, docNoLabel);
+      case InvoiceTemplate.boutique:
+        return _boutiqueHeader(context, docTitle, docNoLabel);
     }
   }
 
@@ -769,6 +771,80 @@ class _InvoiceDocument extends StatelessWidget {
     );
   }
 
+  // ── BOUTIQUE ──────────────────────────────────────────────────────────────
+  Widget _boutiqueHeader(
+      BuildContext context, String docTitle, String docNoLabel) {
+    final businessName = business?.businessName ?? '';
+    final initials = businessName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Left: badge + business name
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: _classicNavy,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: business?.businessLogo != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(business!.businessLogo!),
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Text(
+                        initials.isEmpty ? '?' : initials,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                businessName,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _textDark,
+                ),
+              ),
+            ],
+          ),
+          // Right: large document type title
+          Text(
+            docTitle.toUpperCase(),
+            style: GoogleFonts.poppins(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: _textDark,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Wave info cards ───────────────────────────────────────────────────────
   Widget _buildWaveInfoCards(BuildContext context) {
     final isInvoice =
@@ -944,7 +1020,8 @@ class _InvoiceDocument extends StatelessWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: template == InvoiceTemplate.minimal
+            color: (template == InvoiceTemplate.minimal ||
+                    template == InvoiceTemplate.boutique)
                 ? Colors.transparent
                 : headerColor,
             border: template == InvoiceTemplate.minimal
@@ -952,7 +1029,12 @@ class _InvoiceDocument extends StatelessWidget {
                     top: BorderSide(color: accentColor, width: 2),
                     bottom: const BorderSide(color: _borderGrey, width: 0.8),
                   )
-                : null,
+                : template == InvoiceTemplate.boutique
+                    ? const Border(
+                        top: BorderSide(color: _borderGrey, width: 0.8),
+                        bottom: BorderSide(color: _borderGrey, width: 0.8),
+                      )
+                    : null,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           child: Row(
@@ -964,7 +1046,8 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: template == InvoiceTemplate.minimal
+                    color: (template == InvoiceTemplate.minimal ||
+                            template == InvoiceTemplate.boutique)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -979,7 +1062,8 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: template == InvoiceTemplate.minimal
+                    color: (template == InvoiceTemplate.minimal ||
+                            template == InvoiceTemplate.boutique)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -994,7 +1078,8 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: template == InvoiceTemplate.minimal
+                    color: (template == InvoiceTemplate.minimal ||
+                            template == InvoiceTemplate.boutique)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -1009,7 +1094,8 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: template == InvoiceTemplate.minimal
+                    color: (template == InvoiceTemplate.minimal ||
+                            template == InvoiceTemplate.boutique)
                         ? _textMid
                         : Colors.white,
                     letterSpacing: 0.5,
@@ -1235,6 +1321,63 @@ class _InvoiceDocument extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Boutique: plain subtotal rows + full-width dark total box
+    if (template == InvoiceTemplate.boutique) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: SizedBox(
+          width: 220,
+          child: Column(
+            children: [
+              _totRow(context.tr('pdf_subtotal'),
+                  '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+              if (hasDiscount) ...[
+                const SizedBox(height: 6),
+                _totRow(context.tr('pdf_discount'),
+                    '-$currencySymbol${discount.toStringAsFixed(2)}',
+                    valueColor: kDangerColor),
+              ],
+              if (hasReceived) ...[
+                const SizedBox(height: 6),
+                _totRow(context.tr('pdf_received'),
+                    '($currencySymbol${received.toStringAsFixed(2)})',
+                    valueColor: const Color(0xFF059669)),
+              ],
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(color: _classicNavy),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      finalLabel.toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      '$currencySymbol${finalAmt.toStringAsFixed(2)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

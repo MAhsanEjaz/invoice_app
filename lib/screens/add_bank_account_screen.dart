@@ -21,6 +21,10 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
   final _titleCtrl = TextEditingController();
   final _bankNameCtrl = TextEditingController();
 
+  bool _bankNameError = false;
+  bool _titleError = false;
+  bool _accountNumberError = false;
+
   bool get _isEdit => widget.bank != null;
 
   @override
@@ -110,6 +114,8 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
             placeholder: 'Bank Name',
             icon: CupertinoIcons.building_2_fill,
             autofocus: true,
+            error: _bankNameError,
+            onChanged: () => setState(() => _bankNameError = false),
           ),
           Divider(height: 1, color: cl.border),
           _formField(
@@ -117,6 +123,8 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
             controller: _titleCtrl,
             placeholder: 'Account Title',
             icon: CupertinoIcons.person,
+            error: _titleError,
+            onChanged: () => setState(() => _titleError = false),
           ),
           Divider(height: 1, color: cl.border),
           _formField(
@@ -125,6 +133,8 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
             placeholder: 'Account Number',
             icon: CupertinoIcons.number,
             keyboardType: TextInputType.text,
+            error: _accountNumberError,
+            onChanged: () => setState(() => _accountNumberError = false),
           ),
         ],
       ),
@@ -138,26 +148,48 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     bool autofocus = false,
+    bool error = false,
+    VoidCallback? onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 4,
+        bottom: error ? 8 : 4,
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: kPrimary),
+          Icon(icon, size: 18, color: error ? kDangerColor : kPrimary),
           const SizedBox(width: 12),
           Expanded(
-            child: CupertinoTextField(
-              controller: controller,
-              placeholder: placeholder,
-              autofocus: autofocus,
-              placeholderStyle: GoogleFonts.poppins(
-                fontSize: 14,
-                color: cl.textHint,
-              ),
-              style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              keyboardType: keyboardType,
-              decoration: const BoxDecoration(color: Colors.transparent),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CupertinoTextField(
+                  controller: controller,
+                  placeholder: placeholder,
+                  autofocus: autofocus,
+                  placeholderStyle: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: error ? kDangerColor.withValues(alpha: 0.6) : cl.textHint,
+                  ),
+                  style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  keyboardType: keyboardType,
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                  onChanged: onChanged != null ? (_) => onChanged() : null,
+                ),
+                if (error)
+                  Text(
+                    'Required',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: kDangerColor,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -221,6 +253,11 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           final accountNumber = _accountNumberCtrl.text.trim();
 
           if (bankName.isEmpty || title.isEmpty || accountNumber.isEmpty) {
+            setState(() {
+              _bankNameError = bankName.isEmpty;
+              _titleError = title.isEmpty;
+              _accountNumberError = accountNumber.isEmpty;
+            });
             return;
           }
 

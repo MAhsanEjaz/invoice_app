@@ -21,6 +21,9 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   final _descCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
 
+  bool _nameError = false;
+  bool _priceError = false;
+
   bool get _isEdit => widget.service != null;
 
   @override
@@ -108,6 +111,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
             controller: _nameCtrl,
             placeholder: 'Service name',
             icon: CupertinoIcons.tag,
+            error: _nameError,
+            onChanged: () => setState(() => _nameError = false),
           ),
           Divider(height: 1, color: cl.border),
           _formField(
@@ -120,9 +125,11 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           _formField(
             cl: cl,
             controller: _priceCtrl,
-            placeholder: 'Default price (optional)',
+            placeholder: 'Price',
             icon: CupertinoIcons.money_dollar_circle,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            error: _priceError,
+            onChanged: () => setState(() => _priceError = false),
           ),
         ],
       ),
@@ -135,23 +142,47 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     required String placeholder,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    bool error = false,
+    VoidCallback? onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 4,
+        bottom: error ? 8 : 4,
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: kPrimary),
+          Icon(icon, size: 18, color: error ? kDangerColor : kPrimary),
           const SizedBox(width: 12),
           Expanded(
-            child: CupertinoTextField(
-              controller: controller,
-              placeholder: placeholder,
-              placeholderStyle:
-                  GoogleFonts.poppins(fontSize: 14, color: cl.textHint),
-              style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              keyboardType: keyboardType,
-              decoration: const BoxDecoration(color: Colors.transparent),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CupertinoTextField(
+                  controller: controller,
+                  placeholder: placeholder,
+                  placeholderStyle: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: error ? kDangerColor.withValues(alpha: 0.6) : cl.textHint,
+                  ),
+                  style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  keyboardType: keyboardType,
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                  onChanged: onChanged != null ? (_) => onChanged() : null,
+                ),
+                if (error)
+                  Text(
+                    'Required',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: kDangerColor,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -200,9 +231,16 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
         txt: _isEdit ? 'Update Service' : 'Save Service',
         onTap: () async {
           final name = _nameCtrl.text.trim();
-          if (name.isEmpty) return;
-
           final price = double.tryParse(_priceCtrl.text.trim());
+
+          if (name.isEmpty || price == null) {
+            setState(() {
+              _nameError = name.isEmpty;
+              _priceError = price == null;
+            });
+            return;
+          }
+
           final desc = _descCtrl.text.trim();
           final provider =
               Provider.of<ServiceProvider>(context, listen: false);

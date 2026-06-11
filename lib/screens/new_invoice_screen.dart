@@ -25,8 +25,10 @@ import '../models/bank_model.dart';
 import '../providers/bank_provider.dart';
 import '../providers/saved_client_provider.dart';
 import '../providers/service_provider.dart';
+import 'add_bank_account_screen.dart';
 import 'add_client_screen.dart';
 import 'add_item_screen.dart';
+import 'add_service_screen.dart';
 import 'items_screen.dart';
 
 class NewInvoiceScreen extends StatefulWidget {
@@ -859,6 +861,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           banks: bankProvider.banks,
           selectedId: _selectedBank?.id,
           onSelect: (b) => setState(() => _selectedBank = b),
+          onAddNew: () {
+            Navigator.pop(context);
+            Navigation.go(context, const AddBankAccountScreen());
+          },
         ),
       ),
     );
@@ -900,6 +906,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       builder: (_) => Consumer<ServiceProvider>(
         builder: (_, serviceProvider, __) => _AddLineItemSheet(
           services: serviceProvider.services,
+          onAddService: () {
+            Navigator.pop(context);
+            Navigation.go(context, const AddServiceScreen());
+          },
           onNewItem: () {
             Navigator.pop(context);
             if (invoice.invoice.isNotEmpty) {
@@ -1360,11 +1370,13 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
 class _AddLineItemSheet extends StatefulWidget {
   final List<ServiceModel> services;
   final VoidCallback onNewItem;
+  final VoidCallback onAddService;
   final void Function(List<ServiceModel>) onConfirmServices;
 
   const _AddLineItemSheet({
     required this.services,
     required this.onNewItem,
+    required this.onAddService,
     required this.onConfirmServices,
   });
 
@@ -1443,7 +1455,53 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
               ),
             ),
             // ── Saved services section ───────────────────────────────────────
-            if (widget.services.isNotEmpty) ...[
+            if (widget.services.isEmpty) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: GestureDetector(
+                  onTap: widget.onAddService,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.colors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.colors.border),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: context.colors.background,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(CupertinoIcons.square_list, color: context.colors.textSecondary, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('add_service'),
+                                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textPrimary),
+                              ),
+                              Text(
+                                context.tr('no_services_added'),
+                                style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(CupertinoIcons.chevron_right, size: 14, color: context.colors.textSecondary),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1547,10 +1605,12 @@ class _BankPickerSheet extends StatelessWidget {
   final List<BankModel> banks;
   final int? selectedId;
   final void Function(BankModel) onSelect;
+  final VoidCallback onAddNew;
 
   const _BankPickerSheet({
     required this.banks,
     required this.onSelect,
+    required this.onAddNew,
     this.selectedId,
   });
 
@@ -1593,32 +1653,47 @@ class _BankPickerSheet extends StatelessWidget {
             const SizedBox(height: 12),
             if (banks.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    Icon(
-                      CupertinoIcons.creditcard,
-                      size: 40,
-                      color: context.colors.textHint,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: GestureDetector(
+                  onTap: onAddNew,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.colors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.colors.border),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      context.tr('no_bank_accounts'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: context.colors.textSecondary,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: context.colors.background,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(CupertinoIcons.creditcard, color: context.colors.textSecondary, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('add_bank_account'),
+                                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textPrimary),
+                              ),
+                              Text(
+                                context.tr('no_bank_accounts'),
+                                style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(CupertinoIcons.chevron_right, size: 14, color: context.colors.textSecondary),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      context.tr('go_settings_bank'),
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: context.colors.textHint,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               )
             else
@@ -1768,32 +1843,50 @@ class _ClientPickerSheet extends StatelessWidget {
             const SizedBox(height: 12),
             if (savedClients.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    Icon(
-                      CupertinoIcons.person_2,
-                      size: 40,
-                      color: context.colors.textHint,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    onAddNew();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.colors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.colors.border),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      context.tr('no_saved_clients'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: context.colors.textSecondary,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: context.colors.background,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(CupertinoIcons.person_add, color: context.colors.textSecondary, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('add_new_client'),
+                                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textPrimary),
+                              ),
+                              Text(
+                                context.tr('no_saved_clients'),
+                                style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(CupertinoIcons.chevron_right, size: 14, color: context.colors.textSecondary),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      context.tr('go_settings_clients'),
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: context.colors.textHint,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               )
             else
