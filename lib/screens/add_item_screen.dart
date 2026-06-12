@@ -338,7 +338,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
             );
           }
 
-          if (invoice.invoice.isNotEmpty) {
+          if (widget.duplicate == true) {
+            // Came via ItemsScreen — pop AddItemScreen + ItemsScreen
             Navigator.pop(context);
             Navigator.pop(context);
           } else {

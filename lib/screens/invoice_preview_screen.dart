@@ -1681,16 +1681,41 @@ class _GeometricBgPainter extends CustomPainter {
 
     const r1w = 92.0, r1h = 66.0;
     const r2 = 50.0;
+    const cr = 10.0; // inner corner radius
 
-    // Top-right: large accent rect (behind)
-    canvas.drawRect(Rect.fromLTWH(w - r1w, 0, r1w, r1h), Paint()..color = accent);
-    // Top-right: small pink rect (front, at very corner)
-    canvas.drawRect(Rect.fromLTWH(w - r2, 0, r2, r2), Paint()..color = pink);
+    // Top-right: large accent rect — inner corner is bottom-left
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(w - r1w, 0, r1w, r1h),
+        bottomLeft: const Radius.circular(cr),
+      ),
+      Paint()..color = accent,
+    );
+    // Top-right: small pink rect — inner corner is bottom-left
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(w - r2, 0, r2, r2),
+        bottomLeft: const Radius.circular(cr),
+      ),
+      Paint()..color = pink,
+    );
 
-    // Bottom-left: large accent rect (behind)
-    canvas.drawRect(Rect.fromLTWH(0, h - r1h, r1w, r1h), Paint()..color = accent);
-    // Bottom-left: small pink rect (front, at very corner)
-    canvas.drawRect(Rect.fromLTWH(0, h - r2, r2, r2), Paint()..color = pink);
+    // Bottom-left: large accent rect — inner corner is top-right
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(0, h - r1h, r1w, r1h),
+        topRight: const Radius.circular(cr),
+      ),
+      Paint()..color = accent,
+    );
+    // Bottom-left: small pink rect — inner corner is top-right
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(0, h - r2, r2, r2),
+        topRight: const Radius.circular(cr),
+      ),
+      Paint()..color = pink,
+    );
   }
 
   @override
