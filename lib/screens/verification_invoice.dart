@@ -72,89 +72,97 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        title: Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: context.colors.textPrimary,
-          ),
-        ),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: GoogleFonts.poppins(
-            fontSize: 15,
-            color: context.colors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: '0.00',
-            hintStyle: GoogleFonts.poppins(color: context.colors.textHint),
-            filled: true,
-            fillColor: context.colors.background,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: context.colors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kPrimary, width: 1.5),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.textSecondary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text(
-              context.tr('cancel'),
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final amount = double.tryParse(ctrl.text.trim()) ?? 0;
-              onConfirm(amount);
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            child: Text(
-              confirmLabel,
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            title: Text(
+              title,
               style: GoogleFonts.poppins(
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: context.colors.textPrimary,
               ),
             ),
+            content: TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                color: context.colors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: '0.00',
+                hintStyle: GoogleFonts.poppins(color: context.colors.textHint),
+                filled: true,
+                fillColor: context.colors.background,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.colors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.colors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kPrimary, width: 1.5),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.colors.textSecondary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  context.tr('cancel'),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final amount = double.tryParse(ctrl.text.trim()) ?? 0;
+                  onConfirm(amount);
+                  Navigator.pop(ctx);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                ),
+                child: Text(
+                  confirmLabel,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -164,10 +172,11 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       title: context.tr('received_amount'),
       confirmLabel: context.tr('save'),
       current: current,
-      onConfirm: (amount) => invoice.updateReceivedAmount(
-        widget.invoiceModel!.invoiceId!,
-        amount,
-      ),
+      onConfirm:
+          (amount) => invoice.updateReceivedAmount(
+            widget.invoiceModel!.invoiceId!,
+            amount,
+          ),
     );
   }
 
@@ -177,10 +186,9 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       title: context.tr('discount_amount'),
       confirmLabel: context.tr('apply'),
       current: current,
-      onConfirm: (amount) => invoice.updateDiscount(
-        widget.invoiceModel!.invoiceId!,
-        amount,
-      ),
+      onConfirm:
+          (amount) =>
+              invoice.updateDiscount(widget.invoiceModel!.invoiceId!, amount),
     );
   }
 
@@ -551,8 +559,9 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
               () {
                 final id = liveInvoice.invoiceId;
                 if (docType == 'Quote') return '${context.tr('quote_no')}$id';
-                if (docType == 'Estimate')
+                if (docType == 'Estimate') {
                   return '${context.tr('estimate_no')}$id';
+                }
                 return '${context.tr('pdf_invoice_no')}$id';
               }(),
               style: GoogleFonts.poppins(
@@ -989,11 +998,13 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                     onTap: () async {
                       final bank = liveInvoice.bank!;
                       final parts = <String>[];
-                      if ((bank.bankName ?? '').isNotEmpty)
+                      if ((bank.bankName ?? '').isNotEmpty) {
                         parts.add(bank.bankName!);
+                      }
                       if ((bank.title ?? '').isNotEmpty) parts.add(bank.title!);
-                      if ((bank.accountNumber ?? '').isNotEmpty)
+                      if ((bank.accountNumber ?? '').isNotEmpty) {
                         parts.add(bank.accountNumber!);
+                      }
                       await Clipboard.setData(
                         ClipboardData(text: parts.join('\n')),
                       );

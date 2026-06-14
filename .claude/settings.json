@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep -l \"template\\\\|Template\")"
+      "Bash(xargs grep -l \"template\\\\|Template\")",
+      "Bash(flutter --version)"
     ]
   }
 }
