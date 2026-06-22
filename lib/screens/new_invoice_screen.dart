@@ -29,7 +29,6 @@ import 'add_bank_account_screen.dart';
 import 'add_client_screen.dart';
 import 'add_item_screen.dart';
 import 'add_service_screen.dart';
-import 'items_screen.dart';
 
 class NewInvoiceScreen extends StatefulWidget {
   final InvoiceModel? invoice;
@@ -731,7 +730,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
 
   // ── Items card ─────────────────────────────────────────────────────────────
   Widget _itemCard(ItemProvider item, InvoiceProvider? invoice) {
-    final items = _isEditMode ? widget.invoice!.items! : item.item;
+    final items = _isEditMode ? (widget.invoice!.items ?? []) : item.item;
 
     return Container(
       decoration: context.cardDecoration,
@@ -912,11 +911,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           },
           onNewItem: () {
             Navigator.pop(context);
-            if (invoice.invoice.isNotEmpty) {
-              Navigation.go(context, ItemsScreen());
-            } else {
-              Navigation.go(context, AddItemScreen(invoice: widget.invoice));
-            }
+            Navigation.go(context, AddItemScreen(invoice: widget.invoice));
           },
           onConfirmServices: (selected) {
             for (final service in selected) {
@@ -1444,7 +1439,7 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(context.tr('add_item'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: kPrimary)),
-                            Text('Enter name, price & quantity', style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
+                            Text(context.tr('add_item_sub'), style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
                           ],
                         ),
                       ),

@@ -29,9 +29,9 @@ class InvoiceProvider extends ChangeNotifier {
 
   deleteExistingItems(int? itemId) {
     for (var l in invoice) {
-      l.items!.removeWhere((element) => element.id == itemId);
-      notifyListeners();
+      l.items?.removeWhere((element) => element.id == itemId);
     }
+    notifyListeners();
   }
 
   addExistingItemWithId(
@@ -167,9 +167,10 @@ class InvoiceProvider extends ChangeNotifier {
     String? address,
   ) {
     for (var l in invoice) {
+      if (l.clients == null) continue;
       final data = l.clients!.firstWhere(
         (element) => element.id == id,
-        orElse: () => ClientModel(), // avoid crash
+        orElse: () => ClientModel(),
       );
 
       if (data.id != null) {
@@ -191,7 +192,7 @@ class InvoiceProvider extends ChangeNotifier {
       (element) => element.invoiceId == invoiceId,
     );
 
-    final myPrice = data.items!.fold<num>(
+    final myPrice = (data.items ?? []).fold<num>(
       0,
       (pre, newPrice) =>
           pre.toDouble() +
@@ -230,7 +231,7 @@ class InvoiceProvider extends ChangeNotifier {
       (element) => element.invoiceId == invoiceId,
     );
 
-    data.items!.removeWhere((element) => element.id == itemId);
+    data.items?.removeWhere((element) => element.id == itemId);
 
     saveInvoice();
     notifyListeners();

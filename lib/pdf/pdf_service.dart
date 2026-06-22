@@ -2315,7 +2315,7 @@ class PdfService {
           padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 11),
           alignment: pw.Alignment.centerRight,
           child: pw.Text(
-            '\$ ${grandAmount.toStringAsFixed(2)}',
+            '$sym${grandAmount.toStringAsFixed(2)}',
             style: pw.TextStyle(font: bold, fontSize: 14, color: accent),
           ),
         ),

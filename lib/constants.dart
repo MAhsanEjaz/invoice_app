@@ -326,6 +326,11 @@ Future<DateTime?> customDatePicker(
   );
 }
 
-customDateFormat(String? date) {
-  return DateFormat('MMM dd, yyyy').format(DateTime.parse(date!));
+String customDateFormat(String? date) {
+  if (date == null || date.isEmpty) return '';
+  try {
+    return DateFormat('MMM dd, yyyy').format(DateTime.parse(date));
+  } catch (_) {
+    return date;
+  }
 }

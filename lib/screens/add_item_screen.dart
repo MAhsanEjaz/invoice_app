@@ -45,9 +45,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
       itemCont.text = widget.itemModel!.itemName ?? '';
       noteCont.text = widget.itemModel!.note ?? '';
       priceCont.text = widget.itemModel!.price?.toString() ?? '';
-      qtyCont.text = widget.itemModel!.qty.toString();
+      qtyCont.text = (widget.itemModel!.qty ?? 1).toString();
     } else {
-      priceCont.text = '1';
+      priceCont.text = '';
       qtyCont.text = '1';
     }
   }
@@ -327,7 +327,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
             }
           }
 
-          if (widget.itemModel?.id != null && widget.duplicate == false) {
+          if (widget.isUpdate == true &&
+              widget.itemModel?.id != null &&
+              widget.duplicate == false) {
             invoice.itemUpdate(
               widget.itemModel!.id!,
               itemCont.text,
@@ -345,8 +347,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
           } else {
             Navigator.pop(context);
           }
-
-          setState(() {});
         },
       ),
     );

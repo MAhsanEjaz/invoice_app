@@ -1460,6 +1460,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       await pdfFile.writeAsBytes(pdfData);
       await SharePlus.instance.share(ShareParams(files: [XFile(pdfFile.path)]));
     } catch (_) {
+      if (mounted) _showToast(context.tr('export_failed'));
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -1508,6 +1509,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         await SharePlus.instance.share(ShareParams(files: files));
       }
     } catch (_) {
+      if (mounted) _showToast(context.tr('export_failed'));
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

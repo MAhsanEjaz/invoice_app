@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:invoicemaker/models/item_model.dart';
 
@@ -9,14 +7,9 @@ class ItemProvider extends ChangeNotifier {
   int lastId = 0; // This tracks the last used ID
 
   addItems(ItemModel itemModel) {
-
-
-    print('run old');
-    lastId += 1; // Safely increment ID
-    itemModel.id = lastId; // Assign new ID to the item
-
+    lastId += 1;
+    itemModel.id = lastId;
     item.add(itemModel);
-    print('Items--->${jsonEncode(item)}');
     notifyListeners();
   }
 
