@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/client_model.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -71,6 +73,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return CupertinoPageScaffold(
       backgroundColor: cl.background,
@@ -87,10 +90,10 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    sectionLabel(context, 'Client Info'),
+                    sectionLabel(context, context.tr('client_info')),
                     _buildNameCard(cl),
                     const SizedBox(height: 20),
-                    sectionLabel(context, 'Contact Details'),
+                    sectionLabel(context, context.tr('contact_details')),
                     _buildContactCard(cl),
                     if (_isEdit) ...[
                       const SizedBox(height: 24),
@@ -116,7 +119,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
           closeButton(context),
           const Spacer(),
           Text(
-            _isEdit ? 'Edit Client' : 'New Client',
+            _isEdit ? context.tr('edit_client') : context.tr('new_client'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -138,7 +141,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
           _formField(
             cl: cl,
             controller: _nameCtrl,
-            placeholder: 'Client Name',
+            placeholder: context.tr('client_name_placeholder'),
             icon: CupertinoIcons.person,
             autofocus: true,
           ),
@@ -164,7 +167,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Import from contacts',
+                    context.tr('import_from_contacts'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -194,7 +197,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
           _formField(
             cl: cl,
             controller: _phoneCtrl,
-            placeholder: 'Phone',
+            placeholder: context.tr('phone'),
             icon: CupertinoIcons.phone,
             keyboardType: TextInputType.phone,
           ),
@@ -202,7 +205,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
           _formField(
             cl: cl,
             controller: _emailCtrl,
-            placeholder: 'Email',
+            placeholder: context.tr('email'),
             icon: CupertinoIcons.mail,
             keyboardType: TextInputType.emailAddress,
           ),
@@ -210,7 +213,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
           _formField(
             cl: cl,
             controller: _addressCtrl,
-            placeholder: 'Address',
+            placeholder: context.tr('address'),
             icon: CupertinoIcons.location,
             keyboardType: TextInputType.streetAddress,
           ),
@@ -257,7 +260,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
       onTap: () => customCupertinoDialog(context, () async {
         await Provider.of<SavedClientProvider>(context, listen: false)
             .deleteClient(widget.client!.id!);
-        if (!context.mounted) return;
+        if (!mounted) return;
         Navigator.of(context)
           ..pop()
           ..pop();
@@ -277,7 +280,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
             const Icon(CupertinoIcons.delete, color: kDangerColor, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Delete Client',
+              context.tr('delete_client'),
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -298,7 +301,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: _isEdit ? 'Update Client' : 'Save Client',
+        txt: _isEdit ? context.tr('update_client_btn') : context.tr('save_client_btn'),
         onTap: () async {
           final name = _nameCtrl.text.trim();
           if (name.isEmpty) return;
@@ -335,7 +338,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
             ));
           }
 
-          if (!context.mounted) return;
+          if (!mounted) return;
           Navigator.pop(context);
         },
       ),

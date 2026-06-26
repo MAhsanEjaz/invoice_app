@@ -48,6 +48,8 @@ class ServiceProvider extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> reload() => _load();
+
   Future<void> deleteService(int id) async {
     services.removeWhere((s) => s.id == id);
     notifyListeners();

@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/screens/add_saved_client_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
@@ -12,6 +14,7 @@ class SavedClientsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer<SavedClientProvider>(
       builder: (context, provider, _) {
@@ -42,7 +45,7 @@ class SavedClientsScreen extends StatelessWidget {
           closeButton(context),
           const Spacer(),
           Text(
-            'Clients',
+            context.tr('clients'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -87,7 +90,7 @@ class SavedClientsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No Clients Yet',
+            context.tr('no_clients_yet'),
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -96,7 +99,7 @@ class SavedClientsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Save clients to quickly select\nthem when creating invoices.',
+            context.tr('no_clients_msg'),
             textAlign: TextAlign.center,
             style:
                 GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
@@ -112,7 +115,7 @@ class SavedClientsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Add Client',
+                context.tr('add_client'),
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

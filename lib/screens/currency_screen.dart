@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/currency_model.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:provider/provider.dart';
 
 class CurrencyScreen extends StatefulWidget {
@@ -39,6 +41,7 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer<CurrencyProvider>(
       builder: (context, currencyProvider, _) {
@@ -53,7 +56,7 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                   child: Row(children: [
                     closeButton(context),
                     const Spacer(),
-                    Text('Currency', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+                    Text(context.tr('currency'), style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
                     const Spacer(),
                     const SizedBox(width: 34),
                   ]),
@@ -64,7 +67,7 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                 child: CupertinoTextField(
                   controller: _searchCtrl,
                   onChanged: _onSearch,
-                  placeholder: 'Search currency or code…',
+                  placeholder: context.tr('search_currency'),
                   placeholderStyle: GoogleFonts.poppins(fontSize: 14, color: cl.textHint),
                   style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -94,7 +97,7 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Current: ${currencyProvider.currency.name} (${currencyProvider.code})',
+                        '${context.tr('currency_current_prefix')}${currencyProvider.currency.name} (${currencyProvider.code})',
                         style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500, color: kPrimary),
                       ),
                     ),
@@ -104,7 +107,7 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
               ),
               Expanded(
                 child: _filtered.isEmpty
-                    ? Center(child: Text('No results for "${_searchCtrl.text}"',
+                    ? Center(child: Text('${context.tr('no_results_for')}"${_searchCtrl.text}"',
                         style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary)))
                     : Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),

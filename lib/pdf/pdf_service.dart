@@ -132,7 +132,7 @@ class PdfService {
     pw.Font? customFont;
     if (locale == 'hi') {
       customFont = await _PdfFonts.devanagari();
-    } else if (locale == 'ur') {
+    } else if (locale == 'ur' || locale == 'ar') {
       customFont = await _PdfFonts.arabic();
     }
 
@@ -196,7 +196,8 @@ class PdfService {
               _classicTable(items, accent, sym, l, font),
               pw.SizedBox(height: 20),
               _classicTotals(subtotal, invoice.discount ?? 0,
-                  invoice.receivedAmount ?? 0, sym, accent, l, font),
+                  invoice.receivedAmount ?? 0, sym, accent, l, font,
+                  taxRate: invoice.taxRate ?? 0, taxLabel: invoice.taxLabel),
               if (invoice.notes?.isNotEmpty ?? false) ...[
                 pw.SizedBox(height: 20),
                 _notes(invoice.notes!, l, font),
@@ -273,7 +274,7 @@ class PdfService {
                               const pw.BorderRadius.all(pw.Radius.circular(5)),
                         ),
                         child: pw.Text(
-                          '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
+                          invoice.invoiceNumber ?? '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
                           style: pw.TextStyle(
                               font: bold,
                               fontSize: 9,
@@ -416,12 +417,15 @@ class PdfService {
   }
 
   pw.Widget _classicTotals(double subtotal, double discount, double received,
-      String sym, PdfColor accent, _PdfLabels l, pw.Font? font) {
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
+      String sym, PdfColor accent, _PdfLabels l, pw.Font? font,
+      {double taxRate = 0, String? taxLabel}) {
+    final afterDiscount = (subtotal - discount).clamp(0.0, double.infinity);
+    final taxAmount = afterDiscount * taxRate / 100;
+    final total = afterDiscount + taxAmount;
     final balanceDue = (total - received).clamp(0.0, double.infinity);
     final hasDiscount = discount > 0;
+    final hasTax = taxRate > 0;
     final hasReceived = received > 0;
-    final hasAdj = hasDiscount || hasReceived;
     final regular = font ?? pw.Font.helvetica();
     final bold = font ?? pw.Font.helveticaBold();
 
@@ -450,6 +454,12 @@ class PdfService {
                         '-$sym${discount.toStringAsFixed(2)}', regular, bold,
                         valueColor: PdfColors.orange700),
                   ],
+                  if (hasTax) ...[
+                    pw.SizedBox(height: 6),
+                    _totRow('${taxLabel ?? l.t('pdf_tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)',
+                        '+$sym${taxAmount.toStringAsFixed(2)}', regular, bold,
+                        valueColor: PdfColors.blue700),
+                  ],
                   if (hasReceived) ...[
                     pw.SizedBox(height: 6),
                     _totRow(l.t('pdf_received'),
@@ -473,7 +483,7 @@ class PdfService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    (hasAdj
+                    (hasReceived
                             ? l.t('pdf_balance_due')
                             : l.t('pdf_total_due'))
                         .toUpperCase(),
@@ -484,7 +494,7 @@ class PdfService {
                         letterSpacing: 0.5),
                   ),
                   pw.Text(
-                    '$sym${(hasAdj ? balanceDue : subtotal).toStringAsFixed(2)}',
+                    '$sym${(hasReceived ? balanceDue : total).toStringAsFixed(2)}',
                     style: pw.TextStyle(
                         font: bold, fontSize: 16, color: PdfColors.white),
                   ),
@@ -521,7 +531,8 @@ class PdfService {
               _elegantTable(items, accent, sym, l, font),
               pw.SizedBox(height: 20),
               _elegantTotals(subtotal, invoice.discount ?? 0,
-                  invoice.receivedAmount ?? 0, sym, accent, l, font),
+                  invoice.receivedAmount ?? 0, sym, accent, l, font,
+                  taxRate: invoice.taxRate ?? 0, taxLabel: invoice.taxLabel),
               if (invoice.notes?.isNotEmpty ?? false) ...[
                 pw.SizedBox(height: 20),
                 _notes(invoice.notes!, l, font),
@@ -591,7 +602,7 @@ class PdfService {
                       ),
                       pw.SizedBox(height: 6),
                       pw.Text(
-                        '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
+                        invoice.invoiceNumber ?? '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
                         style: pw.TextStyle(
                             font: regular,
                             fontSize: 10,
@@ -731,12 +742,15 @@ class PdfService {
   }
 
   pw.Widget _elegantTotals(double subtotal, double discount, double received,
-      String sym, PdfColor accent, _PdfLabels l, pw.Font? font) {
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
+      String sym, PdfColor accent, _PdfLabels l, pw.Font? font,
+      {double taxRate = 0, String? taxLabel}) {
+    final afterDiscount = (subtotal - discount).clamp(0.0, double.infinity);
+    final taxAmount = afterDiscount * taxRate / 100;
+    final total = afterDiscount + taxAmount;
     final balanceDue = (total - received).clamp(0.0, double.infinity);
     final hasDiscount = discount > 0;
+    final hasTax = taxRate > 0;
     final hasReceived = received > 0;
-    final hasAdj = hasDiscount || hasReceived;
     final regular = font ?? pw.Font.helvetica();
     final bold = font ?? pw.Font.helveticaBold();
 
@@ -754,6 +768,12 @@ class PdfService {
                   '-$sym${discount.toStringAsFixed(2)}', regular, bold,
                   valueColor: PdfColors.orange700),
             ],
+            if (hasTax) ...[
+              pw.SizedBox(height: 6),
+              _totRow('${taxLabel ?? l.t('pdf_tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)',
+                  '+$sym${taxAmount.toStringAsFixed(2)}', regular, bold,
+                  valueColor: PdfColors.blue700),
+            ],
             if (hasReceived) ...[
               pw.SizedBox(height: 6),
               _totRow(l.t('pdf_received'),
@@ -762,16 +782,14 @@ class PdfService {
             ],
             pw.SizedBox(height: 8),
             pw.Container(
-              margin:
-                  const pw.EdgeInsets.only(bottom: 8),
-              child:
-                  pw.Divider(color: accent, thickness: 1),
+              margin: const pw.EdgeInsets.only(bottom: 8),
+              child: pw.Divider(color: accent, thickness: 1),
             ),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  hasAdj
+                  hasReceived
                       ? l.t('pdf_balance_due').toUpperCase()
                       : l.t('pdf_total_due').toUpperCase(),
                   style: pw.TextStyle(
@@ -781,7 +799,7 @@ class PdfService {
                       letterSpacing: 0.5),
                 ),
                 pw.Text(
-                  '$sym${(hasAdj ? balanceDue : subtotal).toStringAsFixed(2)}',
+                  '$sym${(hasReceived ? balanceDue : total).toStringAsFixed(2)}',
                   style: pw.TextStyle(
                       font: bold, fontSize: 18, color: accent),
                 ),
@@ -821,7 +839,8 @@ class PdfService {
               _minimalTable(items, accent, sym, l, font),
               pw.SizedBox(height: 24),
               _minimalTotals(subtotal, invoice.discount ?? 0,
-                  invoice.receivedAmount ?? 0, sym, accent, l, font),
+                  invoice.receivedAmount ?? 0, sym, accent, l, font,
+                  taxRate: invoice.taxRate ?? 0, taxLabel: invoice.taxLabel),
               if (invoice.notes?.isNotEmpty ?? false) ...[
                 pw.SizedBox(height: 24),
                 _notes(invoice.notes!, l, font),
@@ -893,7 +912,7 @@ class PdfService {
                         const pw.BorderRadius.all(pw.Radius.circular(4)),
                   ),
                   child: pw.Text(
-                    '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
+                    invoice.invoiceNumber ?? '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
                     style: pw.TextStyle(
                         font: bold, fontSize: 9, color: accent),
                   ),
@@ -1030,12 +1049,15 @@ class PdfService {
   }
 
   pw.Widget _minimalTotals(double subtotal, double discount, double received,
-      String sym, PdfColor accent, _PdfLabels l, pw.Font? font) {
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
+      String sym, PdfColor accent, _PdfLabels l, pw.Font? font,
+      {double taxRate = 0, String? taxLabel}) {
+    final afterDiscount = (subtotal - discount).clamp(0.0, double.infinity);
+    final taxAmount = afterDiscount * taxRate / 100;
+    final total = afterDiscount + taxAmount;
     final balanceDue = (total - received).clamp(0.0, double.infinity);
     final hasDiscount = discount > 0;
+    final hasTax = taxRate > 0;
     final hasReceived = received > 0;
-    final hasAdj = hasDiscount || hasReceived;
     final regular = font ?? pw.Font.helvetica();
     final bold = font ?? pw.Font.helveticaBold();
 
@@ -1053,6 +1075,12 @@ class PdfService {
                   '-$sym${discount.toStringAsFixed(2)}', regular, bold,
                   valueColor: PdfColors.orange700),
             ],
+            if (hasTax) ...[
+              pw.SizedBox(height: 6),
+              _totRow('${taxLabel ?? l.t('pdf_tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)',
+                  '+$sym${taxAmount.toStringAsFixed(2)}', regular, bold,
+                  valueColor: PdfColors.blue700),
+            ],
             if (hasReceived) ...[
               pw.SizedBox(height: 6),
               _totRow(l.t('pdf_received'),
@@ -1066,12 +1094,11 @@ class PdfService {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  hasAdj ? l.t('pdf_balance_due') : l.t('pdf_total_due'),
-                  style:
-                      pw.TextStyle(font: bold, fontSize: 13, color: _textDark),
+                  hasReceived ? l.t('pdf_balance_due') : l.t('pdf_total_due'),
+                  style: pw.TextStyle(font: bold, fontSize: 13, color: _textDark),
                 ),
                 pw.Text(
-                  '$sym${(hasAdj ? balanceDue : subtotal).toStringAsFixed(2)}',
+                  '$sym${(hasReceived ? balanceDue : total).toStringAsFixed(2)}',
                   style: pw.TextStyle(font: bold, fontSize: 16, color: accent),
                 ),
               ],
@@ -1108,7 +1135,8 @@ class PdfService {
               _waveTable(items, accent, sym, l, font),
               pw.SizedBox(height: 20),
               _waveTotals(subtotal, invoice.discount ?? 0,
-                  invoice.receivedAmount ?? 0, sym, accent, l, font),
+                  invoice.receivedAmount ?? 0, sym, accent, l, font,
+                  taxRate: invoice.taxRate ?? 0, taxLabel: invoice.taxLabel),
               if (invoice.notes?.isNotEmpty ?? false) ...[
                 pw.SizedBox(height: 20),
                 _notes(invoice.notes!, l, font),
@@ -1215,7 +1243,7 @@ class PdfService {
                             const pw.BorderRadius.all(pw.Radius.circular(4)),
                       ),
                       child: pw.Text(
-                        '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
+                        invoice.invoiceNumber ?? '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? '001'}',
                         style: pw.TextStyle(
                             font: regular,
                             fontSize: 10,
@@ -1431,12 +1459,15 @@ class PdfService {
   pw.Widget _waveTotals(
     double subtotal, double discount, double received,
     String sym, PdfColor accent, _PdfLabels l, pw.Font? font,
+    {double taxRate = 0, String? taxLabel}
   ) {
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
+    final afterDiscount = (subtotal - discount).clamp(0.0, double.infinity);
+    final taxAmount = afterDiscount * taxRate / 100;
+    final total = afterDiscount + taxAmount;
     final balanceDue = (total - received).clamp(0.0, double.infinity);
     final hasDiscount = discount > 0;
+    final hasTax = taxRate > 0;
     final hasReceived = received > 0;
-    final hasAdj = hasDiscount || hasReceived;
     final regular = font ?? pw.Font.helvetica();
     final bold = font ?? pw.Font.helveticaBold();
     final accentLight = _lighten(accent, 0.92);
@@ -1467,6 +1498,12 @@ class PdfService {
                         '-$sym${discount.toStringAsFixed(2)}', regular, bold,
                         valueColor: PdfColors.orange700),
                   ],
+                  if (hasTax) ...[
+                    pw.SizedBox(height: 6),
+                    _totRow('${taxLabel ?? l.t('pdf_tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)',
+                        '+$sym${taxAmount.toStringAsFixed(2)}', regular, bold,
+                        valueColor: PdfColors.blue700),
+                  ],
                   if (hasReceived) ...[
                     pw.SizedBox(height: 6),
                     _totRow(l.t('pdf_received'),
@@ -1478,8 +1515,7 @@ class PdfService {
             ),
             pw.Container(
               width: double.infinity,
-              padding: const pw.EdgeInsets.symmetric(
-                  horizontal: 18, vertical: 14),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               decoration: pw.BoxDecoration(
                 color: accent,
                 borderRadius: const pw.BorderRadius.only(
@@ -1491,7 +1527,7 @@ class PdfService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    hasAdj
+                    hasReceived
                         ? l.t('pdf_balance_due').toUpperCase()
                         : l.t('pdf_total_due').toUpperCase(),
                     style: pw.TextStyle(
@@ -1501,7 +1537,7 @@ class PdfService {
                         letterSpacing: 0.5),
                   ),
                   pw.Text(
-                    '$sym${(hasAdj ? balanceDue : subtotal).toStringAsFixed(2)}',
+                    '$sym${(hasReceived ? balanceDue : total).toStringAsFixed(2)}',
                     style: pw.TextStyle(
                         font: bold, fontSize: 18, color: PdfColors.white),
                   ),
@@ -1541,7 +1577,8 @@ class PdfService {
               _boutiqueTable(items, sym, l, font),
               pw.SizedBox(height: 20),
               _boutiqueTotals(subtotal, invoice.discount ?? 0,
-                  invoice.receivedAmount ?? 0, sym, accent, l, font),
+                  invoice.receivedAmount ?? 0, sym, accent, l, font,
+                  taxRate: invoice.taxRate ?? 0, taxLabel: invoice.taxLabel),
               pw.SizedBox(height: 28),
               _boutiqueThankYou(accent, font),
               pw.SizedBox(height: 20),
@@ -1688,7 +1725,7 @@ class PdfService {
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
             pw.Text(
-              '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? ''}',
+              invoice.invoiceNumber ?? '${_docTypeNo(invoice.documentType, l)}${invoice.invoiceId ?? ''}',
               style: pw.TextStyle(
                   font: bold, fontSize: 10, color: _textDark),
             ),
@@ -1804,12 +1841,15 @@ class PdfService {
   pw.Widget _boutiqueTotals(
     double subtotal, double discount, double received,
     String sym, PdfColor accent, _PdfLabels l, pw.Font? font,
+    {double taxRate = 0, String? taxLabel}
   ) {
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
+    final afterDiscount = (subtotal - discount).clamp(0.0, double.infinity);
+    final taxAmount = afterDiscount * taxRate / 100;
+    final total = afterDiscount + taxAmount;
     final balanceDue = (total - received).clamp(0.0, double.infinity);
     final hasDiscount = discount > 0;
+    final hasTax = taxRate > 0;
     final hasReceived = received > 0;
-    final hasAdj = hasDiscount || hasReceived;
     final regular = font ?? pw.Font.helvetica();
     final bold = font ?? pw.Font.helveticaBold();
 
@@ -1827,6 +1867,12 @@ class PdfService {
                   '-$sym${discount.toStringAsFixed(2)}', regular, bold,
                   valueColor: PdfColors.orange700),
             ],
+            if (hasTax) ...[
+              pw.SizedBox(height: 6),
+              _totRow('${taxLabel ?? l.t('pdf_tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)',
+                  '+$sym${taxAmount.toStringAsFixed(2)}', regular, bold,
+                  valueColor: PdfColors.blue700),
+            ],
             if (hasReceived) ...[
               pw.SizedBox(height: 6),
               _totRow(l.t('pdf_received'),
@@ -1836,14 +1882,13 @@ class PdfService {
             pw.SizedBox(height: 8),
             pw.Container(
               width: double.infinity,
-              padding:
-                  const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               color: accent,
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    hasAdj
+                    hasReceived
                         ? l.t('pdf_balance_due').toUpperCase()
                         : l.t('pdf_total_due').toUpperCase(),
                     style: pw.TextStyle(
@@ -1853,7 +1898,7 @@ class PdfService {
                         letterSpacing: 0.5),
                   ),
                   pw.Text(
-                    '$sym${(hasAdj ? balanceDue : subtotal).toStringAsFixed(2)}',
+                    '$sym${(hasReceived ? balanceDue : total).toStringAsFixed(2)}',
                     style: pw.TextStyle(
                         font: bold, fontSize: 18, color: PdfColors.white),
                   ),
@@ -1880,76 +1925,41 @@ class PdfService {
   pw.Widget _boutiquePaymentInfo(
       InvoiceModel invoice, _PdfLabels l, pw.Font? font) {
     final bank = invoice.bank;
-    final client = (invoice.clients?.isNotEmpty ?? false)
-        ? invoice.clients!.first
-        : null;
     final bold = font ?? pw.Font.helveticaBold();
     final regular = font ?? pw.Font.helvetica();
 
-    return pw.Row(
+    if (bank == null) return pw.SizedBox.shrink();
+
+    return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              if (bank != null) ...[
-                pw.Text(
-                  l.t('pdf_payment_info').toUpperCase(),
-                  style: pw.TextStyle(
-                      font: bold,
-                      fontSize: 8,
-                      color: _textMuted,
-                      letterSpacing: 1.4),
-                ),
-                pw.SizedBox(height: 8),
-                if (bank.bankName?.isNotEmpty ?? false)
-                  pw.Text(bank.bankName!,
-                      style: pw.TextStyle(
-                          font: bold, fontSize: 10, color: _textDark)),
-                if (bank.title?.isNotEmpty ?? false)
-                  pw.Text(bank.title!,
-                      style: pw.TextStyle(
-                          font: regular, fontSize: 10, color: _textMid)),
-                if (bank.accountNumber?.isNotEmpty ?? false)
-                  pw.Text(bank.accountNumber!,
-                      style: pw.TextStyle(
-                          font: regular, fontSize: 10, color: _textMid)),
-                if (invoice.dueDate?.isNotEmpty ?? false) ...[
-                  pw.SizedBox(height: 4),
-                  pw.Text('${l.t('pdf_due')} ${invoice.dueDate!}',
-                      style: pw.TextStyle(
-                          font: bold, fontSize: 10, color: _textDark)),
-                ],
-              ],
-            ],
-          ),
+        pw.Text(
+          l.t('pdf_payment_info').toUpperCase(),
+          style: pw.TextStyle(
+              font: bold,
+              fontSize: 8,
+              color: _textMuted,
+              letterSpacing: 1.4),
         ),
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
-          children: [
-            pw.SizedBox(height: 30),
-            pw.Container(
-              width: 130,
-              decoration: const pw.BoxDecoration(
-                border: pw.Border(
-                    bottom: pw.BorderSide(color: _borderGrey, width: 0.8)),
-              ),
-            ),
-            pw.SizedBox(height: 5),
-            pw.Text(
-              l.t('pdf_signature'),
+        pw.SizedBox(height: 8),
+        if (bank.bankName?.isNotEmpty ?? false)
+          pw.Text(bank.bankName!,
               style: pw.TextStyle(
-                  font: regular, fontSize: 9, color: _textMuted),
-            ),
-            if (client?.address?.isNotEmpty ?? false) ...[
-              pw.SizedBox(height: 8),
-              pw.Text(client!.address!,
-                  style: pw.TextStyle(
-                      font: regular, fontSize: 9, color: _textMid)),
-            ],
-          ],
-        ),
+                  font: bold, fontSize: 10, color: _textDark)),
+        if (bank.title?.isNotEmpty ?? false)
+          pw.Text(bank.title!,
+              style: pw.TextStyle(
+                  font: regular, fontSize: 10, color: _textMid)),
+        if (bank.accountNumber?.isNotEmpty ?? false)
+          pw.Text(bank.accountNumber!,
+              style: pw.TextStyle(
+                  font: regular, fontSize: 10, color: _textMid)),
+        if (invoice.dueDate?.isNotEmpty ?? false) ...[
+          pw.SizedBox(height: 4),
+          pw.Text('${l.t('pdf_due')} ${invoice.dueDate!}',
+              style: pw.TextStyle(
+                  font: bold, fontSize: 10, color: _textDark)),
+        ],
       ],
     );
   }
@@ -1975,7 +1985,8 @@ class PdfService {
               _geometricHeader(invoice, accent, l, font),
               pw.SizedBox(height: 28),
               _geometricTable(items, subtotal, invoice.discount ?? 0,
-                  invoice.receivedAmount ?? 0, sym, l, font, accent),
+                  invoice.receivedAmount ?? 0, sym, l, font, accent,
+                  taxRate: invoice.taxRate ?? 0, taxLabel: invoice.taxLabel),
               pw.SizedBox(height: 20),
               _geometricNoteSignature(invoice, l, font),
               if (invoice.notes?.isNotEmpty ?? false) ...[
@@ -2108,7 +2119,7 @@ class PdfService {
                 pw.Text('${_docTypeNo(invoice.documentType, l)}:',
                     style: pw.TextStyle(font: bold, fontSize: 10, color: _textDark)),
                 pw.SizedBox(height: 3),
-                pw.Text('${invoice.invoiceId ?? ''}',
+                pw.Text(invoice.invoiceNumber ?? '${invoice.invoiceId ?? ''}',
                     style: pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
               ],
             ),
@@ -2149,12 +2160,15 @@ class PdfService {
   pw.Widget _geometricTable(
     List items, double subtotal, double discount, double received,
     String sym, _PdfLabels l, pw.Font? font, PdfColor accent,
+    {double taxRate = 0, String? taxLabel}
   ) {
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
+    final afterDiscount = (subtotal - discount).clamp(0.0, double.infinity);
+    final taxAmount = afterDiscount * taxRate / 100;
+    final total = afterDiscount + taxAmount;
     final balanceDue = (total - received).clamp(0.0, double.infinity);
     final hasDiscount = discount > 0;
+    final hasTax = taxRate > 0;
     final hasReceived = received > 0;
-    final hasAdj = hasDiscount || hasReceived;
     final bold = font ?? pw.Font.helveticaBold();
     final regular = font ?? pw.Font.helvetica();
 
@@ -2281,6 +2295,26 @@ class PdfService {
         ],
       ));
     }
+    if (hasTax) {
+      if (!hasDiscount) {
+        rows.add(pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.white),
+          children: [
+            pw.Container(), pw.Container(), pw.Container(),
+            gTotLabel(l.t('pdf_subtotal')),
+            gTotVal('$sym${subtotal.toStringAsFixed(2)}', charcoal),
+          ],
+        ));
+      }
+      rows.add(pw.TableRow(
+        decoration: const pw.BoxDecoration(color: PdfColors.white),
+        children: [
+          pw.Container(), pw.Container(), pw.Container(),
+          gTotLabel('${taxLabel ?? l.t('pdf_tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)'),
+          gTotVal('+$sym${taxAmount.toStringAsFixed(2)}', PdfColors.blue700),
+        ],
+      ));
+    }
     if (hasReceived) {
       rows.add(pw.TableRow(
         decoration: const pw.BoxDecoration(color: PdfColors.white),
@@ -2293,10 +2327,10 @@ class PdfService {
     }
 
     // ── Grand Total / Balance Due row ───────────────────────────────────────
-    final grandLabel  = hasAdj
+    final grandLabel  = hasReceived
         ? l.t('pdf_balance_due').toUpperCase()
         : l.t('pdf_grand_total').toUpperCase();
-    final grandAmount = hasAdj ? balanceDue : subtotal;
+    final grandAmount = hasReceived ? balanceDue : total;
 
     rows.add(pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColors.white),
@@ -2677,7 +2711,7 @@ class _PdfLabels {
   final String _lang;
   const _PdfLabels(this._lang);
 
-  bool get isRtl => _lang == 'ur';
+  bool get isRtl => _lang == 'ur' || _lang == 'ar';
 
   String t(String key) => AppTranslations.tl(_lang, key);
 }

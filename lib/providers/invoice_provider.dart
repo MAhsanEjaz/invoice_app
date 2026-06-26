@@ -63,9 +63,15 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addInvoice(InvoiceModel newInvoice) async {
+  Future<void> addInvoice(
+    InvoiceModel newInvoice, {
+    String Function(int)? numberFormatter,
+  }) async {
     lastId += 1;
     newInvoice.invoiceId = lastId;
+    if (numberFormatter != null) {
+      newInvoice.invoiceNumber = numberFormatter(lastId);
+    }
 
     invoice.add(newInvoice);
     getInvoices();
@@ -82,10 +88,54 @@ class InvoiceProvider extends ChangeNotifier {
       NotificationService.scheduleInvoiceReminder(
         invoiceId: newInvoice.invoiceId!,
         clientName: clientName,
-        invoiceNumber: newInvoice.invoiceId.toString(),
+        invoiceNumber: newInvoice.invoiceNumber ?? newInvoice.invoiceId.toString(),
         dueDate: newInvoice.dueDate!,
       );
     }
+  }
+
+  /// Creates a new Invoice document from a Quote or Estimate, preserving all items,
+  /// client, and financial settings from the source document.
+  Future<InvoiceModel> convertToInvoice(
+    InvoiceModel source, {
+    String Function(int)? numberFormatter,
+  }) async {
+    final newInvoice = InvoiceModel(
+      documentType: 'Invoice',
+      invoiceStatus: 'UnPaid',
+      businessId: source.businessId,
+      businessName: source.businessName,
+      date: source.date,
+      dueDate: source.dueDate,
+      notes: source.notes,
+      termsConditions: source.termsConditions,
+      bank: source.bank,
+      discount: source.discount,
+      taxRate: source.taxRate,
+      taxLabel: source.taxLabel,
+      items: source.items
+          ?.map((e) => ItemModel(
+                id: e.id,
+                itemName: e.itemName,
+                note: e.note,
+                price: e.price,
+                qty: e.qty,
+                duplicate: false,
+              ))
+          .toList(),
+      clients: source.clients
+          ?.map((e) => ClientModel(
+                id: e.id,
+                name: e.name,
+                phone: e.phone,
+                email: e.email,
+                address: e.address,
+                duplicate: false,
+              ))
+          .toList(),
+    );
+    await addInvoice(newInvoice, numberFormatter: numberFormatter);
+    return newInvoice;
   }
 
   updateInvoiceStatus(String val, int invoiceId) {
@@ -237,7 +287,7 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Updates the mutable fields of an invoice (date, dueDate, notes, termsConditions, bank).
+  /// Updates the mutable fields of an invoice (date, dueDate, notes, termsConditions, bank, tax).
   void updateInvoiceDetails(
     int invoiceId, {
     String? date,
@@ -245,6 +295,8 @@ class InvoiceProvider extends ChangeNotifier {
     String? notes,
     String? termsConditions,
     BankModel? bank,
+    double? taxRate,
+    String? taxLabel,
   }) {
     final inv = invoice.firstWhere((e) => e.invoiceId == invoiceId);
     if (date != null) inv.date = date;
@@ -252,6 +304,8 @@ class InvoiceProvider extends ChangeNotifier {
     inv.notes = notes;
     inv.termsConditions = termsConditions;
     inv.bank = bank;
+    inv.taxRate = (taxRate ?? 0) > 0 ? taxRate : null;
+    inv.taxLabel = taxLabel;
     saveInvoice();
     notifyListeners();
 

@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/service_model.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/service_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:provider/provider.dart';
@@ -48,6 +50,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return CupertinoPageScaffold(
       backgroundColor: cl.background,
@@ -64,7 +67,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    sectionLabel(context, 'Service Details'),
+                    sectionLabel(context, context.tr('service_details')),
                     _buildForm(cl),
                     const SizedBox(height: 16),
                     if (_isEdit) _buildDeleteButton(cl),
@@ -87,7 +90,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           closeButton(context),
           const Spacer(),
           Text(
-            _isEdit ? 'Edit Service' : 'New Service',
+            _isEdit ? context.tr('edit_service') : context.tr('new_service'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -109,7 +112,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           _formField(
             cl: cl,
             controller: _nameCtrl,
-            placeholder: 'Service name',
+            placeholder: context.tr('service_name_placeholder'),
             icon: CupertinoIcons.tag,
             error: _nameError,
             onChanged: () => setState(() => _nameError = false),
@@ -118,14 +121,14 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           _formField(
             cl: cl,
             controller: _descCtrl,
-            placeholder: 'Description (optional)',
+            placeholder: context.tr('notes_optional'),
             icon: CupertinoIcons.doc_text,
           ),
           Divider(height: 1, color: cl.border),
           _formField(
             cl: cl,
             controller: _priceCtrl,
-            placeholder: 'Price',
+            placeholder: context.tr('price'),
             icon: CupertinoIcons.money_dollar_circle,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             error: _priceError,
@@ -176,7 +179,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                 ),
                 if (error)
                   Text(
-                    'Required',
+                    context.tr('required_field'),
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: kDangerColor,
@@ -195,7 +198,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       onTap: () => customCupertinoDialog(context, () async {
         await Provider.of<ServiceProvider>(context, listen: false)
             .deleteService(widget.service!.id!);
-        if (!context.mounted) return;
+        if (!mounted) return;
         Navigator.of(context)
           ..pop()
           ..pop();
@@ -209,7 +212,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
         ),
         alignment: Alignment.center,
         child: Text(
-          'Delete Service',
+          context.tr('delete_service'),
           style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -228,7 +231,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: _isEdit ? 'Update Service' : 'Save Service',
+        txt: _isEdit ? context.tr('update_service') : context.tr('save_service'),
         onTap: () async {
           final name = _nameCtrl.text.trim();
           final price = double.tryParse(_priceCtrl.text.trim());
@@ -260,7 +263,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
             ));
           }
 
-          if (!context.mounted) return;
+          if (!mounted) return;
           Navigator.pop(context);
         },
       ),

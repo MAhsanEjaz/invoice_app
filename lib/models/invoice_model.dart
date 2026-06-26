@@ -4,6 +4,8 @@ import 'item_model.dart';
 
 class InvoiceModel {
   int? invoiceId;
+  // Custom formatted number e.g. "INV-2024-001". Null = fall back to invoiceId display.
+  String? invoiceNumber;
   String? businessId;
   String? businessName;
   String? date;
@@ -13,6 +15,10 @@ class InvoiceModel {
   String? termsConditions;
   double? receivedAmount;
   double? discount;
+  // Tax rate as a percentage, e.g. 18.0 for 18%. Null / 0 = no tax.
+  double? taxRate;
+  // Display label for tax, e.g. "GST", "VAT". Null defaults to "Tax".
+  String? taxLabel;
   List<ItemModel>? items;
   List<ClientModel>? clients;
   BankModel? bank;
@@ -27,11 +33,14 @@ class InvoiceModel {
     this.dueDate,
     this.clients,
     this.invoiceId,
+    this.invoiceNumber,
     this.invoiceStatus,
     this.notes,
     this.termsConditions,
     this.receivedAmount,
     this.discount,
+    this.taxRate,
+    this.taxLabel,
     this.bank,
     this.documentType,
   });
@@ -39,6 +48,7 @@ class InvoiceModel {
   Map<String, dynamic> toJson() {
     return {
       'invoiceId': invoiceId,
+      'invoiceNumber': invoiceNumber,
       'businessId': businessId,
       'businessName': businessName,
       'date': date,
@@ -48,6 +58,8 @@ class InvoiceModel {
       'termsConditions': termsConditions,
       'receivedAmount': receivedAmount,
       'discount': discount,
+      'taxRate': taxRate,
+      'taxLabel': taxLabel,
       'clients': clients?.map((e) => e.toJson()).toList(),
       'items': items?.map((e) => e.toJson()).toList(),
       'bank': bank?.toJson(),
@@ -58,6 +70,7 @@ class InvoiceModel {
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
     return InvoiceModel(
       invoiceId: json['invoiceId'],
+      invoiceNumber: json['invoiceNumber'] as String?,
       businessId: json['businessId'] as String?,
       invoiceStatus: json['invoiceStatus'],
       date: json['date'],
@@ -67,6 +80,8 @@ class InvoiceModel {
       termsConditions: json['termsConditions'] as String?,
       receivedAmount: (json['receivedAmount'] as num?)?.toDouble(),
       discount: (json['discount'] as num?)?.toDouble(),
+      taxRate: (json['taxRate'] as num?)?.toDouble(),
+      taxLabel: json['taxLabel'] as String?,
       items: (json['items'] as List<dynamic>?)
           ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),

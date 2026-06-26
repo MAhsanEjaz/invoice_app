@@ -33,6 +33,8 @@ class CurrencyProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> reload() => _load();
+
   Future<void> select(CurrencyModel currency) async {
     _currency = currency;
     final prefs = await SharedPreferences.getInstance();

@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:invoicemaker/widgets/app_text_filed.dart';
@@ -121,6 +123,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer2<ClientProvider, InvoiceProvider>(
       builder: (context, client, invoice, _) {
@@ -140,10 +143,10 @@ class _AddClientScreenState extends State<AddClientScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      sectionLabel(context, 'Client Info'),
+                      sectionLabel(context, context.tr('client_info')),
                       _buildNameCard(cl),
                       const SizedBox(height: 20),
-                      sectionLabel(context, 'Contact Details'),
+                      sectionLabel(context, context.tr('contact_details')),
                       _buildContactCard(cl),
                       if (isEditing) ...[
                         const SizedBox(height: 24),
@@ -172,7 +175,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
             closeButton(context),
             const Spacer(),
             Text(
-              isEditing ? 'Edit Client' : 'New Client',
+              isEditing ? context.tr('edit_client') : context.tr('new_client'),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -194,7 +197,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
         children: [
           AppTextFiled(
             controller: nameCont,
-            placeholder: 'Client Name',
+            placeholder: context.tr('client_name_placeholder'),
             autofocus: true,
           ),
           Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
@@ -219,7 +222,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Import from contacts',
+                    context.tr('import_from_contacts'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -248,19 +251,19 @@ class _AddClientScreenState extends State<AddClientScreen> {
         children: [
           AppTextFiled(
             controller: phoneCont,
-            placeholder: 'Phone',
+            placeholder: context.tr('phone'),
             textInputType: TextInputType.phone,
           ),
           Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: emailCont,
-            placeholder: 'Email',
+            placeholder: context.tr('email'),
             textInputType: TextInputType.emailAddress,
           ),
           Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           AppTextFiled(
             controller: addressCont,
-            placeholder: 'Address',
+            placeholder: context.tr('address'),
             textInputType: TextInputType.streetAddress,
           ),
         ],
@@ -291,7 +294,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
             const Icon(CupertinoIcons.delete, color: kDangerColor, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Remove from Invoice',
+              context.tr('remove_from_invoice'),
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -373,7 +376,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
             Navigator.pop(context);
           }
         },
-        txt: client.name != null ? 'Save Changes' : 'Save Client',
+        txt: client.name != null ? context.tr('save_changes') : context.tr('save_client_btn'),
       ),
     );
   }

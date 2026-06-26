@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:provider/provider.dart';
 
@@ -47,6 +49,7 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
 
     return Consumer<BusinessProvider>(
       builder: (context, business, _) {
+        context.watch<LocaleProvider>();
         return Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: kPrimary,
@@ -64,10 +67,10 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                       child: Image.asset('assets/icon.png', width: 60, height: 60, fit: BoxFit.cover),
                     ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.7, 0.7), duration: 500.ms, curve: Curves.easeOut),
                     const SizedBox(height: 22),
-                    Text('Set up your\nbusiness', style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5))
+                    Text(context.tr('setup_business_title'), style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5))
                         .animate().fadeIn(delay: 150.ms, duration: 400.ms).slideY(begin: 0.2, end: 0, delay: 150.ms, duration: 400.ms),
                     const SizedBox(height: 10),
-                    Text('Just one step to start\ncreating professional invoices.', style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withValues(alpha: 0.72), height: 1.5))
+                    Text(context.tr('setup_business_subtitle'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withValues(alpha: 0.72), height: 1.5))
                         .animate().fadeIn(delay: 250.ms, duration: 400.ms),
                   ]),
                 ),
@@ -89,7 +92,7 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 20),
                           decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)))),
-                        sectionLabel(context, 'Your business name'),
+                        sectionLabel(context, context.tr('business_name_label')),
                         const SizedBox(height: 8),
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
@@ -102,7 +105,7 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                             controller: _nameCont,
                             focusNode: _focusNode,
                             autofocus: false,
-                            placeholder: 'e.g. Acme Studio',
+                            placeholder: context.tr('business_ex_placeholder'),
                             placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: cl.textHint),
                             style: GoogleFonts.poppins(fontSize: 15, color: cl.textPrimary),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -112,10 +115,10 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        Text('You can always update this later in Settings.', style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
+                        Text(context.tr('business_name_settings_hint'), style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
                         const SizedBox(height: 24),
                         AppButton(
-                          txt: 'Continue',
+                          txt: context.tr('continue_btn'),
                           color: _hasInput ? kPrimary : cl.textHint,
                           onTap: _hasInput ? () async {
                             await business.addBusinessData(

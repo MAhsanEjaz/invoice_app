@@ -4,8 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
+import 'package:invoicemaker/services/backup_service.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
+import 'package:invoicemaker/providers/invoice_number_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
+import 'package:invoicemaker/providers/tax_provider.dart';
 import 'package:invoicemaker/providers/terms_provider.dart';
 import 'package:invoicemaker/providers/theme_provider.dart';
 import 'package:invoicemaker/screens/currency_screen.dart';
@@ -85,6 +88,23 @@ class _SettingPageState extends State<SettingPage> {
 
                         sectionLabel(context, context.tr('invoice_defaults')),
                         _buildTermsCard(cl, terms),
+                        const SizedBox(height: 24),
+
+                        sectionLabel(context, context.tr('tax_settings')),
+                        Consumer<TaxProvider>(
+                          builder: (_, tax, __) => _buildTaxCard(cl, tax),
+                        ),
+                        const SizedBox(height: 24),
+
+                        sectionLabel(context, context.tr('invoice_number_format')),
+                        Consumer<InvoiceNumberProvider>(
+                          builder: (_, numProv, __) =>
+                              _buildInvoiceNumberCard(cl, numProv),
+                        ),
+                        const SizedBox(height: 24),
+
+                        sectionLabel(context, context.tr('backup_restore')),
+                        _buildBackupCard(cl),
                         const SizedBox(height: 32),
 
                         Center(
@@ -375,6 +395,7 @@ class _SettingPageState extends State<SettingPage> {
       ('en', context.tr('english'), '🇬🇧'),
       ('ur', context.tr('urdu'), '🇵🇰'),
       ('hi', context.tr('hindi'), '🇮🇳'),
+      ('ar', context.tr('arabic'), '🇸🇦'),
     ];
 
     final currentLabel = languages
@@ -608,6 +629,339 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
+  Widget _buildTaxCard(AppColors cl, TaxProvider tax) {
+    return Container(
+      decoration: context.cardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () => _showTaxSettingsDialog(cl, tax),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: cl.primaryLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(CupertinoIcons.percent, color: kPrimary, size: 18),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr('default_tax_rate'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: cl.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          tax.hasTax
+                              ? '${tax.label} · ${tax.rate.toStringAsFixed(tax.rate == tax.rate.roundToDouble() ? 0 : 1)}%'
+                              : context.tr('not_set_tap'),
+                          style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(CupertinoIcons.chevron_right, size: 14, color: cl.textSecondary),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInvoiceNumberCard(AppColors cl, InvoiceNumberProvider numProv) {
+    return Container(
+      decoration: context.cardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () => _showInvoiceNumberDialog(cl, numProv),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: cl.primaryLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(CupertinoIcons.number, color: kPrimary, size: 18),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr('invoice_number_format'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: cl.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          numProv.isCustom
+                              ? numProv.preview
+                              : context.tr('not_set_tap'),
+                          style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(CupertinoIcons.chevron_right, size: 14, color: cl.textSecondary),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTaxSettingsDialog(AppColors cl, TaxProvider tax) {
+    final rateCtrl = TextEditingController(
+      text: tax.hasTax ? tax.rate.toStringAsFixed(tax.rate == tax.rate.roundToDouble() ? 0 : 1) : '',
+    );
+    final labelCtrl = TextEditingController(text: tax.hasTax ? tax.label : '');
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cl.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: cl.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(context.tr('tax_settings'),
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+              const SizedBox(height: 16),
+              CupertinoTextField(
+                controller: rateCtrl,
+                placeholder: context.tr('default_tax_rate'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: cl.background,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cl.border),
+                ),
+                style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+              ),
+              const SizedBox(height: 10),
+              CupertinoTextField(
+                controller: labelCtrl,
+                placeholder: context.tr('default_tax_label'),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: cl.background,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cl.border),
+                ),
+                style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: CupertinoButton.filled(
+                  borderRadius: BorderRadius.circular(12),
+                  onPressed: () {
+                    final rate = double.tryParse(rateCtrl.text.trim()) ?? 0;
+                    final label = labelCtrl.text.trim().isEmpty ? 'Tax' : labelCtrl.text.trim();
+                    tax.update(rate, label);
+                    Navigator.pop(context);
+                  },
+                  child: Text(context.tr('save'),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                ),
+              ),
+              if (tax.hasTax) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoButton(
+                    borderRadius: BorderRadius.circular(12),
+                    onPressed: () {
+                      tax.update(0, 'Tax');
+                      Navigator.pop(context);
+                    },
+                    child: Text(context.tr('remove_tax'),
+                        style: GoogleFonts.poppins(color: kDangerColor, fontWeight: FontWeight.w500)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showInvoiceNumberDialog(AppColors cl, InvoiceNumberProvider numProv) {
+    final prefixCtrl = TextEditingController(text: numProv.prefix);
+    bool includeYear = numProv.includeYear;
+    int padLength = numProv.padLength;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: cl.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(
+                      color: cl.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(context.tr('invoice_number_format'),
+                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+                const SizedBox(height: 16),
+                CupertinoTextField(
+                  controller: prefixCtrl,
+                  placeholder: context.tr('invoice_prefix'),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: cl.background,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: cl.border),
+                  ),
+                  style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(context.tr('include_year_in_number'),
+                        style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary)),
+                    CupertinoSwitch(
+                      value: includeYear,
+                      activeTrackColor: kPrimary,
+                      onChanged: (v) => setModalState(() => includeYear = v),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(context.tr('number_padding'),
+                        style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary)),
+                    Row(
+                      children: [
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: padLength > 1 ? () => setModalState(() => padLength--) : null,
+                          child: const Icon(CupertinoIcons.minus_circle, color: kPrimary),
+                        ),
+                        Text('$padLength',
+                            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: padLength < 9 ? () => setModalState(() => padLength++) : null,
+                          child: const Icon(CupertinoIcons.plus_circle, color: kPrimary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: cl.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${context.tr('number_format_preview')}: ${_previewFormat(prefixCtrl.text.trim(), includeYear, padLength)}',
+                    style: GoogleFonts.poppins(fontSize: 13, color: kPrimary, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoButton.filled(
+                    borderRadius: BorderRadius.circular(12),
+                    onPressed: () {
+                      numProv.update(
+                        prefix: prefixCtrl.text.trim(),
+                        includeYear: includeYear,
+                        padLength: padLength,
+                      );
+                      Navigator.pop(context);
+                    },
+                    child: Text(context.tr('save'),
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _previewFormat(String prefix, bool includeYear, int pad) {
+    final padded = '1'.padLeft(pad.clamp(1, 9), '0');
+    if (prefix.isEmpty && !includeYear) return padded;
+    if (includeYear) return '$prefix${DateTime.now().year}-$padded';
+    return '$prefix$padded';
+  }
+
   void _showTermsEditor(AppColors cl, TermsProvider terms) {
     final ctrl = TextEditingController(text: terms.terms);
     showModalBottomSheet<void>(
@@ -659,7 +1013,7 @@ class _SettingPageState extends State<SettingPage> {
                 decoration: context.cardDecoration,
                 child: CupertinoTextField(
                   controller: ctrl,
-                  placeholder: 'e.g. Payment due within 30 days…',
+                  placeholder: context.tr('terms_placeholder'),
                   placeholderStyle: GoogleFonts.poppins(
                     fontSize: 13,
                     color: cl.textHint,
@@ -735,11 +1089,44 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
+  Widget _buildBackupCard(AppColors cl) {
+    return Container(
+      decoration: context.cardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            children: [
+              _menuTile(
+                cl: cl,
+                icon: CupertinoIcons.arrow_up_doc_fill,
+                label: context.tr('export_backup'),
+                subtitle: context.tr('export_backup_sub'),
+                onTap: () => BackupService.exportBackup(context),
+              ),
+              Divider(height: 1, color: cl.border),
+              _menuTile(
+                cl: cl,
+                icon: CupertinoIcons.arrow_down_doc_fill,
+                label: context.tr('restore_backup'),
+                subtitle: context.tr('restore_backup_sub'),
+                isLast: true,
+                onTap: () => BackupService.importBackup(context),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _menuTile({
     required AppColors cl,
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    String? subtitle,
     bool isLast = false,
   }) {
     return InkWell(
@@ -762,14 +1149,35 @@ class _SettingPageState extends State<SettingPage> {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(
-                label,
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: cl.textPrimary,
-                ),
-              ),
+              child: subtitle != null
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: cl.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          subtitle,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: cl.textSecondary,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      label,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: cl.textPrimary,
+                      ),
+                    ),
             ),
             Icon(
               CupertinoIcons.chevron_right,

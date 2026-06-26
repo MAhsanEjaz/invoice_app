@@ -26,6 +26,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/bank_model.dart';
 import '../providers/bank_provider.dart';
 import '../providers/business_provider.dart';
+import '../providers/invoice_number_provider.dart';
 import '../providers/pdf_templates_colors_provider.dart';
 
 class VerificationInvoice extends StatefulWidget {
@@ -483,6 +484,58 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
     );
   }
 
+  void _confirmConvert(
+    InvoiceModel source,
+    InvoiceProvider invoice,
+    InvoiceNumberProvider numProvider,
+  ) {
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: Text(
+          context.tr('convert_to_invoice'),
+          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(
+            context.tr('convert_confirm'),
+            style: GoogleFonts.poppins(fontSize: 13),
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              context.tr('cancel'),
+              style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
+            ),
+          ),
+          CupertinoDialogAction(
+            onPressed: () async {
+              Navigator.pop(context);
+              final newInvoice = await invoice.convertToInvoice(
+                source,
+                numberFormatter: numProvider.isCustom ? numProvider.format : null,
+              );
+              if (!mounted) return;
+              Navigator.pushReplacement(
+                context,
+                CupertinoPageRoute(
+                  builder: (_) => VerificationInvoice(invoiceModel: newInvoice),
+                ),
+              );
+            },
+            child: Text(
+              context.tr('convert'),
+              style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<LocaleProvider>();
@@ -617,7 +670,10 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
     );
     final discount = liveInvoice.discount ?? 0;
-    final total = (subtotal - discount).clamp(0.0, double.infinity);
+    final afterDiscount = (subtotal - discount).clamp(0.0, double.infinity);
+    final taxRate = liveInvoice.taxRate ?? 0;
+    final taxAmount = afterDiscount * taxRate / 100;
+    final total = afterDiscount + taxAmount;
     final received = liveInvoice.receivedAmount ?? 0;
     final balanceDue = (total - received).clamp(0.0, double.infinity);
 
@@ -903,8 +959,46 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   ),
                 ),
 
-                // Total row — shown only when discount is applied
-                if (discount > 0) ...[
+                // Tax row — shown only when tax is applied
+                if (taxRate > 0) ...[
+                  Divider(height: 1, color: context.colors.border),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          CupertinoIcons.percent,
+                          size: 15,
+                          color: kPrimary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${liveInvoice.taxLabel ?? context.tr('tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: context.colors.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '+${_fmt(sym, taxAmount)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: kPrimary,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Total row — shown when discount or tax is applied
+                if (discount > 0 || taxRate > 0) ...[
                   Divider(height: 1, color: context.colors.border),
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -1226,6 +1320,44 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                     ),
                   ],
                 ],
+              ),
+            ),
+          ],
+
+          // ── Convert to Invoice (Quotes & Estimates only) ───────────────────
+          if (!isInvoice) ...[
+            const SizedBox(height: 16),
+            Consumer<InvoiceNumberProvider>(
+              builder: (ctx, numProvider, _) => GestureDetector(
+                onTap: () => _confirmConvert(liveInvoice, invoice, numProvider),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: kPrimary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kPrimary.withValues(alpha: 0.3)),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        CupertinoIcons.arrow_right_arrow_left,
+                        color: kPrimary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.tr('convert_to_invoice'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: kPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

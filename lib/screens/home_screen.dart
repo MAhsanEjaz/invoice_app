@@ -9,6 +9,7 @@ import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
+import 'package:invoicemaker/screens/dashboard_screen.dart';
 import 'package:invoicemaker/screens/setting_page.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
@@ -192,6 +193,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          GestureDetector(
+            onTap: () => Navigation.go(context, const DashboardScreen()),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: cl.surface,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                CupertinoIcons.chart_bar_square,
+                color: kPrimary,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
           GestureDetector(
             onTap: () => Navigation.go(context, SettingPage()),
             child: Container(

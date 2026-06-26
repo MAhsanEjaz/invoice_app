@@ -11,6 +11,8 @@ import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
 import 'package:invoicemaker/providers/bank_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/providers/service_provider.dart';
+import 'package:invoicemaker/providers/tax_provider.dart';
+import 'package:invoicemaker/providers/invoice_number_provider.dart';
 import 'package:invoicemaker/providers/terms_provider.dart';
 import 'package:invoicemaker/providers/theme_provider.dart';
 import 'package:invoicemaker/services/notification_service.dart';
@@ -52,6 +54,8 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (context) => SavedClientProvider()),
         ChangeNotifierProvider(create: (context) => BankProvider()),
         ChangeNotifierProvider(create: (context) => TermsProvider()),
+        ChangeNotifierProvider(create: (context) => TaxProvider()),
+        ChangeNotifierProvider(create: (context) => InvoiceNumberProvider()),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, _) => CupertinoApp(
@@ -61,6 +65,7 @@ class _MyAppState extends State<MyApp> {
             Locale('en'),
             Locale('ur'),
             Locale('hi'),
+            Locale('ar'),
           ],
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

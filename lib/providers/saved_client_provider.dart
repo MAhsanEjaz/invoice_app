@@ -44,6 +44,8 @@ class SavedClientProvider extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> reload() => _load();
+
   Future<void> deleteClient(int id) async {
     clients.removeWhere((c) => c.id == id);
     notifyListeners();

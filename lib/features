@@ -1,10 +1,164 @@
-Tax / GST / VAT — per item or on total, with custom rate (e.g. 15%)
-Discount — per item or invoice-level, fixed or percentage
-Due Date — separate from invoice date, shown on PDF
-Bank / Payment Details — shown at bottom of PDF so client knows how to pay
-Search & Filter — search by client name, filter by date range or status
-Estimate / Quote — same as invoice but labeled "Quote", can convert to invoice
-Email Invoice — send PDF directly from app via email
-Dark Mode
-Multiple Businesses — switch between different business profiles
-Late Payment Reminder — local notification when invoice is overdue-
+════════════════════════════════════════════════════════════════
+  PAPERPUSH — COMPLETE FEATURE LIST
+  Invoice, Quote & Estimate Manager
+════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. INVOICE / QUOTE / ESTIMATE CREATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Create documents of three types: Invoice, Quote, or Estimate
+  • Add line items — each with name, quantity, unit price, and note
+  • Add a client (new or from saved list) directly on creation
+  • Set Invoice Date and Due Date
+  • Add a discount (fixed amount) at invoice level
+  • Add Tax with a custom label (e.g. GST, VAT) and rate (%)
+  • Track a Received Amount — balance due is auto-calculated
+  • Add internal Notes shown on the PDF
+  • Attach Terms & Conditions (default from Settings, overridable)
+  • Attach Bank / Payment Details to every invoice
+  • Set document status: Paid or Unpaid
+  • Custom invoice number — editable prefix + auto-incrementing counter
+  • Edit any existing invoice / quote / estimate at any time
+  • Delete invoices
+  • Convert a Quote or Estimate into a full Invoice in one tap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  2. HOME SCREEN & INVOICE LIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Segmented view: Unpaid · Paid · Quotes
+  • Outstanding balance shown at the top
+  • Total invoice count per segment
+  • Business switcher — filter list by active business
+  • Empty-state message when no invoices exist
+  • Tap any invoice to view, edit, or generate PDF
+  • Quick-create button always visible
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3. DASHBOARD & ANALYTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Total Earned — sum of all paid invoices
+  • Outstanding — sum of all unpaid invoices
+  • This Month — revenue earned in the current calendar month
+  • Paid invoice count / Unpaid invoice count
+  • Recent 8 invoices listed with amounts and status badges
+  • Filtered per active business
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  4. PDF GENERATION & EXPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • 6 professional invoice templates:
+      Classic    — dark navy header, corporate
+      Elegant    — deep dark luxury, premium
+      Minimal    — clean whitespace, typography-first
+      Wave       — curved header, vibrant, creative
+      Boutique   — editorial, white, hexagon logo badge
+      Geometric  — dual-color corner triangles, bordered table
+  • Custom accent color picker for every template
+  • Generates fully-formatted A4 PDF with all invoice data
+  • Shows: logo, business name, client info, line items,
+    subtotal, discount, tax, received, balance due,
+    bank details, notes, terms, signature line, status badge
+  • Export PDF → save to device storage
+  • Export PDF → share via email, WhatsApp, or any app
+  • Export invoice as PNG image (single or multi-page)
+  • Print directly via system print dialog
+  • Live PDF preview inside the app before exporting
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5. CLIENT MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Save clients with: Name, Phone, Email, Address
+  • Edit or delete saved clients
+  • Reuse saved clients across invoices — no re-entry needed
+  • Import clients directly from device Contacts
+  • Auto-match device contacts with saved client database
+  • Search clients by name while creating an invoice
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  6. SAVED SERVICES / ITEM TEMPLATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Create reusable service templates with name, description,
+    and default price
+  • Edit or delete services
+  • Quickly add one or multiple services to an invoice at once
+  • Speeds up recurring invoices — no manual item re-entry
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  7. BUSINESS PROFILES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Create and manage multiple business profiles
+  • Each business has its own name and logo
+  • Upload and crop business logo (shown on all PDFs)
+  • Set an active / default business for new invoices
+  • Switch between businesses from the home screen
+  • Every invoice is linked to the business it was created under
+  • First-time onboarding screen for business setup
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  8. BANK ACCOUNT MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Save multiple bank accounts (Bank Name, Account Title,
+    Account Number)
+  • Edit or delete bank accounts
+  • Attach a bank account to any invoice
+  • Bank details appear in the PDF payment section so
+    clients know exactly where to pay
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  9. SETTINGS & PREFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Currency
+    • Choose from a wide list of world currencies
+    • Search by currency name, code, or symbol
+    • Currency symbol applied everywhere in the app and PDFs
+
+  Tax
+    • Set a global default tax rate (%)
+    • Set a custom tax label (GST / VAT / Tax / etc.)
+    • Tax is pre-filled on new invoices and can be overridden
+
+  Invoice Numbering
+    • Set a custom prefix (e.g. INV-, #, 2024-)
+    • Set a starting number
+    • Number auto-increments with each new invoice
+
+  Terms & Conditions
+    • Write default terms once — auto-applied to new invoices
+    • Toggle terms on/off per individual invoice
+
+  Language
+    • 4 supported UI languages: English · Urdu · Hindi · Arabic
+    • RTL layout for Arabic and Urdu
+    • PDF output also uses the selected language
+
+  Theme
+    • Light Mode and Dark Mode
+    • Preference saved and restored on restart
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  10. MULTILINGUAL PDF SUPPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • PDF labels rendered in English, Urdu, Hindi, or Arabic
+  • Custom Devanagari font for Hindi
+  • Custom Naskh Arabic font for Arabic / Urdu
+  • RTL text direction in PDF for Arabic and Urdu
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  11. NOTIFICATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Local push notification scheduled on invoice due date
+  • Reminds user when a payment is overdue
+  • Timezone-aware scheduling
+  • Automatically set when a due date is added to an invoice
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  12. DATA & PERSISTENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • All data stored locally on device (no cloud required)
+  • Uses SharedPreferences with JSON serialization
+  • Persists: invoices, clients, services, bank accounts,
+    businesses, template/color choices, and all settings
+  • Business logos stored as files on device storage
+  • Data survives app restarts and updates
+
+════════════════════════════════════════════════════════════════

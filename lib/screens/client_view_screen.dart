@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/providers/client_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../services/navigations.dart';
@@ -27,6 +29,7 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     return Consumer2<InvoiceProvider, ClientProvider>(
       builder: (context, invoice, client, _) {
         // Collect unique (duplicate == false) clients across all invoices,
@@ -53,7 +56,7 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
               CupertinoNavigationBar(
                 leading: closeButton(context),
                 middle: Text(
-                  'Clients',
+                  context.tr('clients'),
                   style: TextStyle(
                     color: buttonColor,
                     fontSize: responseText(context, .05),
@@ -99,8 +102,8 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
                               child: Center(
                                 child: Text(
                                   _query.isEmpty
-                                      ? 'No clients yet'
-                                      : 'No results',
+                                      ? context.tr('no_clients_yet')
+                                      : context.tr('no_results'),
                                   style: const TextStyle(
                                     color: CupertinoColors.systemGrey,
                                   ),

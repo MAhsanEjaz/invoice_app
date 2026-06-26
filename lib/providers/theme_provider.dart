@@ -10,6 +10,8 @@ class ThemeProvider extends ChangeNotifier {
     _load();
   }
 
+  Future<void> reload() => _load();
+
   void setDark(bool val) {
     _isDark = val;
     _save();

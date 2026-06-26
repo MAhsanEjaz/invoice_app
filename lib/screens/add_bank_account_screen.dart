@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/bank_model.dart';
 import 'package:invoicemaker/providers/bank_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
 import 'package:provider/provider.dart';
 
@@ -47,6 +49,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return CupertinoPageScaffold(
       backgroundColor: cl.background,
@@ -63,7 +66,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    sectionLabel(context, 'Bank Details'),
+                    sectionLabel(context, context.tr('bank_details')),
                     _buildForm(cl),
                     if (_isEdit) ...[
                       const SizedBox(height: 24),
@@ -89,7 +92,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           closeButton(context),
           const Spacer(),
           Text(
-            _isEdit ? 'Edit Bank Account' : 'New Bank Account',
+            _isEdit ? context.tr('edit_bank_account') : context.tr('new_bank_account'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -111,7 +114,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           _formField(
             cl: cl,
             controller: _bankNameCtrl,
-            placeholder: 'Bank Name',
+            placeholder: context.tr('bank_name'),
             icon: CupertinoIcons.building_2_fill,
             autofocus: true,
             error: _bankNameError,
@@ -121,7 +124,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           _formField(
             cl: cl,
             controller: _titleCtrl,
-            placeholder: 'Account Title',
+            placeholder: context.tr('pdf_account_title'),
             icon: CupertinoIcons.person,
             error: _titleError,
             onChanged: () => setState(() => _titleError = false),
@@ -130,7 +133,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           _formField(
             cl: cl,
             controller: _accountNumberCtrl,
-            placeholder: 'Account Number',
+            placeholder: context.tr('pdf_account_number'),
             icon: CupertinoIcons.number,
             keyboardType: TextInputType.text,
             error: _accountNumberError,
@@ -183,7 +186,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                 ),
                 if (error)
                   Text(
-                    'Required',
+                    context.tr('required_field'),
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: kDangerColor,
@@ -205,7 +208,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
               context,
               listen: false,
             ).deleteBank(widget.bank!.id!);
-            if (!context.mounted) return;
+            if (!mounted) return;
             Navigator.of(context)
               ..pop()
               ..pop();
@@ -225,7 +228,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
             const Icon(CupertinoIcons.delete, color: kDangerColor, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Delete Bank Account',
+              context.tr('delete_bank_account_btn'),
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -246,7 +249,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: _isEdit ? 'Update Bank Account' : 'Save Bank Account',
+        txt: _isEdit ? context.tr('update_bank_account') : context.tr('save_bank_account'),
         onTap: () async {
           final bankName = _bankNameCtrl.text.trim();
           final title = _titleCtrl.text.trim();
@@ -282,7 +285,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
             );
           }
 
-          if (!context.mounted) return;
+          if (!mounted) return;
           Navigator.pop(context);
         },
       ),

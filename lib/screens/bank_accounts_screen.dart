@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
+import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/providers/bank_provider.dart';
+import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/add_bank_account_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +14,7 @@ class BankAccountsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LocaleProvider>();
     final cl = context.colors;
     return Consumer<BankProvider>(
       builder: (context, provider, _) {
@@ -42,7 +45,7 @@ class BankAccountsScreen extends StatelessWidget {
           closeButton(context),
           const Spacer(),
           Text(
-            'Bank Accounts',
+            context.tr('bank_accounts'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -87,7 +90,7 @@ class BankAccountsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No Bank Accounts Yet',
+            context.tr('no_bank_accounts_yet'),
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -96,7 +99,7 @@ class BankAccountsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Add bank accounts to include\npayment details on your invoices.',
+            context.tr('no_bank_accounts_msg'),
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
           ),
@@ -111,7 +114,7 @@ class BankAccountsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Add Bank Account',
+                context.tr('add_bank_account'),
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

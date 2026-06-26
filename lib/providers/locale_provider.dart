@@ -18,6 +18,8 @@ class LocaleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> reload() => _load();
+
   Future<void> setLocale(String code) async {
     if (_locale.languageCode == code) return;
     _locale = Locale(code);

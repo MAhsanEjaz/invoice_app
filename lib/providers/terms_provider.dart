@@ -18,6 +18,8 @@ class TermsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> reload() => _load();
+
   Future<void> save(String text) async {
     _terms = text.trim();
     final prefs = await SharedPreferences.getInstance();

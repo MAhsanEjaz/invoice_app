@@ -23,8 +23,10 @@ import '../models/item_model.dart';
 import '../models/service_model.dart';
 import '../models/bank_model.dart';
 import '../providers/bank_provider.dart';
+import '../providers/invoice_number_provider.dart';
 import '../providers/saved_client_provider.dart';
 import '../providers/service_provider.dart';
+import '../providers/tax_provider.dart';
 import 'add_bank_account_screen.dart';
 import 'add_client_screen.dart';
 import 'add_item_screen.dart';
@@ -49,6 +51,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   BankModel? _selectedBank;
   // 'Invoice' | 'Quote' | 'Estimate'
   String _documentType = 'Invoice';
+  double? _taxRate;
+  String? _taxLabel;
 
   bool get _isEditMode => widget.invoice != null;
 
@@ -58,10 +62,14 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       selectDate = customDateFormat(DateTime.now().toString());
       _loadInvoiceData();
-      // Default to the default business for new invoices
       if (!_isEditMode) {
         final bp = Provider.of<BusinessProvider>(context, listen: false);
         _selectedBusiness = bp.defaultBusiness ?? bp.activeBusiness;
+        final tp = Provider.of<TaxProvider>(context, listen: false);
+        if (tp.hasTax) {
+          _taxRate = tp.rate;
+          _taxLabel = tp.label;
+        }
       }
       setState(() {});
     });
@@ -89,6 +97,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     _notesCtrl.text = inv.notes ?? '';
     _selectedBank = inv.bank;
     _documentType = inv.documentType ?? 'Invoice';
+    _taxRate = (inv.taxRate ?? 0) > 0 ? inv.taxRate : null;
+    _taxLabel = inv.taxLabel;
 
     // Load client into working provider so cards display correctly
     for (final client in inv.clients ?? []) {
@@ -323,12 +333,30 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               child: _metaChip(
                 CupertinoIcons.doc_text,
                 () {
-                  final num = _isEditMode
-                      ? (widget.invoice!.invoiceId ?? invoice.lastId)
-                      : invoice.lastId + 1;
-                  if (_documentType == 'Quote') return '${context.tr('quote_no')}$num';
-                  if (_documentType == 'Estimate') return '${context.tr('estimate_no')}$num';
-                  return '${context.tr('pdf_invoice_no')}$num';
+                  if (_documentType == 'Quote') {
+                    final num = _isEditMode
+                        ? (widget.invoice!.invoiceId ?? invoice.lastId)
+                        : invoice.lastId + 1;
+                    return '${context.tr('quote_no')}$num';
+                  }
+                  if (_documentType == 'Estimate') {
+                    final num = _isEditMode
+                        ? (widget.invoice!.invoiceId ?? invoice.lastId)
+                        : invoice.lastId + 1;
+                    return '${context.tr('estimate_no')}$num';
+                  }
+                  // Invoice — use custom format if configured
+                  if (_isEditMode) {
+                    return widget.invoice!.invoiceNumber ??
+                        '${context.tr('pdf_invoice_no')}${widget.invoice!.invoiceId ?? invoice.lastId}';
+                  }
+                  final numProvider = Provider.of<InvoiceNumberProvider>(
+                      context, listen: false);
+                  final nextId = invoice.lastId + 1;
+                  if (numProvider.isCustom) {
+                    return numProvider.format(nextId);
+                  }
+                  return '${context.tr('pdf_invoice_no')}$nextId';
                 }(),
               ),
             ),
@@ -938,31 +966,247 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   Widget _totalCard(ItemProvider itemProvider) {
     final sym = Provider.of<CurrencyProvider>(context).symbol;
     final items = _isEditMode ? widget.invoice!.items! : itemProvider.item;
-    final total = items.fold<double>(
+    final subtotal = items.fold<double>(
       0,
       (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
     );
+    final hasTax = (_taxRate ?? 0) > 0;
+    final taxAmount = hasTax ? subtotal * _taxRate! / 100 : 0.0;
+    final total = subtotal + taxAmount;
 
     return Container(
       decoration: context.cardDecoration,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      child: Row(
-        children: [
-          Text(
-            context.tr('total'),
-            style: GoogleFonts.poppins(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: context.colors.textSecondary,
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            children: [
+              // Tax row — always visible as tappable
+              InkWell(
+                onTap: () => _showTaxDialog(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        CupertinoIcons.percent,
+                        size: 16,
+                        color: hasTax
+                            ? kPrimary
+                            : context.colors.textSecondary,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        hasTax
+                            ? '${_taxLabel ?? context.tr('tax')} (${_taxRate!.toStringAsFixed(_taxRate! == _taxRate!.roundToDouble() ? 0 : 1)}%)'
+                            : context.tr('add_tax'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: hasTax
+                              ? context.colors.textPrimary
+                              : context.colors.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (hasTax) ...[
+                        Text(
+                          '+$sym${taxAmount.toStringAsFixed(2)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: kPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () =>
+                              setState(() {
+                                _taxRate = null;
+                                _taxLabel = null;
+                              }),
+                          child: Icon(
+                            CupertinoIcons.xmark_circle,
+                            size: 16,
+                            color: context.colors.textHint,
+                          ),
+                        ),
+                      ] else
+                        Icon(
+                          CupertinoIcons.add,
+                          size: 14,
+                          color: context.colors.textSecondary,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              Divider(height: 1, color: context.colors.border),
+              // Total row
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      context.tr('total'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '$sym${total.toStringAsFixed(2)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: kPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const Spacer(),
-          Text(
-            '$sym${total.toStringAsFixed(2)}',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: kPrimary,
+        ),
+      ),
+    );
+  }
+
+  void _showTaxDialog() {
+    final rateCtrl = TextEditingController(
+      text: (_taxRate ?? 0) > 0 ? _taxRate!.toStringAsFixed(0) : '',
+    );
+    final labelCtrl = TextEditingController(
+      text: _taxLabel ?? '',
+    );
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: Text(
+          context.tr('tax'),
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: context.colors.textPrimary,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: rateCtrl,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              style: GoogleFonts.poppins(
+                  fontSize: 15, color: context.colors.textPrimary),
+              decoration: InputDecoration(
+                labelText: context.tr('tax_rate_pct'),
+                labelStyle:
+                    GoogleFonts.poppins(color: context.colors.textSecondary),
+                hintText: '18',
+                hintStyle:
+                    GoogleFonts.poppins(color: context.colors.textHint),
+                filled: true,
+                fillColor: context.colors.background,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: context.colors.border)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: context.colors.border)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: kPrimary, width: 1.5)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: labelCtrl,
+              style: GoogleFonts.poppins(
+                  fontSize: 15, color: context.colors.textPrimary),
+              decoration: InputDecoration(
+                labelText: context.tr('tax_label'),
+                labelStyle:
+                    GoogleFonts.poppins(color: context.colors.textSecondary),
+                hintText: context.tr('tax_hint'),
+                hintStyle:
+                    GoogleFonts.poppins(color: context.colors.textHint),
+                filled: true,
+                fillColor: context.colors.background,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: context.colors.border)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: context.colors.border)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: kPrimary, width: 1.5)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              foregroundColor: context.colors.textSecondary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(context.tr('cancel'),
+                style:
+                    GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final rate = double.tryParse(rateCtrl.text.trim()) ?? 0;
+              setState(() {
+                _taxRate = rate > 0 ? rate : null;
+                _taxLabel = labelCtrl.text.trim().isEmpty
+                    ? null
+                    : labelCtrl.text.trim();
+              });
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 10),
+            ),
+            child: Text(
+              context.tr('apply'),
+              style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white),
             ),
           ),
         ],
@@ -1169,6 +1413,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       businessName: biz?.businessName,
       date: selectDate,
       dueDate: _dueDate,
+      taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
+      taxLabel: _taxLabel,
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       bank: _selectedBank,
       items: item.item
@@ -1269,6 +1515,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                             : _notesCtrl.text.trim(),
                     termsConditions: _includeTerms ? tp.terms : null,
                     bank: _selectedBank,
+                    taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
+                    taxLabel: _taxLabel,
                   );
                   client.clearClientFromList();
                   item.item.clear();
@@ -1280,6 +1528,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     listen: false,
                   );
                   final tp = Provider.of<TermsProvider>(context, listen: false);
+                  final numProvider = Provider.of<InvoiceNumberProvider>(
+                      context, listen: false);
                   final biz =
                       _selectedBusiness ??
                       bp.defaultBusiness ??
@@ -1297,6 +1547,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       date: selectDate,
                       dueDate: _dueDate,
                       invoiceId: invoice.lastId,
+                      taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
+                      taxLabel: _taxLabel,
                       notes:
                           _notesCtrl.text.trim().isEmpty
                               ? null
@@ -1330,6 +1582,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                               )
                               .toList(),
                     ),
+                    numberFormatter: isInvoice ? numProvider.format : null,
                   );
 
                   item.item.clear();

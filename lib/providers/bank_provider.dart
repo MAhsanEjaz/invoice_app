@@ -44,6 +44,8 @@ class BankProvider extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> reload() => _load();
+
   Future<void> deleteBank(int id) async {
     banks.removeWhere((b) => b.id == id);
     notifyListeners();
