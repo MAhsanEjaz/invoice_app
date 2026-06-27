@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
 import 'package:invoicemaker/models/bank_model.dart';
 import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
@@ -22,6 +23,152 @@ class InvoiceProvider extends ChangeNotifier {
   Future<void> loadInvoices() async {
     await getSaveInvoices();
     getInvoices();
+    await _checkAndCreateRecurringInvoices();
+  }
+
+  // ── Recurring helpers ────────────────────────────────────────────────────────
+
+  String? _toIsoDate(String dateStr) {
+    final formats = ['MMM dd, yyyy', 'dd MMM yyyy', 'yyyy-MM-dd', 'dd/MM/yyyy'];
+    for (final fmt in formats) {
+      final parsed = DateFormat(fmt).tryParse(dateStr);
+      if (parsed != null) {
+        return '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+      }
+    }
+    return null;
+  }
+
+  String _computeNextDate(String fromIso, String interval, int? customDays) {
+    final from = DateTime.parse(fromIso);
+    final DateTime next;
+    switch (interval) {
+      case 'weekly':
+        next = from.add(const Duration(days: 7));
+      case 'custom':
+        next = from.add(Duration(days: customDays ?? 30));
+      default: // monthly — clamp day to last day of target month to avoid overflow
+        final nextYear = from.month == 12 ? from.year + 1 : from.year;
+        final nextMonth = from.month == 12 ? 1 : from.month + 1;
+        final lastDay = DateTime(nextYear, nextMonth + 1, 0).day;
+        next = DateTime(nextYear, nextMonth, from.day.clamp(1, lastDay));
+    }
+    return '${next.year}-${next.month.toString().padLeft(2, '0')}-${next.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _checkAndCreateRecurringInvoices() async {
+    final today = DateTime.now();
+    final todayIso =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final toProcess = invoice
+        .where((inv) =>
+            inv.isRecurring == true && inv.nextRecurringDate != null && inv.nextRecurringDate!.compareTo(todayIso) <= 0)
+        .toList();
+
+    if (toProcess.isEmpty) return;
+
+    for (final parent in toProcess) {
+      // Compute new due date preserving the same offset from invoice date
+      String? newDueDateFormatted;
+      if (parent.dueDate != null && parent.date != null) {
+        final parentDateIso = _toIsoDate(parent.date!);
+        final parentDueIso = _toIsoDate(parent.dueDate!);
+        if (parentDateIso != null && parentDueIso != null) {
+          try {
+            final diff = DateTime.parse(parentDueIso).difference(DateTime.parse(parentDateIso)).inDays;
+            final newDue = today.add(Duration(days: diff));
+            newDueDateFormatted = DateFormat('MMM dd, yyyy').format(newDue);
+          } catch (_) {
+            newDueDateFormatted = null;
+          }
+        }
+      }
+
+      final newInvoice = InvoiceModel(
+        documentType: 'Invoice',
+        invoiceStatus: 'UnPaid',
+        businessId: parent.businessId,
+        businessName: parent.businessName,
+        date: DateFormat('MMM dd, yyyy').format(today),
+        dueDate: newDueDateFormatted,
+        notes: parent.notes,
+        termsConditions: parent.termsConditions,
+        bank: parent.bank,
+        discount: parent.discount,
+        taxRate: parent.taxRate,
+        taxLabel: parent.taxLabel,
+        items: parent.items
+            ?.map((e) => ItemModel(id: e.id, itemName: e.itemName, note: e.note, price: e.price, qty: e.qty, duplicate: false))
+            .toList(),
+        clients: parent.clients
+            ?.map((e) => ClientModel(id: e.id, name: e.name, phone: e.phone, email: e.email, address: e.address, duplicate: false))
+            .toList(),
+      );
+
+      lastId += 1;
+      newInvoice.invoiceId = lastId;
+      invoice.add(newInvoice);
+
+      // Advance the parent to the next period
+      parent.nextRecurringDate = _computeNextDate(
+        parent.nextRecurringDate!,
+        parent.recurringInterval ?? 'monthly',
+        parent.recurringCustomDays,
+      );
+
+      final clientName = (newInvoice.clients?.isNotEmpty ?? false) ? (newInvoice.clients!.first.name ?? 'Client') : 'Client';
+      final invNumber = newInvoice.invoiceId.toString();
+
+      await NotificationService.showRecurringInvoiceCreated(
+        newInvoiceId: newInvoice.invoiceId!,
+        clientName: clientName,
+        invoiceNumber: invNumber,
+      );
+
+      if (newInvoice.dueDate != null) {
+        await NotificationService.scheduleInvoiceReminder(
+          invoiceId: newInvoice.invoiceId!,
+          clientName: clientName,
+          invoiceNumber: invNumber,
+          dueDate: newInvoice.dueDate!,
+        );
+      }
+    }
+
+    getInvoices();
+    await saveInvoice();
+    notifyListeners();
+  }
+
+  Future<void> updateRecurringSettings(
+    int invoiceId, {
+    required bool isRecurring,
+    String? interval,
+    int? customDays,
+  }) async {
+    final inv = invoice.firstWhere(
+      (e) => e.invoiceId == invoiceId,
+      orElse: () => throw StateError('Invoice $invoiceId not found'),
+    );
+    if (isRecurring) {
+      inv.isRecurring = true;
+      inv.recurringInterval = interval ?? 'monthly';
+      inv.recurringCustomDays = interval == 'custom' ? customDays : null;
+      if (inv.date != null) {
+        final isoDate = _toIsoDate(inv.date!);
+        if (isoDate != null) {
+          inv.nextRecurringDate = _computeNextDate(isoDate, inv.recurringInterval!, inv.recurringCustomDays);
+        }
+      }
+    } else {
+      inv.isRecurring = null;
+      inv.recurringInterval = null;
+      inv.recurringCustomDays = null;
+      inv.nextRecurringDate = null;
+    }
+    await saveInvoice();
+    notifyListeners();
   }
 
   int lastId = 0;
@@ -73,11 +220,21 @@ class InvoiceProvider extends ChangeNotifier {
       newInvoice.invoiceNumber = numberFormatter(lastId);
     }
 
+    // Set nextRecurringDate before persisting so listeners see the complete state
+    if (newInvoice.isRecurring == true && newInvoice.nextRecurringDate == null && newInvoice.date != null) {
+      final isoDate = _toIsoDate(newInvoice.date!);
+      if (isoDate != null) {
+        newInvoice.nextRecurringDate = _computeNextDate(
+          isoDate,
+          newInvoice.recurringInterval ?? 'monthly',
+          newInvoice.recurringCustomDays,
+        );
+      }
+    }
+
     invoice.add(newInvoice);
     getInvoices();
-
     await saveInvoice();
-
     notifyListeners();
 
     final isInvoice = (newInvoice.documentType ?? 'Invoice') == 'Invoice';
@@ -85,7 +242,7 @@ class InvoiceProvider extends ChangeNotifier {
       final clientName = (newInvoice.clients?.isNotEmpty ?? false)
           ? (newInvoice.clients!.first.name ?? 'Client')
           : 'Client';
-      NotificationService.scheduleInvoiceReminder(
+      await NotificationService.scheduleInvoiceReminder(
         invoiceId: newInvoice.invoiceId!,
         clientName: clientName,
         invoiceNumber: newInvoice.invoiceNumber ?? newInvoice.invoiceId.toString(),
@@ -96,6 +253,8 @@ class InvoiceProvider extends ChangeNotifier {
 
   /// Creates a new Invoice document from a Quote or Estimate, preserving all items,
   /// client, and financial settings from the source document.
+  /// The source Quote/Estimate is removed after conversion so it cannot be
+  /// converted a second time and does not clutter the list.
   Future<InvoiceModel> convertToInvoice(
     InvoiceModel source, {
     String Function(int)? numberFormatter,
@@ -109,7 +268,14 @@ class InvoiceProvider extends ChangeNotifier {
       dueDate: source.dueDate,
       notes: source.notes,
       termsConditions: source.termsConditions,
-      bank: source.bank,
+      bank: source.bank != null
+          ? BankModel(
+              id: source.bank!.id,
+              accountNumber: source.bank!.accountNumber,
+              title: source.bank!.title,
+              bankName: source.bank!.bankName,
+            )
+          : null,
       discount: source.discount,
       taxRate: source.taxRate,
       taxLabel: source.taxLabel,
@@ -135,6 +301,12 @@ class InvoiceProvider extends ChangeNotifier {
           .toList(),
     );
     await addInvoice(newInvoice, numberFormatter: numberFormatter);
+
+    // Remove the source Quote/Estimate so it cannot be converted again.
+    if (source.invoiceId != null) {
+      deleteWholeInvoice(source.invoiceId!);
+    }
+
     return newInvoice;
   }
 

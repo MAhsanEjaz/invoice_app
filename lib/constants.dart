@@ -206,6 +206,31 @@ Widget documentBadge(BuildContext context, InvoiceModel inv) {
   return statusBadge(context, inv.invoiceStatus == 'Paid');
 }
 
+Widget recurringBadge(BuildContext context) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: kPrimary.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(CupertinoIcons.repeat, size: 10, color: kPrimary),
+        const SizedBox(width: 3),
+        Text(
+          context.tr('recurring'),
+          style: GoogleFonts.poppins(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: kPrimary,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 Widget sectionLabel(BuildContext context, String label) {
   return Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 8),

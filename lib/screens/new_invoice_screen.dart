@@ -53,6 +53,11 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   String _documentType = 'Invoice';
   double? _taxRate;
   String? _taxLabel;
+  // Recurring
+  bool _isRecurring = false;
+  String _recurringInterval = 'monthly';
+  int? _recurringCustomDays;
+  final TextEditingController _recurringDaysCtrl = TextEditingController();
 
   bool get _isEditMode => widget.invoice != null;
 
@@ -78,6 +83,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   @override
   void dispose() {
     _notesCtrl.dispose();
+    _recurringDaysCtrl.dispose();
     super.dispose();
   }
 
@@ -99,6 +105,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     _documentType = inv.documentType ?? 'Invoice';
     _taxRate = (inv.taxRate ?? 0) > 0 ? inv.taxRate : null;
     _taxLabel = inv.taxLabel;
+    _isRecurring = inv.isRecurring ?? false;
+    _recurringInterval = inv.recurringInterval ?? 'monthly';
+    _recurringCustomDays = inv.recurringCustomDays;
+    if (_recurringCustomDays != null) {
+      _recurringDaysCtrl.text = _recurringCustomDays.toString();
+    }
 
     // Load client into working provider so cards display correctly
     for (final client in inv.clients ?? []) {
@@ -174,6 +186,11 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       _buildTermsToggle(),
                       sectionLabel(context, context.tr('pdf_payment_details')),
                       _bankCard(),
+                      if (_documentType == 'Invoice') ...[
+                        const SizedBox(height: 20),
+                        sectionLabel(context, context.tr('repeat_invoice')),
+                        _buildRecurringCard(),
+                      ],
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -1447,6 +1464,126 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     );
   }
 
+  // ── Recurring card ─────────────────────────────────────────────────────────
+  Widget _buildRecurringCard() {
+    final cl = context.colors;
+    return Container(
+      decoration: context.cardDecoration,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.repeat, size: 16, color: cl.textSecondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    context.tr('repeat_invoice'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: cl.textPrimary,
+                    ),
+                  ),
+                ),
+                Transform.scale(
+                  scale: 0.85,
+                  child: CupertinoSwitch(
+                    value: _isRecurring,
+                    activeTrackColor: kPrimary,
+                    onChanged: (val) => setState(() {
+                      _isRecurring = val;
+                      if (!val) {
+                        _recurringInterval = 'monthly';
+                        _recurringCustomDays = null;
+                        _recurringDaysCtrl.clear();
+                      }
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_isRecurring) ...[
+            Divider(height: 1, color: cl.border),
+            _buildIntervalOption(cl, 'weekly', context.tr('interval_weekly')),
+            Divider(height: 1, color: cl.border),
+            _buildIntervalOption(cl, 'monthly', context.tr('interval_monthly')),
+            Divider(height: 1, color: cl.border),
+            _buildIntervalOption(cl, 'custom', context.tr('interval_custom')),
+            if (_recurringInterval == 'custom') ...[
+              Divider(height: 1, color: cl.border),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(CupertinoIcons.calendar, size: 16, color: cl.textSecondary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _recurringDaysCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: context.tr('custom_days_hint'),
+                          hintStyle: GoogleFonts.poppins(color: cl.textHint, fontSize: 13),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                        style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                        onChanged: (v) => setState(() => _recurringCustomDays = int.tryParse(v)),
+                      ),
+                    ),
+                    Text(
+                      context.tr('custom_days_unit'),
+                      style: GoogleFonts.poppins(fontSize: 13, color: cl.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntervalOption(AppColors cl, String value, String label) {
+    final isSelected = _recurringInterval == value;
+    return InkWell(
+      onTap: () => setState(() {
+        _recurringInterval = value;
+        if (value != 'custom') {
+          _recurringCustomDays = null;
+          _recurringDaysCtrl.clear();
+        }
+      }),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: isSelected ? kPrimary : cl.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
+            Icon(
+              isSelected ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+              size: 18,
+              color: isSelected ? kPrimary : cl.textHint,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomBar(
     BuildContext context,
     ClientProvider client,
@@ -1518,6 +1655,14 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
                     taxLabel: _taxLabel,
                   );
+                  if (_documentType == 'Invoice') {
+                    invoice.updateRecurringSettings(
+                      widget.invoice!.invoiceId!,
+                      isRecurring: _isRecurring,
+                      interval: _recurringInterval,
+                      customDays: _recurringInterval == 'custom' ? _recurringCustomDays : null,
+                    );
+                  }
                   client.clearClientFromList();
                   item.item.clear();
                   Navigator.pop(context);
@@ -1538,6 +1683,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   // Only invoices get an invoiceStatus; quotes/estimates do not
                   final isInvoice = _documentType == 'Invoice';
 
+                  final recurringOn = isInvoice && _isRecurring;
                   await invoice.addInvoice(
                     InvoiceModel(
                       invoiceStatus: isInvoice ? 'UnPaid' : null,
@@ -1555,6 +1701,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                               : _notesCtrl.text.trim(),
                       termsConditions: _includeTerms ? tp.terms : null,
                       bank: _selectedBank,
+                      isRecurring: recurringOn ? true : null,
+                      recurringInterval: recurringOn ? _recurringInterval : null,
+                      recurringCustomDays: (recurringOn && _recurringInterval == 'custom') ? _recurringCustomDays : null,
                       items:
                           item.item
                               .map(

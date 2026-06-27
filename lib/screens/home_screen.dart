@@ -442,6 +442,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 5),
                 documentBadge(context, inv),
+                if (inv.isRecurring == true) ...[
+                  const SizedBox(height: 4),
+                  recurringBadge(context),
+                ],
               ],
             ),
           ],

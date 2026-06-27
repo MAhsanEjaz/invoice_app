@@ -327,6 +327,18 @@ class AppTranslations {
     'restore_not_backup': 'This file is not an Invoice Maker backup. Please select a valid backup file.',
     'exporting': 'Exporting…',
     'restoring': 'Restoring…',
+    // Recurring invoices
+    'recurring': 'Recurring',
+    'repeat_invoice': 'Repeat Invoice',
+    'recurring_interval': 'Repeat Interval',
+    'interval_weekly': 'Weekly',
+    'interval_monthly': 'Monthly',
+    'interval_custom': 'Custom',
+    'custom_days_hint': 'Number of days',
+    'custom_days_unit': 'days',
+    'recurring_next': 'Next: {date}',
+    'notif_recurring_title': 'Recurring Invoice Created',
+    'notif_recurring_body': 'Invoice #{number} for {client} was automatically created.',
   };
 
   static const _ur = {
@@ -635,6 +647,18 @@ class AppTranslations {
     'restore_not_backup': 'یہ فائل Invoice Maker بیک اپ نہیں ہے۔ براہ کرم ایک درست بیک اپ فائل منتخب کریں۔',
     'exporting': 'برآمد ہو رہا ہے…',
     'restoring': 'بحال ہو رہا ہے…',
+    // Recurring invoices
+    'recurring': 'بار بار',
+    'repeat_invoice': 'انوائس دہرائیں',
+    'recurring_interval': 'وقفہ',
+    'interval_weekly': 'ہفتہ وار',
+    'interval_monthly': 'ماہانہ',
+    'interval_custom': 'خود مقرر',
+    'custom_days_hint': 'دنوں کی تعداد',
+    'custom_days_unit': 'دن',
+    'recurring_next': 'اگلی: {date}',
+    'notif_recurring_title': 'بار بار انوائس بنائی گئی',
+    'notif_recurring_body': 'انوائس #{number} برائے {client} خودکار بنائی گئی۔',
   };
 
   static const _hi = {
@@ -943,6 +967,18 @@ class AppTranslations {
     'restore_not_backup': 'यह फ़ाइल Invoice Maker बैकअप नहीं है। कृपया एक वैध बैकअप फ़ाइल चुनें।',
     'exporting': 'एक्सपोर्ट हो रहा है…',
     'restoring': 'रिस्टोर हो रहा है…',
+    // Recurring invoices
+    'recurring': 'आवर्ती',
+    'repeat_invoice': 'चालान दोहराएं',
+    'recurring_interval': 'दोहराने का अंतराल',
+    'interval_weekly': 'साप्ताहिक',
+    'interval_monthly': 'मासिक',
+    'interval_custom': 'कस्टम',
+    'custom_days_hint': 'दिनों की संख्या',
+    'custom_days_unit': 'दिन',
+    'recurring_next': 'अगला: {date}',
+    'notif_recurring_title': 'आवर्ती चालान बनाया गया',
+    'notif_recurring_body': 'चालान #{number} {client} के लिए स्वचालित रूप से बनाया गया।',
   };
 
   static const _ar = {
@@ -1251,5 +1287,17 @@ class AppTranslations {
     'restore_not_backup': 'هذا الملف ليس نسخة احتياطية من Invoice Maker. يرجى تحديد ملف نسخة احتياطية صالح.',
     'exporting': 'جارٍ التصدير…',
     'restoring': 'جارٍ الاستعادة…',
+    // Recurring invoices
+    'recurring': 'متكرر',
+    'repeat_invoice': 'تكرار الفاتورة',
+    'recurring_interval': 'فترة التكرار',
+    'interval_weekly': 'أسبوعي',
+    'interval_monthly': 'شهري',
+    'interval_custom': 'مخصص',
+    'custom_days_hint': 'عدد الأيام',
+    'custom_days_unit': 'أيام',
+    'recurring_next': 'التالي: {date}',
+    'notif_recurring_title': 'تم إنشاء فاتورة متكررة',
+    'notif_recurring_body': 'تم إنشاء الفاتورة #{number} للعميل {client} تلقائياً.',
   };
 }

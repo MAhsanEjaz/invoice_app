@@ -24,6 +24,11 @@ class InvoiceModel {
   BankModel? bank;
   // 'Invoice' | 'Quote' | 'Estimate' — null treated as 'Invoice' for backward compat
   String? documentType;
+  // Recurring invoice fields
+  bool? isRecurring;
+  String? recurringInterval; // 'weekly' | 'monthly' | 'custom'
+  int? recurringCustomDays;  // Only used when recurringInterval == 'custom'
+  String? nextRecurringDate; // ISO yyyy-MM-dd — the date when next copy is created
 
   InvoiceModel({
     this.items,
@@ -43,6 +48,10 @@ class InvoiceModel {
     this.taxLabel,
     this.bank,
     this.documentType,
+    this.isRecurring,
+    this.recurringInterval,
+    this.recurringCustomDays,
+    this.nextRecurringDate,
   });
 
   Map<String, dynamic> toJson() {
@@ -64,6 +73,10 @@ class InvoiceModel {
       'items': items?.map((e) => e.toJson()).toList(),
       'bank': bank?.toJson(),
       'documentType': documentType,
+      'isRecurring': isRecurring,
+      'recurringInterval': recurringInterval,
+      'recurringCustomDays': recurringCustomDays,
+      'nextRecurringDate': nextRecurringDate,
     };
   }
 
@@ -92,6 +105,10 @@ class InvoiceModel {
           ? BankModel.fromJson(json['bank'] as Map<String, dynamic>)
           : null,
       documentType: json['documentType'] as String?,
+      isRecurring: json['isRecurring'] as bool?,
+      recurringInterval: json['recurringInterval'] as String?,
+      recurringCustomDays: json['recurringCustomDays'] as int?,
+      nextRecurringDate: json['nextRecurringDate'] as String?,
     );
   }
 }

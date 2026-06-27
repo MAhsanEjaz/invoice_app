@@ -14,6 +14,10 @@ class NotificationService {
   static const _channelName = 'Invoice Reminders';
   static const _channelDesc = 'Reminders for unpaid invoices on their due date';
 
+  static const _recurringChannelId = 'recurring_invoices';
+  static const _recurringChannelName = 'Recurring Invoices';
+  static const _recurringChannelDesc = 'Notifications when recurring invoices are auto-created';
+
   static Future<void> initialize() async {
     tz.initializeTimeZones();
     final tzInfo = await FlutterTimezone.getLocalTimezone();
@@ -116,5 +120,37 @@ class NotificationService {
 
   static Future<void> cancelInvoiceReminder(int invoiceId) async {
     await _plugin.cancel(invoiceId);
+  }
+
+  static Future<void> showRecurringInvoiceCreated({
+    required int newInvoiceId,
+    required String clientName,
+    required String invoiceNumber,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lang = prefs.getString('app_locale') ?? 'en';
+    String t(String key) => AppTranslations.tl(lang, key);
+
+    await _plugin.show(
+      20000 + newInvoiceId,
+      t('notif_recurring_title'),
+      t('notif_recurring_body')
+          .replaceAll('{number}', invoiceNumber)
+          .replaceAll('{client}', clientName),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _recurringChannelId,
+          _recurringChannelName,
+          channelDescription: _recurringChannelDesc,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+    );
   }
 }

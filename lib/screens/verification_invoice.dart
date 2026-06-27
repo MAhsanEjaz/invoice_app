@@ -1324,6 +1324,13 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             ),
           ],
 
+          // ── Recurring (invoices only) ──────────────────────────────────────
+          if (isInvoice) ...[
+            const SizedBox(height: 20),
+            sectionLabel(context, context.tr('repeat_invoice')),
+            _buildRecurringSection(liveInvoice, invoice),
+          ],
+
           // ── Convert to Invoice (Quotes & Estimates only) ───────────────────
           if (!isInvoice) ...[
             const SizedBox(height: 16),
@@ -1402,6 +1409,251 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         ],
       ),
     );
+  }
+
+  // ── Recurring section ─────────────────────────────────────────────────────
+  Widget _buildRecurringSection(InvoiceModel liveInvoice, InvoiceProvider invoice) {
+    final cl = context.colors;
+    final isOn = liveInvoice.isRecurring == true;
+    final interval = liveInvoice.recurringInterval ?? 'monthly';
+    final nextDate = liveInvoice.nextRecurringDate;
+
+    String intervalLabel() {
+      switch (interval) {
+        case 'weekly': return context.tr('interval_weekly');
+        case 'custom':
+          final days = liveInvoice.recurringCustomDays;
+          return days != null ? '$days ${context.tr('custom_days_unit')}' : context.tr('interval_custom');
+        default: return context.tr('interval_monthly');
+      }
+    }
+
+    return Container(
+      decoration: context.cardDecoration,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.repeat, size: 16, color: cl.textSecondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    context.tr('repeat_invoice'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: cl.textPrimary,
+                    ),
+                  ),
+                ),
+                Transform.scale(
+                  scale: 0.85,
+                  child: CupertinoSwitch(
+                    value: isOn,
+                    activeTrackColor: kPrimary,
+                    onChanged: (val) {
+                      invoice.updateRecurringSettings(
+                        liveInvoice.invoiceId!,
+                        isRecurring: val,
+                        interval: liveInvoice.recurringInterval ?? 'monthly',
+                        customDays: liveInvoice.recurringCustomDays,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isOn) ...[
+            Divider(height: 1, color: cl.border),
+            GestureDetector(
+              onTap: () => _showIntervalPicker(liveInvoice, invoice),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Icon(CupertinoIcons.calendar_today, size: 16, color: cl.textSecondary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        context.tr('recurring_interval'),
+                        style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
+                      ),
+                    ),
+                    Text(
+                      intervalLabel(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: kPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(CupertinoIcons.chevron_right, size: 13, color: cl.textSecondary),
+                  ],
+                ),
+              ),
+            ),
+            if (nextDate != null) ...[
+              Divider(height: 1, color: cl.border),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(CupertinoIcons.clock, size: 16, color: cl.textSecondary),
+                    const SizedBox(width: 10),
+                    Text(
+                      context.tr('recurring_next').replaceAll('{date}', nextDate),
+                      style: GoogleFonts.poppins(fontSize: 13, color: cl.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showIntervalPicker(InvoiceModel liveInvoice, InvoiceProvider invoice) {
+    final cl = context.colors;
+    final customDaysCtrl = TextEditingController(
+      text: liveInvoice.recurringCustomDays?.toString() ?? '',
+    );
+    String selectedInterval = liveInvoice.recurringInterval ?? 'monthly';
+    int? customDays = liveInvoice.recurringCustomDays;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final options = [
+            ('weekly', ctx.tr('interval_weekly')),
+            ('monthly', ctx.tr('interval_monthly')),
+            ('custom', ctx.tr('interval_custom')),
+          ];
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cl.background,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          ctx.tr('recurring_interval'),
+                          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...options.map((entry) {
+                      final isSelected = selectedInterval == entry.$1;
+                      return GestureDetector(
+                        onTap: () => setModalState(() {
+                          selectedInterval = entry.$1;
+                          if (entry.$1 != 'custom') customDays = null;
+                        }),
+                        child: Container(
+                          color: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  entry.$2,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    color: isSelected ? kPrimary : cl.textPrimary,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                isSelected ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+                                color: isSelected ? kPrimary : cl.textHint,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    if (selectedInterval == 'custom')
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                        child: TextField(
+                          controller: customDaysCtrl,
+                          autofocus: true,
+                          keyboardType: TextInputType.number,
+                          style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: ctx.tr('custom_days_hint'),
+                            hintStyle: GoogleFonts.poppins(color: cl.textHint),
+                            suffixText: ctx.tr('custom_days_unit'),
+                            filled: true,
+                            fillColor: cl.surface,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cl.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cl.border)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 1.5)),
+                          ),
+                          onChanged: (v) => customDays = int.tryParse(v),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            invoice.updateRecurringSettings(
+                              liveInvoice.invoiceId!,
+                              isRecurring: true,
+                              interval: selectedInterval,
+                              customDays: selectedInterval == 'custom' ? customDays : null,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimary,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text(ctx.tr('save'), style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    ).then((_) => customDaysCtrl.dispose());
   }
 
   // ── Brief toast (works in CupertinoApp without Scaffold) ──────────────────
