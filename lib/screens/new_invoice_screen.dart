@@ -141,6 +141,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             note: itemX.note,
             itemName: itemX.itemName,
             duplicate: false,
+            discount: itemX.discount,
+            discountType: itemX.discountType,
           ),
         );
       }
@@ -219,7 +221,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         child: Row(
           children: [
             closeButton(context, () {
-              client.clearClientFromList(); // now also clears client.client list
+              client
+                  .clearClientFromList(); // now also clears client.client list
               item.item.clear();
               selectDate = null;
               setState(() {});
@@ -231,13 +234,13 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     ? (_documentType == 'Quote'
                         ? context.tr('edit_quote')
                         : _documentType == 'Estimate'
-                            ? context.tr('edit_estimate')
-                            : context.tr('edit_invoice'))
+                        ? context.tr('edit_estimate')
+                        : context.tr('edit_invoice'))
                     : (_documentType == 'Quote'
                         ? context.tr('new_quote')
                         : _documentType == 'Estimate'
-                            ? context.tr('new_estimate')
-                            : context.tr('new_invoice')),
+                        ? context.tr('new_estimate')
+                        : context.tr('new_invoice')),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -262,41 +265,43 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 4),
       child: Row(
-        children: types.map((entry) {
-          final key = entry.$1;
-          final label = entry.$2;
-          final isSelected = _documentType == key;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: key != 'Estimate' ? 8 : 0,
-              ),
-              child: GestureDetector(
-                onTap: () => setState(() => _documentType = key),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? kPrimary : context.colors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? kPrimary : context.colors.border,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    label,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white : context.colors.textSecondary,
+        children:
+            types.map((entry) {
+              final key = entry.$1;
+              final label = entry.$2;
+              final isSelected = _documentType == key;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: key != 'Estimate' ? 8 : 0),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _documentType = key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? kPrimary : context.colors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? kPrimary : context.colors.border,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        label,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              isSelected
+                                  ? Colors.white
+                                  : context.colors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
       ),
     );
   }
@@ -347,35 +352,36 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _metaChip(
-                CupertinoIcons.doc_text,
-                () {
-                  if (_documentType == 'Quote') {
-                    final num = _isEditMode
-                        ? (widget.invoice!.invoiceId ?? invoice.lastId)
-                        : invoice.lastId + 1;
-                    return '${context.tr('quote_no')}$num';
-                  }
-                  if (_documentType == 'Estimate') {
-                    final num = _isEditMode
-                        ? (widget.invoice!.invoiceId ?? invoice.lastId)
-                        : invoice.lastId + 1;
-                    return '${context.tr('estimate_no')}$num';
-                  }
-                  // Invoice — use custom format if configured
-                  if (_isEditMode) {
-                    return widget.invoice!.invoiceNumber ??
-                        '${context.tr('pdf_invoice_no')}${widget.invoice!.invoiceId ?? invoice.lastId}';
-                  }
-                  final numProvider = Provider.of<InvoiceNumberProvider>(
-                      context, listen: false);
-                  final nextId = invoice.lastId + 1;
-                  if (numProvider.isCustom) {
-                    return numProvider.format(nextId);
-                  }
-                  return '${context.tr('pdf_invoice_no')}$nextId';
-                }(),
-              ),
+              child: _metaChip(CupertinoIcons.doc_text, () {
+                if (_documentType == 'Quote') {
+                  final num =
+                      _isEditMode
+                          ? (widget.invoice!.invoiceId ?? invoice.lastId)
+                          : invoice.lastId + 1;
+                  return '${context.tr('quote_no')}$num';
+                }
+                if (_documentType == 'Estimate') {
+                  final num =
+                      _isEditMode
+                          ? (widget.invoice!.invoiceId ?? invoice.lastId)
+                          : invoice.lastId + 1;
+                  return '${context.tr('estimate_no')}$num';
+                }
+                // Invoice — use custom format if configured
+                if (_isEditMode) {
+                  return widget.invoice!.invoiceNumber ??
+                      '${context.tr('pdf_invoice_no')}${widget.invoice!.invoiceId ?? invoice.lastId}';
+                }
+                final numProvider = Provider.of<InvoiceNumberProvider>(
+                  context,
+                  listen: false,
+                );
+                final nextId = invoice.lastId + 1;
+                if (numProvider.isCustom) {
+                  return numProvider.format(nextId);
+                }
+                return '${context.tr('pdf_invoice_no')}$nextId';
+              }()),
             ),
           ],
         ),
@@ -395,7 +401,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                 Icon(
                   CupertinoIcons.clock,
                   size: 16,
-                  color: _dueDate != null ? kPrimary : context.colors.textSecondary,
+                  color:
+                      _dueDate != null
+                          ? kPrimary
+                          : context.colors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -406,7 +415,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: _dueDate != null ? context.colors.textPrimary :context.colors.textSecondary,
+                      color:
+                          _dueDate != null
+                              ? context.colors.textPrimary
+                              : context.colors.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -458,7 +470,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                _selectedBusiness?.businessName ?? context.tr('select_business'),
+                _selectedBusiness?.businessName ??
+                    context.tr('select_business'),
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -486,7 +499,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           (_) => Container(
             decoration: BoxDecoration(
               color: context.colors.background,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
             ),
             child: SafeArea(
               top: false,
@@ -534,7 +549,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSel ? context.colors.primaryLight :context.colors.surface,
+                            color:
+                                isSel
+                                    ? context.colors.primaryLight
+                                    : context.colors.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSel ? kPrimary : context.colors.border,
@@ -551,7 +569,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: isSel ? kPrimary : context.colors.background,
+                                  color:
+                                      isSel
+                                          ? kPrimary
+                                          : context.colors.background,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 alignment: Alignment.center,
@@ -563,7 +584,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                     color:
-                                        isSel ? Colors.white : context.colors.textSecondary,
+                                        isSel
+                                            ? Colors.white
+                                            : context.colors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -604,7 +627,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                 isSel
                                     ? CupertinoIcons.checkmark_circle_fill
                                     : CupertinoIcons.circle,
-                                color: isSel ? kPrimary : context.colors.textHint,
+                                color:
+                                    isSel ? kPrimary : context.colors.textHint,
                                 size: 20,
                               ),
                             ],
@@ -791,12 +815,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   shrinkWrap: true,
                   itemCount: items.length,
                   separatorBuilder:
-                      (_, __) => Divider(height: 1, color: context.colors.border),
+                      (_, __) =>
+                          Divider(height: 1, color: context.colors.border),
                   itemBuilder: (context, index) {
                     final i = items[index];
                     final sym = Provider.of<CurrencyProvider>(context).symbol;
-                    final lineTotal = ((i.price ?? 0) * (i.qty ?? 1))
-                        .toStringAsFixed(2);
+                    final hasDiscount = (i.discount ?? 0) > 0;
                     return InkWell(
                       onTap:
                           () => Navigation.go(
@@ -833,11 +857,21 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                       color: context.colors.textSecondary,
                                     ),
                                   ),
+                                  if (hasDiscount)
+                                    Text(
+                                      i.discountType == 'percent'
+                                          ? '-${i.discount!.toStringAsFixed(1)}%'
+                                          : '-$sym${i.discount!.toStringAsFixed(2)}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: kDangerColor,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
                             Text(
-                              '$sym$lineTotal',
+                              '$sym${i.lineTotal.toStringAsFixed(2)}',
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -851,7 +885,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   },
                 ),
 
-              if (items.isNotEmpty) Divider(height: 1, color: context.colors.border),
+              if (items.isNotEmpty)
+                Divider(height: 1, color: context.colors.border),
 
               InkWell(
                 borderRadius: const BorderRadius.vertical(
@@ -866,12 +901,18 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: items.isEmpty ? context.colors.primaryLight : context.colors.background,
+                          color:
+                              items.isEmpty
+                                  ? context.colors.primaryLight
+                                  : context.colors.background,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           CupertinoIcons.add,
-                          color: items.isEmpty ? kPrimary : context.colors.textSecondary,
+                          color:
+                              items.isEmpty
+                                  ? kPrimary
+                                  : context.colors.textSecondary,
                           size: 20,
                         ),
                       ),
@@ -881,7 +922,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: items.isEmpty ? kPrimary : context.colors.textSecondary,
+                          color:
+                              items.isEmpty
+                                  ? kPrimary
+                                  : context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -900,17 +944,19 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Consumer<BankProvider>(
-        builder: (_, bankProvider, __) => _BankPickerSheet(
-          banks: bankProvider.banks,
-          selectedId: _selectedBank?.id,
-          onSelect: (b) => setState(() => _selectedBank = b),
-          onAddNew: () {
-            Navigator.pop(context);
-            Navigation.go(context, const AddBankAccountScreen());
-          },
-        ),
-      ),
+      builder:
+          (_) => Consumer<BankProvider>(
+            builder:
+                (_, bankProvider, __) => _BankPickerSheet(
+                  banks: bankProvider.banks,
+                  selectedId: _selectedBank?.id,
+                  onSelect: (b) => setState(() => _selectedBank = b),
+                  onAddNew: () {
+                    Navigator.pop(context);
+                    Navigation.go(context, const AddBankAccountScreen());
+                  },
+                ),
+          ),
     );
   }
 
@@ -919,26 +965,35 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Consumer<SavedClientProvider>(
-        builder: (_, savedClientProvider, __) => _ClientPickerSheet(
-          savedClients: savedClientProvider.clients,
-          onSelect: (c) {
-            client.client.clear(); // replace any previously-set client
-            client.selectClient(c.name, c.address, c.phone, c.email, c.id);
-            client.client.add(
-              ClientModel(
-                name: c.name,
-                id: c.id,
-                email: c.email,
-                address: c.address,
-                phone: c.phone,
-                duplicate: false,
-              ),
-            );
-          },
-          onAddNew: () => Navigation.go(context, const AddClientScreen()),
-        ),
-      ),
+      builder:
+          (_) => Consumer<SavedClientProvider>(
+            builder:
+                (_, savedClientProvider, __) => _ClientPickerSheet(
+                  savedClients: savedClientProvider.clients,
+                  onSelect: (c) {
+                    client.client.clear(); // replace any previously-set client
+                    client.selectClient(
+                      c.name,
+                      c.address,
+                      c.phone,
+                      c.email,
+                      c.id,
+                    );
+                    client.client.add(
+                      ClientModel(
+                        name: c.name,
+                        id: c.id,
+                        email: c.email,
+                        address: c.address,
+                        phone: c.phone,
+                        duplicate: false,
+                      ),
+                    );
+                  },
+                  onAddNew:
+                      () => Navigation.go(context, const AddClientScreen()),
+                ),
+          ),
     );
   }
 
@@ -947,35 +1002,43 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Consumer<ServiceProvider>(
-        builder: (_, serviceProvider, __) => _AddLineItemSheet(
-          services: serviceProvider.services,
-          onAddService: () {
-            Navigator.pop(context);
-            Navigation.go(context, const AddServiceScreen());
-          },
-          onNewItem: () {
-            Navigator.pop(context);
-            Navigation.go(context, AddItemScreen(invoice: widget.invoice));
-          },
-          onConfirmServices: (selected) {
-            for (final service in selected) {
-              final itemModel = ItemModel(
-                itemName: service.name,
-                note: service.description,
-                price: service.price ?? 0,
-                qty: 1,
-                duplicate: false,
-              );
-              if (_isEditMode) {
-                invoice.addMoreInvoices(widget.invoice!.invoiceId!, itemModel);
-              } else {
-                item.addItems(itemModel);
-              }
-            }
-          },
-        ),
-      ),
+      builder:
+          (_) => Consumer<ServiceProvider>(
+            builder:
+                (_, serviceProvider, __) => _AddLineItemSheet(
+                  services: serviceProvider.services,
+                  onAddService: () {
+                    Navigator.pop(context);
+                    Navigation.go(context, const AddServiceScreen());
+                  },
+                  onNewItem: () {
+                    Navigator.pop(context);
+                    Navigation.go(
+                      context,
+                      AddItemScreen(invoice: widget.invoice),
+                    );
+                  },
+                  onConfirmServices: (selected) {
+                    for (final service in selected) {
+                      final itemModel = ItemModel(
+                        itemName: service.name,
+                        note: service.description,
+                        price: service.price ?? 0,
+                        qty: 1,
+                        duplicate: false,
+                      );
+                      if (_isEditMode) {
+                        invoice.addMoreInvoices(
+                          widget.invoice!.invoiceId!,
+                          itemModel,
+                        );
+                      } else {
+                        item.addItems(itemModel);
+                      }
+                    }
+                  },
+                ),
+          ),
     );
   }
 
@@ -983,10 +1046,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   Widget _totalCard(ItemProvider itemProvider) {
     final sym = Provider.of<CurrencyProvider>(context).symbol;
     final items = _isEditMode ? widget.invoice!.items! : itemProvider.item;
-    final subtotal = items.fold<double>(
-      0,
-      (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
-    );
+    final subtotal = items.fold<double>(0, (s, i) => s + i.lineTotal);
     final hasTax = (_taxRate ?? 0) > 0;
     final taxAmount = hasTax ? subtotal * _taxRate! / 100 : 0.0;
     final total = subtotal + taxAmount;
@@ -1012,9 +1072,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                       Icon(
                         CupertinoIcons.percent,
                         size: 16,
-                        color: hasTax
-                            ? kPrimary
-                            : context.colors.textSecondary,
+                        color: hasTax ? kPrimary : context.colors.textSecondary,
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -1024,9 +1082,10 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: hasTax
-                              ? context.colors.textPrimary
-                              : context.colors.textSecondary,
+                          color:
+                              hasTax
+                                  ? context.colors.textPrimary
+                                  : context.colors.textSecondary,
                         ),
                       ),
                       const Spacer(),
@@ -1041,8 +1100,8 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         ),
                         const SizedBox(width: 6),
                         GestureDetector(
-                          onTap: () =>
-                              setState(() {
+                          onTap:
+                              () => setState(() {
                                 _taxRate = null;
                                 _taxLabel = null;
                               }),
@@ -1102,132 +1161,153 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     final rateCtrl = TextEditingController(
       text: (_taxRate ?? 0) > 0 ? _taxRate!.toStringAsFixed(0) : '',
     );
-    final labelCtrl = TextEditingController(
-      text: _taxLabel ?? '',
-    );
+    final labelCtrl = TextEditingController(text: _taxLabel ?? '');
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        title: Text(
-          context.tr('tax'),
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: context.colors.textPrimary,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: rateCtrl,
-              autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: context.colors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            title: Text(
+              context.tr('tax'),
               style: GoogleFonts.poppins(
-                  fontSize: 15, color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                labelText: context.tr('tax_rate_pct'),
-                labelStyle:
-                    GoogleFonts.poppins(color: context.colors.textSecondary),
-                hintText: '18',
-                hintStyle:
-                    GoogleFonts.poppins(color: context.colors.textHint),
-                filled: true,
-                fillColor: context.colors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: context.colors.border)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: context.colors.border)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: kPrimary, width: 1.5)),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: context.colors.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: labelCtrl,
-              style: GoogleFonts.poppins(
-                  fontSize: 15, color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                labelText: context.tr('tax_label'),
-                labelStyle:
-                    GoogleFonts.poppins(color: context.colors.textSecondary),
-                hintText: context.tr('tax_hint'),
-                hintStyle:
-                    GoogleFonts.poppins(color: context.colors.textHint),
-                filled: true,
-                fillColor: context.colors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: context.colors.border)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: context.colors.border)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: kPrimary, width: 1.5)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: rateCtrl,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    color: context.colors.textPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: context.tr('tax_rate_pct'),
+                    labelStyle: GoogleFonts.poppins(
+                      color: context.colors.textSecondary,
+                    ),
+                    hintText: '18',
+                    hintStyle: GoogleFonts.poppins(
+                      color: context.colors.textHint,
+                    ),
+                    filled: true,
+                    fillColor: context.colors.background,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: labelCtrl,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    color: context.colors.textPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: context.tr('tax_label'),
+                    labelStyle: GoogleFonts.poppins(
+                      color: context.colors.textSecondary,
+                    ),
+                    hintText: context.tr('tax_hint'),
+                    hintStyle: GoogleFonts.poppins(
+                      color: context.colors.textHint,
+                    ),
+                    filled: true,
+                    fillColor: context.colors.background,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimary, width: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.colors.textSecondary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  context.tr('cancel'),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                ),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.textSecondary,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text(context.tr('cancel'),
-                style:
-                    GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+              ElevatedButton(
+                onPressed: () {
+                  final rate = double.tryParse(rateCtrl.text.trim()) ?? 0;
+                  setState(() {
+                    _taxRate = rate > 0 ? rate : null;
+                    _taxLabel =
+                        labelCtrl.text.trim().isEmpty
+                            ? null
+                            : labelCtrl.text.trim();
+                  });
+                  Navigator.pop(ctx);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                ),
+                child: Text(
+                  context.tr('apply'),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              final rate = double.tryParse(rateCtrl.text.trim()) ?? 0;
-              setState(() {
-                _taxRate = rate > 0 ? rate : null;
-                _taxLabel = labelCtrl.text.trim().isEmpty
-                    ? null
-                    : labelCtrl.text.trim();
-              });
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 10),
-            ),
-            child: Text(
-              context.tr('apply'),
-              style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1238,8 +1318,14 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       child: CupertinoTextField(
         controller: _notesCtrl,
         placeholder: context.tr('notes_hint'),
-        placeholderStyle: GoogleFonts.poppins(fontSize: 14, color: context.colors.textHint),
-        style: GoogleFonts.poppins(fontSize: 14, color: context.colors.textPrimary),
+        placeholderStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: context.colors.textHint,
+        ),
+        style: GoogleFonts.poppins(
+          fontSize: 14,
+          color: context.colors.textPrimary,
+        ),
         padding: const EdgeInsets.all(16),
         maxLines: 3,
         minLines: 1,
@@ -1418,7 +1504,12 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   }
 
   // ── Bottom action bar ──────────────────────────────────────────────────────
-  void _showPreview(BuildContext context, ClientProvider client, ItemProvider item, InvoiceProvider invoice) {
+  void _showPreview(
+    BuildContext context,
+    ClientProvider client,
+    ItemProvider item,
+    InvoiceProvider invoice,
+  ) {
     final bp = Provider.of<BusinessProvider>(context, listen: false);
     final tp = Provider.of<TemplatesColorsProvider>(context, listen: false);
     final biz = _selectedBusiness ?? bp.defaultBusiness ?? bp.activeBusiness;
@@ -1434,24 +1525,32 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       taxLabel: _taxLabel,
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       bank: _selectedBank,
-      items: item.item
-          .map((e) => ItemModel(
-                itemName: e.itemName,
-                note: e.note,
-                price: e.price,
-                qty: e.qty,
-                id: e.id,
-              ))
-          .toList(),
-      clients: client.client
-          .map((e) => ClientModel(
-                name: e.name,
-                phone: e.phone,
-                email: e.email,
-                address: e.address,
-                id: e.id,
-              ))
-          .toList(),
+      items:
+          item.item
+              .map(
+                (e) => ItemModel(
+                  itemName: e.itemName,
+                  note: e.note,
+                  price: e.price,
+                  qty: e.qty,
+                  id: e.id,
+                  discount: e.discount,
+                  discountType: e.discountType,
+                ),
+              )
+              .toList(),
+      clients:
+          client.client
+              .map(
+                (e) => ClientModel(
+                  name: e.name,
+                  phone: e.phone,
+                  email: e.email,
+                  address: e.address,
+                  id: e.id,
+                ),
+              )
+              .toList(),
     );
 
     Navigation.go(
@@ -1492,14 +1591,15 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   child: CupertinoSwitch(
                     value: _isRecurring,
                     activeTrackColor: kPrimary,
-                    onChanged: (val) => setState(() {
-                      _isRecurring = val;
-                      if (!val) {
-                        _recurringInterval = 'monthly';
-                        _recurringCustomDays = null;
-                        _recurringDaysCtrl.clear();
-                      }
-                    }),
+                    onChanged:
+                        (val) => setState(() {
+                          _isRecurring = val;
+                          if (!val) {
+                            _recurringInterval = 'monthly';
+                            _recurringCustomDays = null;
+                            _recurringDaysCtrl.clear();
+                          }
+                        }),
                   ),
                 ),
               ],
@@ -1515,10 +1615,17 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             if (_recurringInterval == 'custom') ...[
               Divider(height: 1, color: cl.border),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
-                    Icon(CupertinoIcons.calendar, size: 16, color: cl.textSecondary),
+                    Icon(
+                      CupertinoIcons.calendar,
+                      size: 16,
+                      color: cl.textSecondary,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
@@ -1526,18 +1633,30 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           hintText: context.tr('custom_days_hint'),
-                          hintStyle: GoogleFonts.poppins(color: cl.textHint, fontSize: 13),
+                          hintStyle: GoogleFonts.poppins(
+                            color: cl.textHint,
+                            fontSize: 13,
+                          ),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
                           isDense: true,
                         ),
-                        style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
-                        onChanged: (v) => setState(() => _recurringCustomDays = int.tryParse(v)),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: cl.textPrimary,
+                        ),
+                        onChanged:
+                            (v) => setState(
+                              () => _recurringCustomDays = int.tryParse(v),
+                            ),
                       ),
                     ),
                     Text(
                       context.tr('custom_days_unit'),
-                      style: GoogleFonts.poppins(fontSize: 13, color: cl.textSecondary),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: cl.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -1551,14 +1670,15 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
 
   Widget _buildIntervalOption(AppColors cl, String value, String label) {
     final isSelected = _recurringInterval == value;
-    return InkWell(
-      onTap: () => setState(() {
-        _recurringInterval = value;
-        if (value != 'custom') {
-          _recurringCustomDays = null;
-          _recurringDaysCtrl.clear();
-        }
-      }),
+    return GestureDetector(
+      onTap:
+          () => setState(() {
+            _recurringInterval = value;
+            if (value != 'custom') {
+              _recurringCustomDays = null;
+              _recurringDaysCtrl.clear();
+            }
+          }),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -1574,7 +1694,9 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               ),
             ),
             Icon(
-              isSelected ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+              isSelected
+                  ? CupertinoIcons.checkmark_circle_fill
+                  : CupertinoIcons.circle,
               size: 18,
               color: isSelected ? kPrimary : cl.textHint,
             ),
@@ -1610,8 +1732,11 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                icon: Icon(CupertinoIcons.eye,
-                    size: 18, color: context.colors.textPrimary),
+                icon: Icon(
+                  CupertinoIcons.eye,
+                  size: 18,
+                  color: context.colors.textPrimary,
+                ),
                 label: Text(
                   context.tr('preview'),
                   style: GoogleFonts.poppins(
@@ -1627,136 +1752,170 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           Expanded(
             flex: 2,
             child: AppButton(
-        txt: _isEditMode
-            ? (_documentType == 'Quote'
-                ? context.tr('update_quote')
-                : _documentType == 'Estimate'
-                    ? context.tr('update_estimate')
-                    : context.tr('update_invoice'))
-            : (_documentType == 'Quote'
-                ? context.tr('create_quote')
-                : _documentType == 'Estimate'
-                    ? context.tr('create_estimate')
-                    : context.tr('create_invoice')),
-        onTap:
-            _isEditMode
-                ? () {
-                  final tp = Provider.of<TermsProvider>(context, listen: false);
-                  invoice.updateInvoiceDetails(
-                    widget.invoice!.invoiceId!,
-                    date: selectDate,
-                    dueDate: _dueDate,
-                    notes:
-                        _notesCtrl.text.trim().isEmpty
-                            ? null
-                            : _notesCtrl.text.trim(),
-                    termsConditions: _includeTerms ? tp.terms : null,
-                    bank: _selectedBank,
-                    taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
-                    taxLabel: _taxLabel,
-                  );
-                  if (_documentType == 'Invoice') {
-                    invoice.updateRecurringSettings(
-                      widget.invoice!.invoiceId!,
-                      isRecurring: _isRecurring,
-                      interval: _recurringInterval,
-                      customDays: _recurringInterval == 'custom' ? _recurringCustomDays : null,
-                    );
-                  }
-                  client.clearClientFromList();
-                  item.item.clear();
-                  Navigator.pop(context);
-                }
-                : () async {
-                  final bp = Provider.of<BusinessProvider>(
-                    context,
-                    listen: false,
-                  );
-                  final tp = Provider.of<TermsProvider>(context, listen: false);
-                  final numProvider = Provider.of<InvoiceNumberProvider>(
-                      context, listen: false);
-                  final biz =
-                      _selectedBusiness ??
-                      bp.defaultBusiness ??
-                      bp.activeBusiness;
+              txt:
+                  _isEditMode
+                      ? (_documentType == 'Quote'
+                          ? context.tr('update_quote')
+                          : _documentType == 'Estimate'
+                          ? context.tr('update_estimate')
+                          : context.tr('update_invoice'))
+                      : (_documentType == 'Quote'
+                          ? context.tr('create_quote')
+                          : _documentType == 'Estimate'
+                          ? context.tr('create_estimate')
+                          : context.tr('create_invoice')),
+              onTap:
+                  _isEditMode
+                      ? () {
+                        final tp = Provider.of<TermsProvider>(
+                          context,
+                          listen: false,
+                        );
+                        invoice.updateInvoiceDetails(
+                          widget.invoice!.invoiceId!,
+                          date: selectDate,
+                          dueDate: _dueDate,
+                          notes:
+                              _notesCtrl.text.trim().isEmpty
+                                  ? null
+                                  : _notesCtrl.text.trim(),
+                          termsConditions: _includeTerms ? tp.terms : null,
+                          bank: _selectedBank,
+                          taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
+                          taxLabel: _taxLabel,
+                        );
+                        if (_documentType == 'Invoice') {
+                          invoice.updateRecurringSettings(
+                            widget.invoice!.invoiceId!,
+                            isRecurring: _isRecurring,
+                            interval: _recurringInterval,
+                            customDays:
+                                _recurringInterval == 'custom'
+                                    ? _recurringCustomDays
+                                    : null,
+                          );
+                        }
+                        client.clearClientFromList();
+                        item.item.clear();
+                        Navigator.pop(context);
+                      }
+                      : () async {
+                        final bp = Provider.of<BusinessProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final tp = Provider.of<TermsProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final numProvider = Provider.of<InvoiceNumberProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final biz =
+                            _selectedBusiness ??
+                            bp.defaultBusiness ??
+                            bp.activeBusiness;
 
-                  // Only invoices get an invoiceStatus; quotes/estimates do not
-                  final isInvoice = _documentType == 'Invoice';
+                        // Only invoices get an invoiceStatus; quotes/estimates do not
+                        final isInvoice = _documentType == 'Invoice';
 
-                  final recurringOn = isInvoice && _isRecurring;
-                  await invoice.addInvoice(
-                    InvoiceModel(
-                      invoiceStatus: isInvoice ? 'UnPaid' : null,
-                      documentType: _documentType,
-                      businessId: biz?.id,
-                      businessName: biz?.businessName ?? 'My Business',
-                      date: selectDate,
-                      dueDate: _dueDate,
-                      invoiceId: invoice.lastId,
-                      taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
-                      taxLabel: _taxLabel,
-                      notes:
-                          _notesCtrl.text.trim().isEmpty
-                              ? null
-                              : _notesCtrl.text.trim(),
-                      termsConditions: _includeTerms ? tp.terms : null,
-                      bank: _selectedBank,
-                      isRecurring: recurringOn ? true : null,
-                      recurringInterval: recurringOn ? _recurringInterval : null,
-                      recurringCustomDays: (recurringOn && _recurringInterval == 'custom') ? _recurringCustomDays : null,
-                      items:
-                          item.item
-                              .map(
-                                (e) => ItemModel(
-                                  itemName: e.itemName,
-                                  note: e.note,
-                                  price: e.price,
-                                  qty: e.qty,
-                                  id: e.id,
-                                  duplicate: e.duplicate,
-                                ),
-                              )
-                              .toList(),
-                      clients:
-                          client.client
-                              .map(
-                                (e) => ClientModel(
-                                  name: e.name,
-                                  phone: e.phone,
-                                  email: e.email,
-                                  address: e.address,
-                                  id: e.id,
-                                  duplicate: false,
-                                ),
-                              )
-                              .toList(),
-                    ),
-                    numberFormatter: isInvoice ? numProvider.format : null,
-                  );
+                        // Guard: require valid day count before saving custom interval
+                        if (isInvoice && _isRecurring &&
+                            _recurringInterval == 'custom' &&
+                            (_recurringCustomDays == null || _recurringCustomDays! <= 0)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(context.tr('custom_days_required')),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
 
-                  item.item.clear();
-                  client.client.clear();
-                  client.clearClientFromList();
+                        final recurringOn = isInvoice && _isRecurring;
+                        await invoice.addInvoice(
+                          InvoiceModel(
+                            invoiceStatus: isInvoice ? 'UnPaid' : null,
+                            documentType: _documentType,
+                            businessId: biz?.id,
+                            businessName: biz?.businessName ?? 'My Business',
+                            date: selectDate,
+                            dueDate: _dueDate,
+                            invoiceId: invoice.lastId,
+                            taxRate: (_taxRate ?? 0) > 0 ? _taxRate : null,
+                            taxLabel: _taxLabel,
+                            notes:
+                                _notesCtrl.text.trim().isEmpty
+                                    ? null
+                                    : _notesCtrl.text.trim(),
+                            termsConditions: _includeTerms ? tp.terms : null,
+                            bank: _selectedBank,
+                            isRecurring: recurringOn ? true : null,
+                            recurringInterval:
+                                recurringOn ? _recurringInterval : null,
+                            recurringCustomDays:
+                                (recurringOn && _recurringInterval == 'custom')
+                                    ? _recurringCustomDays
+                                    : null,
+                            items:
+                                item.item
+                                    .map(
+                                      (e) => ItemModel(
+                                        itemName: e.itemName,
+                                        note: e.note,
+                                        price: e.price,
+                                        qty: e.qty,
+                                        id: e.id,
+                                        duplicate: e.duplicate,
+                                        discount: e.discount,
+                                        discountType: e.discountType,
+                                      ),
+                                    )
+                                    .toList(),
+                            clients:
+                                client.client
+                                    .map(
+                                      (e) => ClientModel(
+                                        name: e.name,
+                                        phone: e.phone,
+                                        email: e.email,
+                                        address: e.address,
+                                        id: e.id,
+                                        duplicate: false,
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
+                          numberFormatter:
+                              isInvoice ? numProvider.format : null,
+                        );
 
-                  final latestInvoice = invoice.invoice.firstWhere(
-                    (e) => e.invoiceId == invoice.lastId,
-                  );
+                        item.item.clear();
+                        client.client.clear();
+                        client.clearClientFromList();
 
-                  if (!context.mounted) return;
-                  Navigation.go(
-                    context,
-                    VerificationInvoice(
-                      clientModel: (latestInvoice.clients?.isNotEmpty ?? false)
-                          ? latestInvoice.clients!.first
-                          : null,
-                      itemModel: (latestInvoice.items?.isNotEmpty ?? false)
-                          ? latestInvoice.items!.first
-                          : null,
-                      invoiceModel: latestInvoice,
-                    ),
-                  );
-                },
-      ),
+                        final latestInvoice = invoice.invoice.firstWhere(
+                          (e) => e.invoiceId == invoice.lastId,
+                        );
+
+                        if (!context.mounted) return;
+                        Navigation.go(
+                          context,
+                          VerificationInvoice(
+                            clientModel:
+                                (latestInvoice.clients?.isNotEmpty ?? false)
+                                    ? latestInvoice.clients!.first
+                                    : null,
+                            itemModel:
+                                (latestInvoice.items?.isNotEmpty ?? false)
+                                    ? latestInvoice.items!.first
+                                    : null,
+                            invoiceModel: latestInvoice,
+                          ),
+                        );
+                      },
+            ),
           ),
         ],
       ),
@@ -1793,7 +1952,9 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
         color: cl.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SafeArea(
         top: false,
         child: Column(
@@ -1801,8 +1962,12 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
           children: [
             const SizedBox(height: 12),
             Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: cl.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
             const SizedBox(height: 16),
             Padding(
@@ -1811,7 +1976,11 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   context.tr('add_item'),
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: cl.textPrimary,
+                  ),
                 ),
               ),
             ),
@@ -1827,25 +1996,53 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: kPrimary.withValues(alpha: 0.3)),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       Container(
-                        width: 36, height: 36,
-                        decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(CupertinoIcons.add, color: Colors.white, size: 18),
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: kPrimary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.add,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(context.tr('add_item'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: kPrimary)),
-                            Text(context.tr('add_item_sub'), style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
+                            Text(
+                              context.tr('add_item'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: kPrimary,
+                              ),
+                            ),
+                            Text(
+                              context.tr('add_item_sub'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: cl.textSecondary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      Icon(CupertinoIcons.chevron_right, size: 14, color: cl.textSecondary),
+                      Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 14,
+                        color: cl.textSecondary,
+                      ),
                     ],
                   ),
                 ),
@@ -1864,7 +2061,10 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: context.colors.border),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -1874,7 +2074,11 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                             color: context.colors.background,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(CupertinoIcons.square_list, color: context.colors.textSecondary, size: 18),
+                          child: Icon(
+                            CupertinoIcons.square_list,
+                            color: context.colors.textSecondary,
+                            size: 18,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1883,16 +2087,27 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                             children: [
                               Text(
                                 context.tr('add_service'),
-                                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textPrimary),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.colors.textPrimary,
+                                ),
                               ),
                               Text(
                                 context.tr('no_services_added'),
-                                style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textSecondary),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: context.colors.textSecondary,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(CupertinoIcons.chevron_right, size: 14, color: context.colors.textSecondary),
+                        Icon(
+                          CupertinoIcons.chevron_right,
+                          size: 14,
+                          color: context.colors.textSecondary,
+                        ),
                       ],
                     ),
                   ),
@@ -1906,13 +2121,20 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     context.tr('services_title').toUpperCase(),
-                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: cl.textSecondary, letterSpacing: 0.7),
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: cl.textSecondary,
+                      letterSpacing: 0.7,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.35),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.35,
+                ),
                 child: ListView.separated(
                   shrinkWrap: true,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1922,32 +2144,49 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                     final service = widget.services[index];
                     final isChosen = _selected.contains(service.id);
                     return GestureDetector(
-                      onTap: () => setState(() {
-                        if (isChosen) {
-                          _selected.remove(service.id);
-                        } else {
-                          _selected.add(service.id!);
-                        }
-                      }),
+                      onTap:
+                          () => setState(() {
+                            if (isChosen) {
+                              _selected.remove(service.id);
+                            } else {
+                              _selected.add(service.id!);
+                            }
+                          }),
                       child: Container(
                         decoration: BoxDecoration(
                           color: isChosen ? cl.primaryLight : cl.surface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isChosen ? kPrimary : cl.border, width: isChosen ? 1.5 : 1),
+                          border: Border.all(
+                            color: isChosen ? kPrimary : cl.border,
+                            width: isChosen ? 1.5 : 1,
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         child: Row(
                           children: [
                             Container(
-                              width: 36, height: 36,
+                              width: 36,
+                              height: 36,
                               decoration: BoxDecoration(
                                 color: isChosen ? kPrimary : cl.background,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                (service.name?.isNotEmpty ?? false) ? service.name![0].toUpperCase() : 'S',
-                                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: isChosen ? Colors.white : cl.textSecondary),
+                                (service.name?.isNotEmpty ?? false)
+                                    ? service.name![0].toUpperCase()
+                                    : 'S',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color:
+                                      isChosen
+                                          ? Colors.white
+                                          : cl.textSecondary,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1955,17 +2194,41 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(service.name ?? '', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+                                  Text(
+                                    service.name ?? '',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: cl.textPrimary,
+                                    ),
+                                  ),
                                   if (service.description?.isNotEmpty ?? false)
-                                    Text(service.description!, style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    Text(
+                                      service.description!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: cl.textSecondary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                 ],
                               ),
                             ),
                             if (service.price != null)
-                              Text('$sym${service.price!.toStringAsFixed(2)}', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: isChosen ? kPrimary : cl.textSecondary)),
+                              Text(
+                                '$sym${service.price!.toStringAsFixed(2)}',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isChosen ? kPrimary : cl.textSecondary,
+                                ),
+                              ),
                             const SizedBox(width: 8),
                             Icon(
-                              isChosen ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+                              isChosen
+                                  ? CupertinoIcons.checkmark_circle_fill
+                                  : CupertinoIcons.circle,
                               color: isChosen ? kPrimary : cl.textHint,
                               size: 20,
                             ),
@@ -1982,9 +2245,13 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: AppButton(
-                  txt: '${context.tr('add')} ${_selected.length} ${context.tr('services_title')}',
+                  txt:
+                      '${context.tr('add')} ${_selected.length} ${context.tr('services_title')}',
                   onTap: () {
-                    final chosen = widget.services.where((s) => _selected.contains(s.id)).toList();
+                    final chosen =
+                        widget.services
+                            .where((s) => _selected.contains(s.id))
+                            .toList();
                     Navigator.pop(context);
                     widget.onConfirmServices(chosen);
                   },
@@ -2050,7 +2317,10 @@ class _BankPickerSheet extends StatelessWidget {
             const SizedBox(height: 12),
             if (banks.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: GestureDetector(
                   onTap: onAddNew,
                   child: Container(
@@ -2059,7 +2329,10 @@ class _BankPickerSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: context.colors.border),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -2069,7 +2342,11 @@ class _BankPickerSheet extends StatelessWidget {
                             color: context.colors.background,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(CupertinoIcons.creditcard, color: context.colors.textSecondary, size: 18),
+                          child: Icon(
+                            CupertinoIcons.creditcard,
+                            color: context.colors.textSecondary,
+                            size: 18,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -2078,16 +2355,27 @@ class _BankPickerSheet extends StatelessWidget {
                             children: [
                               Text(
                                 context.tr('add_bank_account'),
-                                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textPrimary),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.colors.textPrimary,
+                                ),
                               ),
                               Text(
                                 context.tr('no_bank_accounts'),
-                                style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textSecondary),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: context.colors.textSecondary,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(CupertinoIcons.chevron_right, size: 14, color: context.colors.textSecondary),
+                        Icon(
+                          CupertinoIcons.chevron_right,
+                          size: 14,
+                          color: context.colors.textSecondary,
+                        ),
                       ],
                     ),
                   ),
@@ -2113,10 +2401,14 @@ class _BankPickerSheet extends StatelessWidget {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isSelected ? context.colors.primaryLight :context.colors.surface,
+                          color:
+                              isSelected
+                                  ? context.colors.primaryLight
+                                  : context.colors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? kPrimary : context.colors.border,
+                            color:
+                                isSelected ? kPrimary : context.colors.border,
                             width: isSelected ? 1.5 : 1,
                           ),
                         ),
@@ -2130,13 +2422,18 @@ class _BankPickerSheet extends StatelessWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: isSelected ? kPrimary : context.colors.background,
+                                color:
+                                    isSelected
+                                        ? kPrimary
+                                        : context.colors.background,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 CupertinoIcons.creditcard,
                                 color:
-                                    isSelected ? Colors.white : context.colors.textSecondary,
+                                    isSelected
+                                        ? Colors.white
+                                        : context.colors.textSecondary,
                                 size: 18,
                               ),
                             ),
@@ -2169,7 +2466,10 @@ class _BankPickerSheet extends StatelessWidget {
                               isSelected
                                   ? CupertinoIcons.checkmark_circle_fill
                                   : CupertinoIcons.circle,
-                              color: isSelected ? kPrimary : context.colors.textHint,
+                              color:
+                                  isSelected
+                                      ? kPrimary
+                                      : context.colors.textHint,
                               size: 20,
                             ),
                           ],
@@ -2240,7 +2540,10 @@ class _ClientPickerSheet extends StatelessWidget {
             const SizedBox(height: 12),
             if (savedClients.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
@@ -2252,7 +2555,10 @@ class _ClientPickerSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: context.colors.border),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -2262,7 +2568,11 @@ class _ClientPickerSheet extends StatelessWidget {
                             color: context.colors.background,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(CupertinoIcons.person_add, color: context.colors.textSecondary, size: 18),
+                          child: Icon(
+                            CupertinoIcons.person_add,
+                            color: context.colors.textSecondary,
+                            size: 18,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -2271,16 +2581,27 @@ class _ClientPickerSheet extends StatelessWidget {
                             children: [
                               Text(
                                 context.tr('add_new_client'),
-                                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.textPrimary),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.colors.textPrimary,
+                                ),
                               ),
                               Text(
                                 context.tr('no_saved_clients'),
-                                style: GoogleFonts.poppins(fontSize: 12, color: context.colors.textSecondary),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: context.colors.textSecondary,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(CupertinoIcons.chevron_right, size: 14, color: context.colors.textSecondary),
+                        Icon(
+                          CupertinoIcons.chevron_right,
+                          size: 14,
+                          color: context.colors.textSecondary,
+                        ),
                       ],
                     ),
                   ),

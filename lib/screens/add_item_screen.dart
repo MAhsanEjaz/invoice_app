@@ -37,6 +37,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final noteCont = TextEditingController();
   final priceCont = TextEditingController();
   final qtyCont = TextEditingController();
+  final discountCont = TextEditingController();
+  String _discountType = 'flat'; // 'flat' | 'percent'
 
   @override
   void initState() {
@@ -46,6 +48,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
       noteCont.text = widget.itemModel!.note ?? '';
       priceCont.text = widget.itemModel!.price?.toString() ?? '';
       qtyCont.text = (widget.itemModel!.qty ?? 1).toString();
+      discountCont.text = widget.itemModel!.discount?.toString() ?? '';
+      _discountType = widget.itemModel!.discountType ?? 'flat';
     } else {
       priceCont.text = '';
       qtyCont.text = '1';
@@ -58,14 +62,20 @@ class _AddItemScreenState extends State<AddItemScreen> {
     noteCont.dispose();
     priceCont.dispose();
     qtyCont.dispose();
+    discountCont.dispose();
     super.dispose();
   }
 
   double get _lineTotal {
     final price = double.tryParse(priceCont.text) ?? 0;
-    final qty = int.tryParse(qtyCont.text) ?? 0;
-    return price * qty;
+    final qty = int.tryParse(qtyCont.text) ?? 1;
+    final gross = price * qty;
+    final disc = double.tryParse(discountCont.text) ?? 0;
+    if (disc <= 0) return gross;
+    if (_discountType == 'percent') return (gross * (1 - disc / 100)).clamp(0.0, double.infinity);
+    return (gross - disc).clamp(0.0, double.infinity);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +187,47 @@ class _AddItemScreenState extends State<AddItemScreen> {
             textInputType: TextInputType.number,
             onChanged: (_) => setState(() {}),
           ),
+          Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoTextField(
+                    controller: discountCont,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    placeholder: context.tr('pdf_discount'),
+                    placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: cl.textHint),
+                    style: GoogleFonts.poppins(fontSize: 15, color: cl.textPrimary),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: const BoxDecoration(),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _discountType = _discountType == 'flat' ? 'percent' : 'flat';
+                  }),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: cl.primaryLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _discountType == 'percent' ? '%' : context.tr('discount_flat'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: kPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -279,6 +330,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
       child: AppButton(
         txt: isEditing ? context.tr('update_item') : context.tr('save_item'),
         onTap: () {
+          final discVal = double.tryParse(discountCont.text);
+          final discountAmt = (discVal != null && discVal > 0) ? discVal : null;
+
           if (widget.duplicate == true && widget.itemModel != null) {
             invoice.addExistingItemWithId(
               widget.itemModel!,
@@ -287,6 +341,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
               qtyCont.text,
               priceCont.text,
               noteCont.text.trim(),
+              discount: discountAmt,
+              discountType: discountAmt != null ? _discountType : null,
             );
           }
 
@@ -297,6 +353,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
               qtyCont.text,
               noteCont.text,
               widget.itemModel,
+              discount: discountAmt,
+              discountType: discountAmt != null ? _discountType : null,
             );
           } else {
             if (widget.invoice == null && widget.duplicate == false) {
@@ -308,6 +366,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   price: double.tryParse(priceCont.text),
                   itemName: itemCont.text,
                   duplicate: false,
+                  discount: discountAmt,
+                  discountType: discountAmt != null ? _discountType : null,
                 ),
               );
             } else {
@@ -321,6 +381,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     price: double.tryParse(priceCont.text),
                     itemName: itemCont.text,
                     duplicate: false,
+                    discount: discountAmt,
+                    discountType: discountAmt != null ? _discountType : null,
                   ),
                 );
               }
@@ -337,6 +399,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
               double.tryParse(priceCont.text) ?? 0,
               int.tryParse(qtyCont.text) ?? 1,
               invoiceId: widget.invoice?.invoiceId,
+              discount: discountAmt,
+              discountType: discountAmt != null ? _discountType : null,
             );
           }
 

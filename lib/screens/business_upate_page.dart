@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/l10n/translations.dart';
@@ -114,30 +115,55 @@ class _BusinessUpatePageState extends State<BusinessUpatePage> {
 
   Widget _buildLogoPicker(AppColors cl, BusinessProvider business) {
     final displayPath = business.imagePath;
-    return GestureDetector(
-      onTap: () async {
-        final targetId = widget.business?.id ?? business.activeBusiness?.id;
-        final newPath = await business.imagePickFunction(businessId: targetId);
-        if (newPath != null) setState(() => _logoPath = newPath);
-      },
-      child: Container(
-        width: 110, height: 110,
-        decoration: BoxDecoration(
-          color: cl.primaryLight,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: cl.border, width: 1.5),
+    final hasLogo = displayPath != null && displayPath.isNotEmpty;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: () async {
+            final targetId = widget.business?.id ?? business.activeBusiness?.id;
+            final newPath = await business.imagePickFunction(businessId: targetId);
+            if (newPath != null) setState(() => _logoPath = newPath);
+          },
+          child: Container(
+            width: 110, height: 110,
+            decoration: BoxDecoration(
+              color: cl.primaryLight,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: cl.border, width: 1.5),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: hasLogo
+                  ? Image.file(File(displayPath), fit: BoxFit.cover)
+                  : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(CupertinoIcons.camera_fill, color: kPrimary, size: 28),
+                      const SizedBox(height: 6),
+                      Text(context.tr('add_logo'), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: kPrimary)),
+                    ]),
+            ),
+          ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: displayPath != null && displayPath.isNotEmpty
-              ? Image.file(File(displayPath), fit: BoxFit.cover)
-              : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(CupertinoIcons.camera_fill, color: kPrimary, size: 28),
-                  const SizedBox(height: 6),
-                  Text(context.tr('add_logo'), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: kPrimary)),
-                ]),
-        ),
-      ),
+        if (hasLogo)
+          Positioned(
+            top: -6, right: -6,
+            child: GestureDetector(
+              onTap: () {
+                business.imagePath = null;
+                setState(() => _logoPath = null);
+              },
+              child: Container(
+                width: 26, height: 26,
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: cl.surface, width: 2),
+                ),
+                child: const Icon(CupertinoIcons.xmark, size: 12, color: Colors.white),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

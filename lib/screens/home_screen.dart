@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final unpaidTotal = filtered
         .where((i) => (i.documentType ?? 'Invoice') == 'Invoice' && i.invoiceStatus != 'Paid')
         .fold<double>(0, (sum, inv) {
-          final subtotal = inv.items?.fold<double>(0, (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1))) ?? 0;
+          final subtotal = inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0;
           final discount = inv.discount ?? 0;
           final received = inv.receivedAmount ?? 0;
           return sum + (subtotal - discount - received).clamp(0.0, double.infinity);
@@ -360,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final clientName = (inv.clients?.isNotEmpty ?? false)
         ? (inv.clients!.first.name ?? 'Unknown Client')
         : 'Unknown Client';
-    final subtotal = inv.items?.fold<double>(0, (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1))) ?? 0.0;
+    final subtotal = inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0.0;
     final total = (subtotal - (inv.discount ?? 0) - (inv.receivedAmount ?? 0)).clamp(0.0, double.infinity);
     return GestureDetector(
       onTap: () {

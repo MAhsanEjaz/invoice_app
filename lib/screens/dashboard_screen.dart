@@ -16,9 +16,7 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   double _invoiceTotal(InvoiceModel inv) {
-    final subtotal = inv.items?.fold<double>(
-            0, (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1))) ??
-        0;
+    final subtotal = inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0;
     final afterDiscount =
         (subtotal - (inv.discount ?? 0)).clamp(0.0, double.infinity);
     final taxAmount = afterDiscount * (inv.taxRate ?? 0) / 100;

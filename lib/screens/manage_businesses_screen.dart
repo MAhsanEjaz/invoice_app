@@ -112,28 +112,126 @@ class ManageBusinessesScreen extends StatelessWidget {
 
   void _showAddDialog(BuildContext context, BusinessProvider business) {
     final ctrl = TextEditingController();
-    showCupertinoDialog(
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+    String? logoPath;
+
+    showModalBottomSheet<void>(
       context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: Text(context.tr('new_business'), style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: CupertinoTextField(
-            controller: ctrl, autofocus: true, placeholder: context.tr('business_name_placeholder'),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(isDestructiveAction: true, child: Text(context.tr('cancel')), onPressed: () => Navigator.pop(context)),
-          CupertinoDialogAction(
-            isDefaultAction: true, child: Text(context.tr('add')),
-            onPressed: () {
-              final name = ctrl.text.trim();
-              if (name.isNotEmpty) business.addBusiness(name);
-              Navigator.pop(context);
-            },
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final cl = context.colors;
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cl.background,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  Text(context.tr('new_business'),
+                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary)),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            final path = await business.imagePickFunction(businessId: tempId);
+                            if (path != null) setModalState(() => logoPath = path);
+                          },
+                          child: Container(
+                            width: 90, height: 90,
+                            decoration: BoxDecoration(
+                              color: cl.primaryLight,
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: cl.border, width: 1.5),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: logoPath != null && logoPath!.isNotEmpty
+                                  ? Image.file(File(logoPath!), fit: BoxFit.cover)
+                                  : Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(CupertinoIcons.camera_fill, color: kPrimary, size: 26),
+                                        const SizedBox(height: 5),
+                                        Text(context.tr('logo_optional'),
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: kPrimary)),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ),
+                        if (logoPath != null && logoPath!.isNotEmpty)
+                          Positioned(
+                            top: -6, right: -6,
+                            child: GestureDetector(
+                              onTap: () => setModalState(() => logoPath = null),
+                              child: Container(
+                                width: 24, height: 24,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: cl.background, width: 2),
+                                ),
+                                child: const Icon(CupertinoIcons.xmark, size: 11, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  sectionLabel(context, context.tr('business_name_label')),
+                  const SizedBox(height: 8),
+                  CupertinoTextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    placeholder: context.tr('business_name_placeholder'),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: cl.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cl.border),
+                    ),
+                    style: GoogleFonts.poppins(fontSize: 15, color: cl.textPrimary),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: CupertinoButton.filled(
+                      borderRadius: BorderRadius.circular(12),
+                      onPressed: () {
+                        final name = ctrl.text.trim();
+                        if (name.isNotEmpty) {
+                          business.addBusiness(name, id: tempId, logoPath: logoPath);
+                        }
+                        Navigator.pop(context);
+                      },
+                      child: Text(context.tr('add'),
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

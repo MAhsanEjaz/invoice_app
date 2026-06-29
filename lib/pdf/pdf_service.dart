@@ -107,10 +107,7 @@ class PdfService {
     final template = provider?.template ?? InvoiceTemplate.classic;
 
     final items = invoice.items ?? [];
-    final subtotal = items.fold<double>(
-      0,
-      (sum, item) => sum + ((item.price?.toDouble() ?? 0) * (item.qty ?? 1)),
-    );
+    final subtotal = items.fold<double>(0, (sum, item) => sum + item.lineTotal);
 
     pw.MemoryImage? logoImage;
     final logoPath = business?.businessLogo;
@@ -378,7 +375,6 @@ class PdfService {
           final i = e.key;
           final item = e.value;
           final unitPrice = item.price?.toDouble() ?? 0;
-          final qty = item.qty ?? 1;
           return pw.TableRow(
             decoration: pw.BoxDecoration(
                 color: i.isOdd ? _rowAlt : PdfColors.white),
@@ -400,6 +396,15 @@ class PdfService {
                               fontSize: 8,
                               color: _textMuted)),
                     ],
+                    if ((item.discount ?? 0) > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        item.discountType == 'percent'
+                            ? '${l.t('pdf_discount')}: -${item.discount!.toStringAsFixed(1)}%'
+                            : '${l.t('pdf_discount')}: -$sym${item.discount!.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: regular, fontSize: 8, color: PdfColors.red700),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -407,7 +412,7 @@ class PdfService {
                   align: pw.Alignment.center, font: font),
               _td('$sym${unitPrice.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, font: font),
-              _td('$sym${(unitPrice * qty).toStringAsFixed(2)}',
+              _td('$sym${item.lineTotal.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, bold: true, font: font),
             ],
           );
@@ -703,7 +708,6 @@ class PdfService {
           final i = e.key;
           final item = e.value;
           final unitPrice = item.price?.toDouble() ?? 0;
-          final qty = item.qty ?? 1;
           return pw.TableRow(
             decoration: pw.BoxDecoration(
                 color: i.isOdd ? _rowAlt : PdfColors.white),
@@ -725,6 +729,15 @@ class PdfService {
                               fontSize: 8,
                               color: _textMuted)),
                     ],
+                    if ((item.discount ?? 0) > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        item.discountType == 'percent'
+                            ? '${l.t('pdf_discount')}: -${item.discount!.toStringAsFixed(1)}%'
+                            : '${l.t('pdf_discount')}: -$sym${item.discount!.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: regular, fontSize: 8, color: PdfColors.red700),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -732,7 +745,7 @@ class PdfService {
                   align: pw.Alignment.center, font: font),
               _td('$sym${unitPrice.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, font: font),
-              _td('$sym${(unitPrice * qty).toStringAsFixed(2)}',
+              _td('$sym${item.lineTotal.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, bold: true, font: font),
             ],
           );
@@ -996,7 +1009,6 @@ class PdfService {
           final i = e.key;
           final item = e.value;
           final unitPrice = item.price?.toDouble() ?? 0;
-          final qty = item.qty ?? 1;
           return pw.TableRow(
             decoration: pw.BoxDecoration(
                 color: i.isOdd ? _rowAlt : PdfColors.white),
@@ -1018,6 +1030,15 @@ class PdfService {
                               fontSize: 8,
                               color: _textMuted)),
                     ],
+                    if ((item.discount ?? 0) > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        item.discountType == 'percent'
+                            ? '${l.t('pdf_discount')}: -${item.discount!.toStringAsFixed(1)}%'
+                            : '${l.t('pdf_discount')}: -$sym${item.discount!.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: regular, fontSize: 8, color: PdfColors.red700),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1025,7 +1046,7 @@ class PdfService {
                   align: pw.Alignment.center, font: font),
               _td('$sym${unitPrice.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, font: font),
-              _td('$sym${(unitPrice * qty).toStringAsFixed(2)}',
+              _td('$sym${item.lineTotal.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, bold: true, font: font),
             ],
           );
@@ -1404,7 +1425,6 @@ class PdfService {
           final i = e.key;
           final item = e.value;
           final unitPrice = item.price?.toDouble() ?? 0;
-          final qty = item.qty ?? 1;
           return pw.TableRow(
             decoration: pw.BoxDecoration(
                 color: i.isOdd ? _rowAlt : PdfColors.white),
@@ -1426,6 +1446,15 @@ class PdfService {
                               fontSize: 8,
                               color: _textMuted)),
                     ],
+                    if ((item.discount ?? 0) > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        item.discountType == 'percent'
+                            ? '${l.t('pdf_discount')}: -${item.discount!.toStringAsFixed(1)}%'
+                            : '${l.t('pdf_discount')}: -$sym${item.discount!.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: regular, fontSize: 8, color: PdfColors.red700),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1433,7 +1462,7 @@ class PdfService {
                   align: pw.Alignment.center, font: font),
               _td('$sym${unitPrice.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, font: font),
-              _td('$sym${(unitPrice * qty).toStringAsFixed(2)}',
+              _td('$sym${item.lineTotal.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, bold: true, font: font),
             ],
           );
@@ -1804,7 +1833,6 @@ class PdfService {
         ),
         ...items.map((item) {
           final unitPrice = item.price?.toDouble() ?? 0;
-          final qty = item.qty ?? 1;
           return pw.TableRow(
             decoration: const pw.BoxDecoration(color: PdfColors.white),
             children: [
@@ -1823,13 +1851,22 @@ class PdfService {
                           style: pw.TextStyle(
                               font: regular, fontSize: 8, color: _textMuted)),
                     ],
+                    if ((item.discount ?? 0) > 0) ...[
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        item.discountType == 'percent'
+                            ? '${l.t('pdf_discount')}: -${item.discount!.toStringAsFixed(1)}%'
+                            : '${l.t('pdf_discount')}: -$sym${item.discount!.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: regular, fontSize: 8, color: PdfColors.red700),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              bTd('$qty', align: pw.Alignment.center),
+              bTd('${item.qty ?? 1}', align: pw.Alignment.center),
               bTd('$sym${unitPrice.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight),
-              bTd('$sym${(unitPrice * qty).toStringAsFixed(2)}',
+              bTd('$sym${item.lineTotal.toStringAsFixed(2)}',
                   align: pw.Alignment.centerRight, isBold: true),
             ],
           );
@@ -1993,10 +2030,8 @@ class PdfService {
                 pw.SizedBox(height: 16),
                 _notes(invoice.notes!, l, font),
               ],
-              if (invoice.termsConditions?.isNotEmpty ?? false) ...[
-                pw.SizedBox(height: 16),
-                _footer(invoice.termsConditions, l, font),
-              ],
+              pw.SizedBox(height: 16),
+              _footer(invoice.termsConditions, l, font),
               pw.SizedBox(height: 20),
               _appBrandFooter(appLogo, accent, font),
               pw.SizedBox(height: 16),
@@ -2244,7 +2279,6 @@ class PdfService {
         final idx      = e.key;
         final item     = e.value;
         final unitPrice = item.price?.toDouble() ?? 0;
-        final qty      = item.qty ?? 1;
         return pw.TableRow(
           decoration: const pw.BoxDecoration(color: PdfColors.white),
           children: [
@@ -2265,12 +2299,21 @@ class PdfService {
                       style: pw.TextStyle(font: regular, fontSize: 8, color: mutedGray),
                     ),
                   ],
+                  if ((item.discount ?? 0) > 0) ...[
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      item.discountType == 'percent'
+                          ? '${l.t('pdf_discount')}: -${item.discount!.toStringAsFixed(1)}%'
+                          : '${l.t('pdf_discount')}: -$sym${item.discount!.toStringAsFixed(2)}',
+                      style: pw.TextStyle(font: regular, fontSize: 8, color: PdfColors.red700),
+                    ),
+                  ],
                 ],
               ),
             ),
-            gTd('$qty',                                         align: pw.Alignment.center),
-            gTd('$sym${unitPrice.toStringAsFixed(2)}',          align: pw.Alignment.centerRight),
-            gTd('$sym${(unitPrice * qty).toStringAsFixed(2)}',  align: pw.Alignment.centerRight, isBold: true),
+            gTd('${item.qty ?? 1}',                              align: pw.Alignment.center),
+            gTd('$sym${unitPrice.toStringAsFixed(2)}',           align: pw.Alignment.centerRight),
+            gTd('$sym${item.lineTotal.toStringAsFixed(2)}',      align: pw.Alignment.centerRight, isBold: true),
           ],
         );
       }),
@@ -2379,56 +2422,27 @@ class PdfService {
         ((bank.bankName?.isNotEmpty ?? false) ||
             (bank.accountNumber?.isNotEmpty ?? false));
 
-    final signatureCol = pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
-      children: [
-        pw.SizedBox(height: 30),
-        pw.Container(
-          width: 130,
-          decoration: const pw.BoxDecoration(
-            border: pw.Border(
-                bottom: pw.BorderSide(color: _borderGrey, width: 0.8)),
-          ),
-        ),
-        pw.SizedBox(height: 5),
-        pw.Text(l.t('pdf_signature'),
-            style: pw.TextStyle(font: regular, fontSize: 9, color: _textMuted)),
-      ],
-    );
+    if (!hasBank) return pw.SizedBox();
 
-    if (!hasBank) {
-      return pw.Align(
-          alignment: pw.Alignment.centerRight, child: signatureCol);
-    }
-
-    return pw.Row(
+    return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('${l.t('pdf_note')}:',
-                  style: pw.TextStyle(
-                      font: bold, fontSize: 10, color: _textDark)),
-              pw.SizedBox(height: 5),
-              if (bank.bankName?.isNotEmpty ?? false)
-                pw.Text(bank.bankName!,
-                    style: pw.TextStyle(
-                        font: regular, fontSize: 10, color: _textMid)),
-              if (bank.title?.isNotEmpty ?? false)
-                pw.Text(bank.title!,
-                    style: pw.TextStyle(
-                        font: regular, fontSize: 10, color: _textMid)),
-              if (bank.accountNumber?.isNotEmpty ?? false)
-                pw.Text(
-                    '${l.t('pdf_account_number')}: ${bank.accountNumber!}',
-                    style: pw.TextStyle(
-                        font: regular, fontSize: 10, color: _textMid)),
-            ],
-          ),
-        ),
-        signatureCol,
+        pw.Text('${l.t('pdf_note')}:',
+            style: pw.TextStyle(font: bold, fontSize: 10, color: _textDark)),
+        pw.SizedBox(height: 5),
+        if (bank.bankName?.isNotEmpty ?? false)
+          pw.Text(bank.bankName!,
+              style:
+                  pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
+        if (bank.title?.isNotEmpty ?? false)
+          pw.Text(bank.title!,
+              style:
+                  pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
+        if (bank.accountNumber?.isNotEmpty ?? false)
+          pw.Text(
+              '${l.t('pdf_account_number')}: ${bank.accountNumber!}',
+              style:
+                  pw.TextStyle(font: regular, fontSize: 10, color: _textMid)),
       ],
     );
   }

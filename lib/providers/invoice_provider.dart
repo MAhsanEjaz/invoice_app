@@ -28,6 +28,21 @@ class InvoiceProvider extends ChangeNotifier {
 
   // ── Recurring helpers ────────────────────────────────────────────────────────
 
+  String _todayIso() {
+    final d = DateTime.now();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Advances [fromIso] by one interval and keeps advancing until the result
+  /// is strictly after [todayIso]. This ensures we never land on a past date.
+  String _computeNextFutureDate(String fromIso, String interval, int? customDays, String todayIso) {
+    var next = fromIso;
+    do {
+      next = _computeNextDate(next, interval, customDays);
+    } while (next.compareTo(todayIso) <= 0);
+    return next;
+  }
+
   String? _toIsoDate(String dateStr) {
     final formats = ['MMM dd, yyyy', 'dd MMM yyyy', 'yyyy-MM-dd', 'dd/MM/yyyy'];
     for (final fmt in formats) {
@@ -46,7 +61,9 @@ class InvoiceProvider extends ChangeNotifier {
       case 'weekly':
         next = from.add(const Duration(days: 7));
       case 'custom':
-        next = from.add(Duration(days: customDays ?? 30));
+        // Clamp to ≥1 to prevent an infinite loop in _computeNextFutureDate
+        // when the caller passes 0 or null.
+        next = from.add(Duration(days: (customDays ?? 30).clamp(1, 3650)));
       default: // monthly — clamp day to last day of target month to avoid overflow
         final nextYear = from.month == 12 ? from.year + 1 : from.year;
         final nextMonth = from.month == 12 ? 1 : from.month + 1;
@@ -57,16 +74,21 @@ class InvoiceProvider extends ChangeNotifier {
   }
 
   Future<void> _checkAndCreateRecurringInvoices() async {
+    final todayIso = _todayIso();
+
+    // Guard: run at most once per calendar day so multiple cold-starts or
+    // provider re-inits on the same day cannot create duplicate invoices.
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('_recurringCheckDate') == todayIso) return;
+
     final today = DateTime.now();
-    final todayIso =
-        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     final toProcess = invoice
         .where((inv) =>
-            inv.isRecurring == true && inv.nextRecurringDate != null && inv.nextRecurringDate!.compareTo(todayIso) <= 0)
+            inv.isRecurring == true &&
+            inv.nextRecurringDate != null &&
+            inv.nextRecurringDate!.compareTo(todayIso) <= 0)
         .toList();
-
-    if (toProcess.isEmpty) return;
 
     for (final parent in toProcess) {
       // Compute new due date preserving the same offset from invoice date
@@ -94,12 +116,19 @@ class InvoiceProvider extends ChangeNotifier {
         dueDate: newDueDateFormatted,
         notes: parent.notes,
         termsConditions: parent.termsConditions,
-        bank: parent.bank,
+        bank: parent.bank != null
+            ? BankModel(
+                id: parent.bank!.id,
+                accountNumber: parent.bank!.accountNumber,
+                title: parent.bank!.title,
+                bankName: parent.bank!.bankName,
+              )
+            : null,
         discount: parent.discount,
         taxRate: parent.taxRate,
         taxLabel: parent.taxLabel,
         items: parent.items
-            ?.map((e) => ItemModel(id: e.id, itemName: e.itemName, note: e.note, price: e.price, qty: e.qty, duplicate: false))
+            ?.map((e) => ItemModel(id: e.id, itemName: e.itemName, note: e.note, price: e.price, qty: e.qty, duplicate: false, discount: e.discount, discountType: e.discountType))
             .toList(),
         clients: parent.clients
             ?.map((e) => ClientModel(id: e.id, name: e.name, phone: e.phone, email: e.email, address: e.address, duplicate: false))
@@ -110,11 +139,14 @@ class InvoiceProvider extends ChangeNotifier {
       newInvoice.invoiceId = lastId;
       invoice.add(newInvoice);
 
-      // Advance the parent to the next period
-      parent.nextRecurringDate = _computeNextDate(
+      // Advance nextRecurringDate past today (not just one period) so that
+      // re-launching the app on the same day never creates a second invoice,
+      // even if multiple periods were missed while the app was unused.
+      parent.nextRecurringDate = _computeNextFutureDate(
         parent.nextRecurringDate!,
         parent.recurringInterval ?? 'monthly',
         parent.recurringCustomDays,
+        todayIso,
       );
 
       final clientName = (newInvoice.clients?.isNotEmpty ?? false) ? (newInvoice.clients!.first.name ?? 'Client') : 'Client';
@@ -136,9 +168,14 @@ class InvoiceProvider extends ChangeNotifier {
       }
     }
 
-    getInvoices();
-    await saveInvoice();
-    notifyListeners();
+    if (toProcess.isNotEmpty) {
+      getInvoices();
+      await saveInvoice();
+      notifyListeners();
+    }
+
+    // Mark today as checked regardless of whether invoices were created.
+    await prefs.setString('_recurringCheckDate', todayIso);
   }
 
   Future<void> updateRecurringSettings(
@@ -158,7 +195,11 @@ class InvoiceProvider extends ChangeNotifier {
       if (inv.date != null) {
         final isoDate = _toIsoDate(inv.date!);
         if (isoDate != null) {
-          inv.nextRecurringDate = _computeNextDate(isoDate, inv.recurringInterval!, inv.recurringCustomDays);
+          // Advance from the invoice date until strictly after today so that
+          // old invoices don't get a past nextRecurringDate and immediately
+          // trigger creation on the next launch.
+          inv.nextRecurringDate = _computeNextFutureDate(
+            isoDate, inv.recurringInterval!, inv.recurringCustomDays, _todayIso());
         }
       }
     } else {
@@ -187,13 +228,17 @@ class InvoiceProvider extends ChangeNotifier {
     String? itemName,
     String? qty,
     String? price,
-    String? note,
-  ) {
+    String? note, {
+    double? discount,
+    String? discountType,
+  }) {
     // Update the item in-place via its existing reference — no cross-invoice loop
     model.itemName = itemName;
     model.qty = int.tryParse(qty ?? '');
     model.price = double.tryParse(price ?? '');
     model.note = note;
+    model.discount = (discount != null && discount > 0) ? discount : null;
+    model.discountType = (discount != null && discount > 0) ? discountType : null;
 
     item.add(
       ItemModel(
@@ -203,6 +248,8 @@ class InvoiceProvider extends ChangeNotifier {
         itemName: model.itemName,
         id: model.id,
         duplicate: true,
+        discount: model.discount,
+        discountType: model.discountType,
       ),
     );
 
@@ -220,14 +267,16 @@ class InvoiceProvider extends ChangeNotifier {
       newInvoice.invoiceNumber = numberFormatter(lastId);
     }
 
-    // Set nextRecurringDate before persisting so listeners see the complete state
+    // Set nextRecurringDate before persisting so listeners see the complete state.
+    // Advance past today in case the invoice was created with a backdated date.
     if (newInvoice.isRecurring == true && newInvoice.nextRecurringDate == null && newInvoice.date != null) {
       final isoDate = _toIsoDate(newInvoice.date!);
       if (isoDate != null) {
-        newInvoice.nextRecurringDate = _computeNextDate(
+        newInvoice.nextRecurringDate = _computeNextFutureDate(
           isoDate,
           newInvoice.recurringInterval ?? 'monthly',
           newInvoice.recurringCustomDays,
+          _todayIso(),
         );
       }
     }
@@ -287,6 +336,8 @@ class InvoiceProvider extends ChangeNotifier {
                 price: e.price,
                 qty: e.qty,
                 duplicate: false,
+                discount: e.discount,
+                discountType: e.discountType,
               ))
           .toList(),
       clients: source.clients
@@ -360,6 +411,8 @@ class InvoiceProvider extends ChangeNotifier {
     double price,
     int qty, {
     int? invoiceId,
+    double? discount,
+    String? discountType,
   }) {
     // When invoiceId is provided, only touch that invoice; otherwise fall back
     // to updating the first invoice that contains the item (legacy behaviour).
@@ -375,6 +428,8 @@ class InvoiceProvider extends ChangeNotifier {
       element.items![idx].note = note ?? '';
       element.items![idx].qty = qty;
       element.items![idx].price = price;
+      element.items![idx].discount = (discount != null && discount > 0) ? discount : null;
+      element.items![idx].discountType = (discount != null && discount > 0) ? discountType : null;
     }
 
     saveInvoice();
@@ -416,9 +471,7 @@ class InvoiceProvider extends ChangeNotifier {
 
     final myPrice = (data.items ?? []).fold<num>(
       0,
-      (pre, newPrice) =>
-          pre.toDouble() +
-          (newPrice.price?.toDouble() ?? 0.0) * (newPrice.qty ?? 1),
+      (pre, item) => pre.toDouble() + item.lineTotal,
     );
 
     myCalPrice = myPrice;

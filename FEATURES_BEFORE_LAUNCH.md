@@ -10,18 +10,18 @@ Based on competitor analysis (Invoice Simple, Zoho, Wave, Bookipi, Joist, Invoic
 - One-tap conversion from an existing Quote or Estimate document into a full Invoice
 - Fully implemented: provider, confirmation dialog, UI button, all 4 language translations
 
-### 2. Recurring Invoices
-- Schedule an invoice to repeat (weekly / monthly / custom interval)
-- Auto-create the next invoice when the period ends
-- Show a "recurring" badge on those invoices in the list
+### ~~2. Recurring Invoices~~ ✅ DONE
+- ~~Schedule an invoice to repeat (weekly / monthly / custom interval)~~
+- ~~Auto-create the next invoice when the period ends~~
+- ~~Show a "recurring" badge on those invoices in the list~~
 - **Competitors: Zoho, Wave, Invoice Ninja, Joist, Bookipi, Invoice2go, FreshBooks**
-- **Effort: Medium (3–5 days)**
+- Fully implemented: provider auto-creates invoices on app launch, weekly/monthly/custom intervals, badge shown in invoice list, interval picker in verification screen
 
-### 3. Per-Line Item Discount
-- Currently only a global invoice-level discount exists
-- Add an optional discount % or flat amount per line item
+### ~~3. Per-Line Item Discount~~ ✅ DONE
+- ~~Currently only a global invoice-level discount exists~~
+- ~~Add an optional discount % or flat amount per line item~~
 - **Competitors: Zoho, Invoice Simple**
-- **Effort: Low–Medium (1–2 days)**
+- Fully implemented: flat and % discount per line item, shown in invoice editor, all 6 PDF templates, and verification screen
 
 ### 4. Multiple / Partial Payment Recording
 - Let users record multiple payments against one invoice (e.g. 50% upfront, 50% on delivery)
@@ -45,10 +45,11 @@ Based on competitor analysis (Invoice Simple, Zoho, Wave, Bookipi, Joist, Invoic
 
 ## MEDIUM PRIORITY — Makes the app feel professional
 
-### 7. Saved Items Quick-Add Inside Invoice Screen
-- Users retype items every invoice. Saved services exist but the UX is a separate screen.
-- Show a bottom sheet with saved items/services while in the invoice editor for fast insertion
+### ~~7. Saved Items Quick-Add Inside Invoice Screen~~ ✅ DONE
+- ~~Users retype items every invoice. Saved services exist but the UX is a separate screen.~~
+- ~~Show a bottom sheet with saved items/services while in the invoice editor for fast insertion~~
 - **Effort: Low (1 day)**
+- Fully implemented: bottom sheet with multi-select saved services appears when tapping "Add Item" inside the invoice editor
 
 ### 8. Overdue Invoice Push Notification to User
 - Already have due-date local notifications — extend to send a repeat reminder if still unpaid X days after due date

@@ -18,12 +18,16 @@ class ItemProvider extends ChangeNotifier {
     String? iPrice,
     String? iQty,
     String? iNote,
-    ItemModel? itemModel,
-  ) {
+    ItemModel? itemModel, {
+    double? discount,
+    String? discountType,
+  }) {
     itemModel!.itemName = iName;
     itemModel.price = double.parse(iPrice.toString());
     itemModel.note = iNote;
     itemModel.qty = int.parse(iQty.toString());
+    itemModel.discount = (discount != null && discount > 0) ? discount : null;
+    itemModel.discountType = (discount != null && discount > 0) ? discountType : null;
 
     notifyListeners();
   }
@@ -33,9 +37,4 @@ class ItemProvider extends ChangeNotifier {
 
     notifyListeners();
   }
-
-
-
-
-
 }

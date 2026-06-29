@@ -172,6 +172,7 @@ class AppTranslations {
     'save_changes': 'Save Changes',
     'edit_business': 'Edit Business',
     'add_logo': 'Add Logo',
+    'logo_optional': 'Logo (Optional)',
     // New invoice screen
     'line_items': 'Line Items',
     'notes': 'Notes',
@@ -336,9 +337,11 @@ class AppTranslations {
     'interval_custom': 'Custom',
     'custom_days_hint': 'Number of days',
     'custom_days_unit': 'days',
+    'custom_days_required': 'Please enter the number of days for the custom interval.',
     'recurring_next': 'Next: {date}',
     'notif_recurring_title': 'Recurring Invoice Created',
     'notif_recurring_body': 'Invoice #{number} for {client} was automatically created.',
+    'discount_flat': 'Flat',
   };
 
   static const _ur = {
@@ -492,6 +495,7 @@ class AppTranslations {
     'save_changes': 'تبدیلیاں محفوظ کریں',
     'edit_business': 'کاروبار ترمیم کریں',
     'add_logo': 'لوگو شامل کریں',
+    'logo_optional': 'لوگو (اختیاری)',
     // New invoice screen
     'line_items': 'سامان کی فہرست',
     'notes': 'نوٹس',
@@ -656,9 +660,11 @@ class AppTranslations {
     'interval_custom': 'خود مقرر',
     'custom_days_hint': 'دنوں کی تعداد',
     'custom_days_unit': 'دن',
+    'custom_days_required': 'براہ کرم کسٹم وقفے کے لیے دنوں کی تعداد درج کریں۔',
     'recurring_next': 'اگلی: {date}',
     'notif_recurring_title': 'بار بار انوائس بنائی گئی',
     'notif_recurring_body': 'انوائس #{number} برائے {client} خودکار بنائی گئی۔',
+    'discount_flat': 'مقطوع',
   };
 
   static const _hi = {
@@ -812,6 +818,7 @@ class AppTranslations {
     'save_changes': 'परिवर्तन सहेजें',
     'edit_business': 'व्यवसाय संपादित करें',
     'add_logo': 'लोगो जोड़ें',
+    'logo_optional': 'लोगो (वैकल्पिक)',
     // New invoice screen
     'line_items': 'लाइन आइटम',
     'notes': 'नोट्स',
@@ -976,9 +983,11 @@ class AppTranslations {
     'interval_custom': 'कस्टम',
     'custom_days_hint': 'दिनों की संख्या',
     'custom_days_unit': 'दिन',
+    'custom_days_required': 'कृपया कस्टम अंतराल के लिए दिनों की संख्या दर्ज करें।',
     'recurring_next': 'अगला: {date}',
     'notif_recurring_title': 'आवर्ती चालान बनाया गया',
     'notif_recurring_body': 'चालान #{number} {client} के लिए स्वचालित रूप से बनाया गया।',
+    'discount_flat': 'फ्लैट',
   };
 
   static const _ar = {
@@ -1132,6 +1141,7 @@ class AppTranslations {
     'save_changes': 'حفظ التغييرات',
     'edit_business': 'تعديل العمل',
     'add_logo': 'إضافة شعار',
+    'logo_optional': 'الشعار (اختياري)',
     // New invoice screen
     'line_items': 'بنود الفاتورة',
     'notes': 'ملاحظات',
@@ -1296,8 +1306,10 @@ class AppTranslations {
     'interval_custom': 'مخصص',
     'custom_days_hint': 'عدد الأيام',
     'custom_days_unit': 'أيام',
+    'custom_days_required': 'يرجى إدخال عدد الأيام للفترة المخصصة.',
     'recurring_next': 'التالي: {date}',
     'notif_recurring_title': 'تم إنشاء فاتورة متكررة',
     'notif_recurring_body': 'تم إنشاء الفاتورة #{number} للعميل {client} تلقائياً.',
+    'discount_flat': 'مبلغ ثابت',
   };
 }

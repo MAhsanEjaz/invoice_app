@@ -1,10 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invoicemaker/constants.dart';
 import 'package:invoicemaker/l10n/translations.dart';
-import 'package:invoicemaker/models/business_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
@@ -25,6 +26,7 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
   final FocusNode _focusNode = FocusNode();
   bool _hasInput = false;
   bool _isFocused = false;
+  String? _logoPath;
 
   @override
   void initState() {
@@ -92,6 +94,62 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 20),
                           decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)))),
+                        Center(
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              GestureDetector(
+                                onTap: () async {
+                                  final path = await business.imagePickFunction();
+                                  if (path != null && mounted) {
+                                    setState(() => _logoPath = path);
+                                  }
+                                },
+                                child: Container(
+                                  width: 90,
+                                  height: 90,
+                                  decoration: BoxDecoration(
+                                    color: cl.primaryLight,
+                                    borderRadius: BorderRadius.circular(22),
+                                    border: Border.all(color: cl.border, width: 1.5),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: _logoPath != null && _logoPath!.isNotEmpty
+                                        ? Image.file(File(_logoPath!), fit: BoxFit.cover)
+                                        : Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              const Icon(CupertinoIcons.camera_fill, color: kPrimary, size: 26),
+                                              const SizedBox(height: 5),
+                                              Text(context.tr('logo_optional'),
+                                                  textAlign: TextAlign.center,
+                                                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: kPrimary)),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                              ),
+                              if (_logoPath != null && _logoPath!.isNotEmpty)
+                                Positioned(
+                                  top: -6, right: -6,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _logoPath = null),
+                                    child: Container(
+                                      width: 24, height: 24,
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: cl.surface, width: 2),
+                                      ),
+                                      child: const Icon(CupertinoIcons.xmark, size: 11, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         sectionLabel(context, context.tr('business_name_label')),
                         const SizedBox(height: 8),
                         AnimatedContainer(
@@ -121,8 +179,9 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
                           txt: context.tr('continue_btn'),
                           color: _hasInput ? kPrimary : cl.textHint,
                           onTap: _hasInput ? () async {
-                            await business.addBusinessData(
-                              BusinessModel(businessName: _nameCont.text.trim()),
+                            await business.addBusiness(
+                              _nameCont.text.trim(),
+                              logoPath: _logoPath,
                             );
                             if (!context.mounted) return;
                             Navigation.go(context, const InvoiceDummy());

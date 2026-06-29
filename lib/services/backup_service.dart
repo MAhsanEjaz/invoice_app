@@ -92,16 +92,18 @@ class BackupService {
         withReadStream: false,
       );
     } catch (_) {
-      if (context.mounted)
+      if (context.mounted) {
         _showAlert(context, context.tr('restore_invalid'), isError: true);
+      }
       return;
     }
 
     if (picked == null || picked.files.isEmpty) return;
     final filePath = picked.files.first.path;
     if (filePath == null) {
-      if (context.mounted)
+      if (context.mounted) {
         _showAlert(context, context.tr('restore_invalid'), isError: true);
+      }
       return;
     }
 
@@ -111,20 +113,23 @@ class BackupService {
       final content = await File(filePath).readAsString();
       final decoded = jsonDecode(content);
       if (decoded is! Map<String, dynamic>) {
-        if (context.mounted)
+        if (context.mounted) {
           _showAlert(context, context.tr('restore_not_backup'), isError: true);
+        }
         return;
       }
       data = decoded;
     } catch (_) {
-      if (context.mounted)
+      if (context.mounted) {
         _showAlert(context, context.tr('restore_invalid'), isError: true);
+      }
       return;
     }
 
     if (!_isValidBackup(data)) {
-      if (context.mounted)
+      if (context.mounted) {
         _showAlert(context, context.tr('restore_not_backup'), isError: true);
+      }
       return;
     }
 

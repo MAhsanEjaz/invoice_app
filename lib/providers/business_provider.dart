@@ -109,10 +109,12 @@ class BusinessProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addBusiness(String name) async {
+  Future<void> addBusiness(String name, {String? id, String? logoPath}) async {
     final newBusiness = BusinessModel(
+      id: id,
       businessName: name,
       isDefault: businesses.isEmpty,
+      businessLogo: logoPath,
     );
     businesses.add(newBusiness);
     await _saveBusinesses();
@@ -122,8 +124,11 @@ class BusinessProvider extends ChangeNotifier {
   Future<void> updateBusiness(String id, String? name, String? logoPath) async {
     final b = businesses.firstWhere((e) => e.id == id);
     b.businessName = name;
-    if (logoPath != null) b.businessLogo = logoPath;
-    if (activeBusiness?.id == id) activeBusiness = b;
+    b.businessLogo = (logoPath?.isNotEmpty ?? false) ? logoPath : null;
+    if (activeBusiness?.id == id) {
+      activeBusiness = b;
+      imagePath = b.businessLogo;
+    }
     await _saveBusinesses();
     notifyListeners();
   }
