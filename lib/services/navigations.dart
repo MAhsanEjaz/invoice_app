@@ -11,10 +11,7 @@ class Navigation {
             parent: animation,
             curve: Curves.easeInOut,
           );
-          return FadeTransition(
-            opacity: curvedAnimation,
-            child: child,
-          );
+          return FadeTransition(opacity: curvedAnimation, child: child);
         },
         transitionDuration: const Duration(milliseconds: 350),
       ),
@@ -31,14 +28,11 @@ class Navigation {
             parent: animation,
             curve: Curves.easeInOut,
           );
-          return FadeTransition(
-            opacity: curvedAnimation,
-            child: child,
-          );
+          return FadeTransition(opacity: curvedAnimation, child: child);
         },
         transitionDuration: const Duration(milliseconds: 350),
       ),
-          (Route<dynamic> route) => false,
+      (Route<dynamic> route) => false,
     );
   }
 }

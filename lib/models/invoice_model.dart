@@ -27,8 +27,9 @@ class InvoiceModel {
   // Recurring invoice fields
   bool? isRecurring;
   String? recurringInterval; // 'weekly' | 'monthly' | 'custom'
-  int? recurringCustomDays;  // Only used when recurringInterval == 'custom'
-  String? nextRecurringDate; // ISO yyyy-MM-dd — the date when next copy is created
+  int? recurringCustomDays; // Only used when recurringInterval == 'custom'
+  String?
+  nextRecurringDate; // ISO yyyy-MM-dd — the date when next copy is created
 
   InvoiceModel({
     this.items,
@@ -95,15 +96,18 @@ class InvoiceModel {
       discount: (json['discount'] as num?)?.toDouble(),
       taxRate: (json['taxRate'] as num?)?.toDouble(),
       taxLabel: json['taxLabel'] as String?,
-      items: (json['items'] as List<dynamic>?)
-          ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      clients: (json['clients'] as List<dynamic>?)
-          ?.map((e) => ClientModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      bank: json['bank'] != null
-          ? BankModel.fromJson(json['bank'] as Map<String, dynamic>)
-          : null,
+      items:
+          (json['items'] as List<dynamic>?)
+              ?.map((e) => ItemModel.fromJson(e as Map<String, dynamic>))
+              .toList(),
+      clients:
+          (json['clients'] as List<dynamic>?)
+              ?.map((e) => ClientModel.fromJson(e as Map<String, dynamic>))
+              .toList(),
+      bank:
+          json['bank'] != null
+              ? BankModel.fromJson(json['bank'] as Map<String, dynamic>)
+              : null,
       documentType: json['documentType'] as String?,
       isRecurring: json['isRecurring'] as bool?,
       recurringInterval: json['recurringInterval'] as String?,

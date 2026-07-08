@@ -35,7 +35,12 @@ class InvoiceProvider extends ChangeNotifier {
 
   /// Advances [fromIso] by one interval and keeps advancing until the result
   /// is strictly after [todayIso]. This ensures we never land on a past date.
-  String _computeNextFutureDate(String fromIso, String interval, int? customDays, String todayIso) {
+  String _computeNextFutureDate(
+    String fromIso,
+    String interval,
+    int? customDays,
+    String todayIso,
+  ) {
     var next = fromIso;
     do {
       next = _computeNextDate(next, interval, customDays);
@@ -83,12 +88,15 @@ class InvoiceProvider extends ChangeNotifier {
 
     final today = DateTime.now();
 
-    final toProcess = invoice
-        .where((inv) =>
-            inv.isRecurring == true &&
-            inv.nextRecurringDate != null &&
-            inv.nextRecurringDate!.compareTo(todayIso) <= 0)
-        .toList();
+    final toProcess =
+        invoice
+            .where(
+              (inv) =>
+                  inv.isRecurring == true &&
+                  inv.nextRecurringDate != null &&
+                  inv.nextRecurringDate!.compareTo(todayIso) <= 0,
+            )
+            .toList();
 
     for (final parent in toProcess) {
       // Compute new due date preserving the same offset from invoice date
@@ -98,7 +106,10 @@ class InvoiceProvider extends ChangeNotifier {
         final parentDueIso = _toIsoDate(parent.dueDate!);
         if (parentDateIso != null && parentDueIso != null) {
           try {
-            final diff = DateTime.parse(parentDueIso).difference(DateTime.parse(parentDateIso)).inDays;
+            final diff =
+                DateTime.parse(
+                  parentDueIso,
+                ).difference(DateTime.parse(parentDateIso)).inDays;
             final newDue = today.add(Duration(days: diff));
             newDueDateFormatted = DateFormat('MMM dd, yyyy').format(newDue);
           } catch (_) {
@@ -116,23 +127,46 @@ class InvoiceProvider extends ChangeNotifier {
         dueDate: newDueDateFormatted,
         notes: parent.notes,
         termsConditions: parent.termsConditions,
-        bank: parent.bank != null
-            ? BankModel(
-                id: parent.bank!.id,
-                accountNumber: parent.bank!.accountNumber,
-                title: parent.bank!.title,
-                bankName: parent.bank!.bankName,
-              )
-            : null,
+        bank:
+            parent.bank != null
+                ? BankModel(
+                  id: parent.bank!.id,
+                  accountNumber: parent.bank!.accountNumber,
+                  title: parent.bank!.title,
+                  bankName: parent.bank!.bankName,
+                )
+                : null,
         discount: parent.discount,
         taxRate: parent.taxRate,
         taxLabel: parent.taxLabel,
-        items: parent.items
-            ?.map((e) => ItemModel(id: e.id, itemName: e.itemName, note: e.note, price: e.price, qty: e.qty, duplicate: false, discount: e.discount, discountType: e.discountType))
-            .toList(),
-        clients: parent.clients
-            ?.map((e) => ClientModel(id: e.id, name: e.name, phone: e.phone, email: e.email, address: e.address, duplicate: false))
-            .toList(),
+        items:
+            parent.items
+                ?.map(
+                  (e) => ItemModel(
+                    id: e.id,
+                    itemName: e.itemName,
+                    note: e.note,
+                    price: e.price,
+                    qty: e.qty,
+                    duplicate: false,
+                    discount: e.discount,
+                    discountType: e.discountType,
+                  ),
+                )
+                .toList(),
+        clients:
+            parent.clients
+                ?.map(
+                  (e) => ClientModel(
+                    id: e.id,
+                    name: e.name,
+                    phone: e.phone,
+                    email: e.email,
+                    address: e.address,
+                    duplicate: false,
+                  ),
+                )
+                .toList(),
       );
 
       lastId += 1;
@@ -149,7 +183,10 @@ class InvoiceProvider extends ChangeNotifier {
         todayIso,
       );
 
-      final clientName = (newInvoice.clients?.isNotEmpty ?? false) ? (newInvoice.clients!.first.name ?? 'Client') : 'Client';
+      final clientName =
+          (newInvoice.clients?.isNotEmpty ?? false)
+              ? (newInvoice.clients!.first.name ?? 'Client')
+              : 'Client';
       final invNumber = newInvoice.invoiceId.toString();
 
       await NotificationService.showRecurringInvoiceCreated(
@@ -199,7 +236,11 @@ class InvoiceProvider extends ChangeNotifier {
           // old invoices don't get a past nextRecurringDate and immediately
           // trigger creation on the next launch.
           inv.nextRecurringDate = _computeNextFutureDate(
-            isoDate, inv.recurringInterval!, inv.recurringCustomDays, _todayIso());
+            isoDate,
+            inv.recurringInterval!,
+            inv.recurringCustomDays,
+            _todayIso(),
+          );
         }
       }
     } else {
@@ -238,7 +279,8 @@ class InvoiceProvider extends ChangeNotifier {
     model.price = double.tryParse(price ?? '');
     model.note = note;
     model.discount = (discount != null && discount > 0) ? discount : null;
-    model.discountType = (discount != null && discount > 0) ? discountType : null;
+    model.discountType =
+        (discount != null && discount > 0) ? discountType : null;
 
     item.add(
       ItemModel(
@@ -269,7 +311,9 @@ class InvoiceProvider extends ChangeNotifier {
 
     // Set nextRecurringDate before persisting so listeners see the complete state.
     // Advance past today in case the invoice was created with a backdated date.
-    if (newInvoice.isRecurring == true && newInvoice.nextRecurringDate == null && newInvoice.date != null) {
+    if (newInvoice.isRecurring == true &&
+        newInvoice.nextRecurringDate == null &&
+        newInvoice.date != null) {
       final isoDate = _toIsoDate(newInvoice.date!);
       if (isoDate != null) {
         newInvoice.nextRecurringDate = _computeNextFutureDate(
@@ -287,14 +331,18 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
 
     final isInvoice = (newInvoice.documentType ?? 'Invoice') == 'Invoice';
-    if (isInvoice && newInvoice.dueDate != null && newInvoice.invoiceStatus != 'Paid') {
-      final clientName = (newInvoice.clients?.isNotEmpty ?? false)
-          ? (newInvoice.clients!.first.name ?? 'Client')
-          : 'Client';
+    if (isInvoice &&
+        newInvoice.dueDate != null &&
+        newInvoice.invoiceStatus != 'Paid') {
+      final clientName =
+          (newInvoice.clients?.isNotEmpty ?? false)
+              ? (newInvoice.clients!.first.name ?? 'Client')
+              : 'Client';
       await NotificationService.scheduleInvoiceReminder(
         invoiceId: newInvoice.invoiceId!,
         clientName: clientName,
-        invoiceNumber: newInvoice.invoiceNumber ?? newInvoice.invoiceId.toString(),
+        invoiceNumber:
+            newInvoice.invoiceNumber ?? newInvoice.invoiceId.toString(),
         dueDate: newInvoice.dueDate!,
       );
     }
@@ -317,39 +365,46 @@ class InvoiceProvider extends ChangeNotifier {
       dueDate: source.dueDate,
       notes: source.notes,
       termsConditions: source.termsConditions,
-      bank: source.bank != null
-          ? BankModel(
-              id: source.bank!.id,
-              accountNumber: source.bank!.accountNumber,
-              title: source.bank!.title,
-              bankName: source.bank!.bankName,
-            )
-          : null,
+      bank:
+          source.bank != null
+              ? BankModel(
+                id: source.bank!.id,
+                accountNumber: source.bank!.accountNumber,
+                title: source.bank!.title,
+                bankName: source.bank!.bankName,
+              )
+              : null,
       discount: source.discount,
       taxRate: source.taxRate,
       taxLabel: source.taxLabel,
-      items: source.items
-          ?.map((e) => ItemModel(
-                id: e.id,
-                itemName: e.itemName,
-                note: e.note,
-                price: e.price,
-                qty: e.qty,
-                duplicate: false,
-                discount: e.discount,
-                discountType: e.discountType,
-              ))
-          .toList(),
-      clients: source.clients
-          ?.map((e) => ClientModel(
-                id: e.id,
-                name: e.name,
-                phone: e.phone,
-                email: e.email,
-                address: e.address,
-                duplicate: false,
-              ))
-          .toList(),
+      items:
+          source.items
+              ?.map(
+                (e) => ItemModel(
+                  id: e.id,
+                  itemName: e.itemName,
+                  note: e.note,
+                  price: e.price,
+                  qty: e.qty,
+                  duplicate: false,
+                  discount: e.discount,
+                  discountType: e.discountType,
+                ),
+              )
+              .toList(),
+      clients:
+          source.clients
+              ?.map(
+                (e) => ClientModel(
+                  id: e.id,
+                  name: e.name,
+                  phone: e.phone,
+                  email: e.email,
+                  address: e.address,
+                  duplicate: false,
+                ),
+              )
+              .toList(),
     );
     await addInvoice(newInvoice, numberFormatter: numberFormatter);
 
@@ -362,9 +417,7 @@ class InvoiceProvider extends ChangeNotifier {
   }
 
   updateInvoiceStatus(String val, int invoiceId) {
-    final inv = invoice.firstWhere(
-      (element) => element.invoiceId == invoiceId,
-    );
+    final inv = invoice.firstWhere((element) => element.invoiceId == invoiceId);
 
     inv.invoiceStatus = val;
 
@@ -375,9 +428,10 @@ class InvoiceProvider extends ChangeNotifier {
     if (val == 'Paid') {
       NotificationService.cancelInvoiceReminder(invoiceId);
     } else if (inv.dueDate != null) {
-      final clientName = (inv.clients?.isNotEmpty ?? false)
-          ? (inv.clients!.first.name ?? 'Client')
-          : 'Client';
+      final clientName =
+          (inv.clients?.isNotEmpty ?? false)
+              ? (inv.clients!.first.name ?? 'Client')
+              : 'Client';
       NotificationService.scheduleInvoiceReminder(
         invoiceId: invoiceId,
         clientName: clientName,
@@ -416,9 +470,10 @@ class InvoiceProvider extends ChangeNotifier {
   }) {
     // When invoiceId is provided, only touch that invoice; otherwise fall back
     // to updating the first invoice that contains the item (legacy behaviour).
-    final targets = invoiceId != null
-        ? invoice.where((e) => e.invoiceId == invoiceId)
-        : invoice;
+    final targets =
+        invoiceId != null
+            ? invoice.where((e) => e.invoiceId == invoiceId)
+            : invoice;
 
     for (final element in targets) {
       if (element.items == null) continue;
@@ -428,8 +483,10 @@ class InvoiceProvider extends ChangeNotifier {
       element.items![idx].note = note ?? '';
       element.items![idx].qty = qty;
       element.items![idx].price = price;
-      element.items![idx].discount = (discount != null && discount > 0) ? discount : null;
-      element.items![idx].discountType = (discount != null && discount > 0) ? discountType : null;
+      element.items![idx].discount =
+          (discount != null && discount > 0) ? discount : null;
+      element.items![idx].discountType =
+          (discount != null && discount > 0) ? discountType : null;
     }
 
     saveInvoice();
@@ -537,9 +594,10 @@ class InvoiceProvider extends ChangeNotifier {
     final isInvoice = (inv.documentType ?? 'Invoice') == 'Invoice';
     if (isInvoice && inv.invoiceStatus != 'Paid') {
       if (dueDate != null) {
-        final clientName = (inv.clients?.isNotEmpty ?? false)
-            ? (inv.clients!.first.name ?? 'Client')
-            : 'Client';
+        final clientName =
+            (inv.clients?.isNotEmpty ?? false)
+                ? (inv.clients!.first.name ?? 'Client')
+                : 'Client';
         NotificationService.scheduleInvoiceReminder(
           invoiceId: invoiceId,
           clientName: clientName,

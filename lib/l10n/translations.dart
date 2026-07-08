@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 
 extension AppTranslationsX on BuildContext {
   String tr(String key) {
-    final code = Provider.of<LocaleProvider>(this, listen: false).locale.languageCode;
+    final code =
+        Provider.of<LocaleProvider>(this, listen: false).locale.languageCode;
     return AppTranslations.tl(code, key);
   }
 }
@@ -63,7 +64,8 @@ class AppTranslations {
     'opening': 'Opening…',
     'export_failed': 'Export failed. Please try again.',
     'notif_overdue_title': 'Overdue Invoice',
-    'notif_overdue_body': 'Invoice #{number} for {client} was due on {date} and is still unpaid.',
+    'notif_overdue_body':
+        'Invoice #{number} for {client} was due on {date} and is still unpaid.',
     'notif_due_today_title': 'Invoice Due Today',
     'notif_due_today_body': 'Invoice #{number} for {client} is due today.',
     'terms_hint': 'Shown on invoices when you choose to include them.',
@@ -128,7 +130,8 @@ class AppTranslations {
     // Dialog & shared actions
     'delete_item': 'Delete Item',
     'action_cannot_undo': 'This action cannot be undone.',
-    'invoice_delete_suffix': 'will be permanently deleted. This cannot be undone.',
+    'invoice_delete_suffix':
+        'will be permanently deleted. This cannot be undone.',
     'add': 'Add',
     'edit': 'Edit',
     'active': 'Active',
@@ -146,11 +149,13 @@ class AppTranslations {
     'new_business': 'New Business',
     'business_name_placeholder': 'Business name',
     'delete_business': 'Delete Business',
-    'confirm_delete_business': 'Linked invoices will remain but won\'t be visible under any business.',
+    'confirm_delete_business':
+        'Linked invoices will remain but won\'t be visible under any business.',
     // Services screen
     'services_title': 'Services',
     'no_services_yet': 'No Services Yet',
-    'no_services_msg': 'Add services to quickly apply them when creating invoices.',
+    'no_services_msg':
+        'Add services to quickly apply them when creating invoices.',
     'add_service': 'Add Service',
     // Items screen
     'search_items': 'Search Items',
@@ -232,7 +237,8 @@ class AppTranslations {
     'tax_hint': 'e.g. GST, VAT, Sales Tax',
     // Quote → Invoice conversion
     'convert_to_invoice': 'Convert to Invoice',
-    'convert_confirm': 'A new Invoice will be created with the same items, client, and pricing.',
+    'convert_confirm':
+        'A new Invoice will be created with the same items, client, and pricing.',
     'convert': 'Convert',
     // Dashboard
     'dashboard': 'Dashboard',
@@ -251,7 +257,8 @@ class AppTranslations {
     'number_format_preview': 'Preview',
     // Saved clients / client view
     'no_clients_yet': 'No Clients Yet',
-    'no_clients_msg': 'Save clients to quickly select them when creating invoices.',
+    'no_clients_msg':
+        'Save clients to quickly select them when creating invoices.',
     // Add client / saved client screens
     'client_info': 'Client Info',
     'contact_details': 'Contact Details',
@@ -265,7 +272,8 @@ class AppTranslations {
     'remove_from_invoice': 'Remove from Invoice',
     // Bank accounts screen
     'no_bank_accounts_yet': 'No Bank Accounts Yet',
-    'no_bank_accounts_msg': 'Add bank accounts to include payment details on your invoices.',
+    'no_bank_accounts_msg':
+        'Add bank accounts to include payment details on your invoices.',
     // Add bank account screen
     'bank_details': 'Bank Details',
     'edit_bank_account': 'Edit Bank Account',
@@ -292,14 +300,17 @@ class AppTranslations {
     'no_results_for': 'No results for ',
     // Business start page
     'setup_business_title': 'Set up your\nbusiness',
-    'setup_business_subtitle': 'Just one step to start\ncreating professional invoices.',
+    'setup_business_subtitle':
+        'Just one step to start\ncreating professional invoices.',
     'business_ex_placeholder': 'e.g. Acme Studio',
-    'business_name_settings_hint': 'You can always update this later in Settings.',
+    'business_name_settings_hint':
+        'You can always update this later in Settings.',
     'continue_btn': 'Continue',
     'terms_placeholder': 'e.g. Payment due within 30 days…',
     // Onboarding (invoice_dummy)
     'onboard_title': "You're all set!",
-    'onboard_subtitle': 'Create professional invoices in seconds\nand get paid faster.',
+    'onboard_subtitle':
+        'Create professional invoices in seconds\nand get paid faster.',
     'onboard_f1_title': 'Beautiful PDF invoices',
     'onboard_f1_sub': 'Pick a color theme and share instantly',
     'onboard_f2_title': 'Quotes & proposals',
@@ -320,12 +331,15 @@ class AppTranslations {
     'restore_backup': 'Restore Backup',
     'restore_backup_sub': 'Restore data from a backup file',
     'restore_confirm_title': 'Restore Backup?',
-    'restore_confirm_body': 'This will replace ALL your current data with the backup. This action cannot be undone.',
+    'restore_confirm_body':
+        'This will replace ALL your current data with the backup. This action cannot be undone.',
     'restore_btn': 'Restore',
     'backup_export_fail': 'Failed to create backup. Please try again.',
     'restore_success': 'Data restored successfully',
-    'restore_invalid': 'Invalid backup file. The file may be corrupted or from an incompatible version.',
-    'restore_not_backup': 'This file is not an Invoice Maker backup. Please select a valid backup file.',
+    'restore_invalid':
+        'Invalid backup file. The file may be corrupted or from an incompatible version.',
+    'restore_not_backup':
+        'This file is not an Invoice Maker backup. Please select a valid backup file.',
     'exporting': 'Exporting…',
     'restoring': 'Restoring…',
     // Recurring invoices
@@ -337,10 +351,12 @@ class AppTranslations {
     'interval_custom': 'Custom',
     'custom_days_hint': 'Number of days',
     'custom_days_unit': 'days',
-    'custom_days_required': 'Please enter the number of days for the custom interval.',
+    'custom_days_required':
+        'Please enter the number of days for the custom interval.',
     'recurring_next': 'Next: {date}',
     'notif_recurring_title': 'Recurring Invoice Created',
-    'notif_recurring_body': 'Invoice #{number} for {client} was automatically created.',
+    'notif_recurring_body':
+        'Invoice #{number} for {client} was automatically created.',
     'discount_flat': 'Flat',
   };
 
@@ -386,7 +402,8 @@ class AppTranslations {
     'opening': 'کھل رہا ہے…',
     'export_failed': 'برآمد ناکام ہوئی۔ دوبارہ کوشش کریں۔',
     'notif_overdue_title': 'انوائس واجب الادا',
-    'notif_overdue_body': 'انوائس #{number} برائے {client} کی تاریخ {date} گزر چکی ہے اور ابھی تک ادا نہیں ہوئی۔',
+    'notif_overdue_body':
+        'انوائس #{number} برائے {client} کی تاریخ {date} گزر چکی ہے اور ابھی تک ادا نہیں ہوئی۔',
     'notif_due_today_title': 'آج انوائس واجب الادا ہے',
     'notif_due_today_body': 'انوائس #{number} برائے {client} آج واجب الادا ہے۔',
     'terms_hint': 'جب آپ شامل کرنا چاہیں تو انوائسز پر دکھایا جاتا ہے',
@@ -451,7 +468,8 @@ class AppTranslations {
     // Dialog & shared actions
     'delete_item': 'آئٹم حذف کریں',
     'action_cannot_undo': 'یہ عمل واپس نہیں کیا جا سکتا۔',
-    'invoice_delete_suffix': 'مستقل طور پر حذف ہو جائے گا۔ یہ واپس نہیں کیا جا سکتا۔',
+    'invoice_delete_suffix':
+        'مستقل طور پر حذف ہو جائے گا۔ یہ واپس نہیں کیا جا سکتا۔',
     'add': 'شامل کریں',
     'edit': 'ترمیم',
     'active': 'فعال',
@@ -469,11 +487,13 @@ class AppTranslations {
     'new_business': 'نیا کاروبار',
     'business_name_placeholder': 'کاروبار کا نام',
     'delete_business': 'کاروبار حذف کریں',
-    'confirm_delete_business': 'منسلک انوائسز موجود رہیں گی لیکن کسی کاروبار کے تحت نظر نہیں آئیں گی۔',
+    'confirm_delete_business':
+        'منسلک انوائسز موجود رہیں گی لیکن کسی کاروبار کے تحت نظر نہیں آئیں گی۔',
     // Services screen
     'services_title': 'خدمات',
     'no_services_yet': 'ابھی کوئی خدمت نہیں',
-    'no_services_msg': 'انوائسز بناتے وقت جلدی لاگو کرنے کے لیے خدمات شامل کریں۔',
+    'no_services_msg':
+        'انوائسز بناتے وقت جلدی لاگو کرنے کے لیے خدمات شامل کریں۔',
     'add_service': 'خدمت شامل کریں',
     // Items screen
     'search_items': 'آئٹمز تلاش کریں',
@@ -513,7 +533,8 @@ class AppTranslations {
     'update_invoice': 'انوائس اپ ڈیٹ کریں',
     'select_services': 'خدمات منتخب کریں',
     'no_services_added': 'ابھی کوئی خدمت شامل نہیں۔',
-    'go_settings_services': 'کچھ شامل کرنے کے لیے ترتیبات ← اشیاء اور خدمات پر جائیں۔',
+    'go_settings_services':
+        'کچھ شامل کرنے کے لیے ترتیبات ← اشیاء اور خدمات پر جائیں۔',
     'select_bank_account': 'بینک اکاؤنٹ منتخب کریں',
     'no_bank_accounts': 'ابھی کوئی بینک اکاؤنٹ شامل نہیں۔',
     'go_settings_bank': 'کچھ شامل کرنے کے لیے ترتیبات ← بینک اکاؤنٹس پر جائیں۔',
@@ -555,7 +576,8 @@ class AppTranslations {
     'tax_hint': 'مثلاً GST، VAT، سیلز ٹیکس',
     // Quote → Invoice conversion
     'convert_to_invoice': 'انوائس میں تبدیل کریں',
-    'convert_confirm': 'اسی آئٹمز، کلائنٹ اور قیمت کے ساتھ ایک نئی انوائس بنائی جائے گی۔',
+    'convert_confirm':
+        'اسی آئٹمز، کلائنٹ اور قیمت کے ساتھ ایک نئی انوائس بنائی جائے گی۔',
     'convert': 'تبدیل کریں',
     // Dashboard
     'dashboard': 'ڈیش بورڈ',
@@ -574,7 +596,8 @@ class AppTranslations {
     'number_format_preview': 'پیش نظارہ',
     // Saved clients / client view
     'no_clients_yet': 'ابھی کوئی کلائنٹ نہیں',
-    'no_clients_msg': 'کلائنٹس کو محفوظ کریں تاکہ انوائس بناتے وقت جلدی منتخب کر سکیں۔',
+    'no_clients_msg':
+        'کلائنٹس کو محفوظ کریں تاکہ انوائس بناتے وقت جلدی منتخب کر سکیں۔',
     // Add client / saved client screens
     'client_info': 'کلائنٹ کی معلومات',
     'contact_details': 'رابطہ تفصیلات',
@@ -588,7 +611,8 @@ class AppTranslations {
     'remove_from_invoice': 'انوائس سے ہٹائیں',
     // Bank accounts screen
     'no_bank_accounts_yet': 'ابھی کوئی بینک اکاؤنٹ نہیں',
-    'no_bank_accounts_msg': 'اپنی انوائسز پر ادائیگی کی تفصیلات شامل کرنے کے لیے بینک اکاؤنٹ شامل کریں۔',
+    'no_bank_accounts_msg':
+        'اپنی انوائسز پر ادائیگی کی تفصیلات شامل کرنے کے لیے بینک اکاؤنٹ شامل کریں۔',
     // Add bank account screen
     'bank_details': 'بینک کی تفصیلات',
     'edit_bank_account': 'بینک اکاؤنٹ ترمیم کریں',
@@ -615,14 +639,17 @@ class AppTranslations {
     'no_results_for': 'کوئی نتائج نہیں: ',
     // Business start page
     'setup_business_title': 'اپنا کاروبار\nترتیب دیں',
-    'setup_business_subtitle': 'پیشہ ور انوائسز بنانا شروع کرنے کے لیے\nصرف ایک قدم۔',
+    'setup_business_subtitle':
+        'پیشہ ور انوائسز بنانا شروع کرنے کے لیے\nصرف ایک قدم۔',
     'business_ex_placeholder': 'مثلاً Acme Studio',
-    'business_name_settings_hint': 'آپ یہ بعد میں ترتیبات میں ہمیشہ اپ ڈیٹ کر سکتے ہیں۔',
+    'business_name_settings_hint':
+        'آپ یہ بعد میں ترتیبات میں ہمیشہ اپ ڈیٹ کر سکتے ہیں۔',
     'continue_btn': 'جاری رکھیں',
     'terms_placeholder': 'مثلاً ادائیگی 30 دنوں کے اندر واجب الادا ہے…',
     // Onboarding (invoice_dummy)
     'onboard_title': 'آپ بالکل تیار ہیں!',
-    'onboard_subtitle': 'سیکنڈوں میں پیشہ ور انوائسز بنائیں\nاور جلدی ادائیگی حاصل کریں۔',
+    'onboard_subtitle':
+        'سیکنڈوں میں پیشہ ور انوائسز بنائیں\nاور جلدی ادائیگی حاصل کریں۔',
     'onboard_f1_title': 'خوبصورت PDF انوائسز',
     'onboard_f1_sub': 'رنگ تھیم منتخب کریں اور فوری شیئر کریں',
     'onboard_f2_title': 'کوٹیشنز اور تجاویز',
@@ -643,12 +670,15 @@ class AppTranslations {
     'restore_backup': 'بیک اپ بحال کریں',
     'restore_backup_sub': 'بیک اپ فائل سے ڈیٹا بحال کریں',
     'restore_confirm_title': 'بیک اپ بحال کریں؟',
-    'restore_confirm_body': 'یہ آپ کا تمام موجودہ ڈیٹا بیک اپ سے بدل دے گا۔ یہ عمل واپس نہیں ہو سکتا۔',
+    'restore_confirm_body':
+        'یہ آپ کا تمام موجودہ ڈیٹا بیک اپ سے بدل دے گا۔ یہ عمل واپس نہیں ہو سکتا۔',
     'restore_btn': 'بحال کریں',
     'backup_export_fail': 'بیک اپ بنانے میں ناکامی۔ دوبارہ کوشش کریں۔',
     'restore_success': 'ڈیٹا کامیابی سے بحال ہو گیا',
-    'restore_invalid': 'غلط بیک اپ فائل۔ فائل خراب یا غیر متوافق ورژن سے ہو سکتی ہے۔',
-    'restore_not_backup': 'یہ فائل Invoice Maker بیک اپ نہیں ہے۔ براہ کرم ایک درست بیک اپ فائل منتخب کریں۔',
+    'restore_invalid':
+        'غلط بیک اپ فائل۔ فائل خراب یا غیر متوافق ورژن سے ہو سکتی ہے۔',
+    'restore_not_backup':
+        'یہ فائل Invoice Maker بیک اپ نہیں ہے۔ براہ کرم ایک درست بیک اپ فائل منتخب کریں۔',
     'exporting': 'برآمد ہو رہا ہے…',
     'restoring': 'بحال ہو رہا ہے…',
     // Recurring invoices
@@ -709,7 +739,8 @@ class AppTranslations {
     'opening': 'खोला जा रहा है…',
     'export_failed': 'निर्यात विफल हुआ। कृपया पुनः प्रयास करें।',
     'notif_overdue_title': 'चालान अतिदेय',
-    'notif_overdue_body': 'चालान #{number} {client} के लिए {date} को देय था और अभी तक अवैतनिक है।',
+    'notif_overdue_body':
+        'चालान #{number} {client} के लिए {date} को देय था और अभी तक अवैतनिक है।',
     'notif_due_today_title': 'चालान आज देय है',
     'notif_due_today_body': 'चालान #{number} {client} के लिए आज देय है।',
     'terms_hint': 'जब आप शामिल करना चाहें तो चालान पर दिखाया जाता है',
@@ -774,7 +805,8 @@ class AppTranslations {
     // Dialog & shared actions
     'delete_item': 'आइटम हटाएं',
     'action_cannot_undo': 'यह कार्य वापस नहीं किया जा सकता।',
-    'invoice_delete_suffix': 'हमेशा के लिए हटाया जाएगा। यह वापस नहीं किया जा सकता।',
+    'invoice_delete_suffix':
+        'हमेशा के लिए हटाया जाएगा। यह वापस नहीं किया जा सकता।',
     'add': 'जोड़ें',
     'edit': 'संपादित करें',
     'active': 'सक्रिय',
@@ -792,7 +824,8 @@ class AppTranslations {
     'new_business': 'नया व्यवसाय',
     'business_name_placeholder': 'व्यवसाय का नाम',
     'delete_business': 'व्यवसाय हटाएं',
-    'confirm_delete_business': 'जुड़े चालान बने रहेंगे लेकिन किसी भी व्यवसाय के तहत दिखाई नहीं देंगे।',
+    'confirm_delete_business':
+        'जुड़े चालान बने रहेंगे लेकिन किसी भी व्यवसाय के तहत दिखाई नहीं देंगे।',
     // Services screen
     'services_title': 'सेवाएं',
     'no_services_yet': 'अभी कोई सेवा नहीं',
@@ -836,7 +869,8 @@ class AppTranslations {
     'update_invoice': 'चालान अपडेट करें',
     'select_services': 'सेवाएं चुनें',
     'no_services_added': 'अभी कोई सेवा नहीं जोड़ी।',
-    'go_settings_services': 'कुछ जोड़ने के लिए सेटिंग्स → आइटम और सेवाएं पर जाएं।',
+    'go_settings_services':
+        'कुछ जोड़ने के लिए सेटिंग्स → आइटम और सेवाएं पर जाएं।',
     'select_bank_account': 'बैंक खाता चुनें',
     'no_bank_accounts': 'अभी कोई बैंक खाता नहीं जोड़ा।',
     'go_settings_bank': 'कुछ जोड़ने के लिए सेटिंग्स → बैंक खाते पर जाएं।',
@@ -878,7 +912,8 @@ class AppTranslations {
     'tax_hint': 'जैसे GST, VAT, बिक्री कर',
     // Quote → Invoice conversion
     'convert_to_invoice': 'चालान में बदलें',
-    'convert_confirm': 'समान आइटम, ग्राहक और मूल्य के साथ एक नया चालान बनाया जाएगा।',
+    'convert_confirm':
+        'समान आइटम, ग्राहक और मूल्य के साथ एक नया चालान बनाया जाएगा।',
     'convert': 'बदलें',
     // Dashboard
     'dashboard': 'डैशबोर्ड',
@@ -911,7 +946,8 @@ class AppTranslations {
     'remove_from_invoice': 'चालान से हटाएं',
     // Bank accounts screen
     'no_bank_accounts_yet': 'अभी कोई बैंक खाता नहीं',
-    'no_bank_accounts_msg': 'अपने चालान पर भुगतान विवरण शामिल करने के लिए बैंक खाते जोड़ें।',
+    'no_bank_accounts_msg':
+        'अपने चालान पर भुगतान विवरण शामिल करने के लिए बैंक खाते जोड़ें।',
     // Add bank account screen
     'bank_details': 'बैंक विवरण',
     'edit_bank_account': 'बैंक खाता संपादित करें',
@@ -938,9 +974,11 @@ class AppTranslations {
     'no_results_for': 'इसके लिए कोई परिणाम नहीं: ',
     // Business start page
     'setup_business_title': 'अपना व्यवसाय\nसेट करें',
-    'setup_business_subtitle': 'पेशेवर चालान बनाना शुरू करने के\nलिए बस एक कदम।',
+    'setup_business_subtitle':
+        'पेशेवर चालान बनाना शुरू करने के\nलिए बस एक कदम।',
     'business_ex_placeholder': 'जैसे Acme Studio',
-    'business_name_settings_hint': 'आप इसे बाद में Settings में हमेशा अपडेट कर सकते हैं।',
+    'business_name_settings_hint':
+        'आप इसे बाद में Settings में हमेशा अपडेट कर सकते हैं।',
     'continue_btn': 'जारी रखें',
     'terms_placeholder': 'जैसे भुगतान 30 दिनों के भीतर देय है…',
     // Onboarding (invoice_dummy)
@@ -966,12 +1004,15 @@ class AppTranslations {
     'restore_backup': 'बैकअप रिस्टोर करें',
     'restore_backup_sub': 'बैकअप फ़ाइल से डेटा रिस्टोर करें',
     'restore_confirm_title': 'बैकअप रिस्टोर करें?',
-    'restore_confirm_body': 'यह आपके सभी मौजूदा डेटा को बैकअप से बदल देगा। यह क्रिया पूर्ववत नहीं की जा सकती।',
+    'restore_confirm_body':
+        'यह आपके सभी मौजूदा डेटा को बैकअप से बदल देगा। यह क्रिया पूर्ववत नहीं की जा सकती।',
     'restore_btn': 'रिस्टोर करें',
     'backup_export_fail': 'बैकअप बनाने में विफल। पुनः प्रयास करें।',
     'restore_success': 'डेटा सफलतापूर्वक रिस्टोर किया गया',
-    'restore_invalid': 'अमान्य बैकअप फ़ाइल। फ़ाइल दूषित या असंगत संस्करण की हो सकती है।',
-    'restore_not_backup': 'यह फ़ाइल Invoice Maker बैकअप नहीं है। कृपया एक वैध बैकअप फ़ाइल चुनें।',
+    'restore_invalid':
+        'अमान्य बैकअप फ़ाइल। फ़ाइल दूषित या असंगत संस्करण की हो सकती है।',
+    'restore_not_backup':
+        'यह फ़ाइल Invoice Maker बैकअप नहीं है। कृपया एक वैध बैकअप फ़ाइल चुनें।',
     'exporting': 'एक्सपोर्ट हो रहा है…',
     'restoring': 'रिस्टोर हो रहा है…',
     // Recurring invoices
@@ -983,10 +1024,12 @@ class AppTranslations {
     'interval_custom': 'कस्टम',
     'custom_days_hint': 'दिनों की संख्या',
     'custom_days_unit': 'दिन',
-    'custom_days_required': 'कृपया कस्टम अंतराल के लिए दिनों की संख्या दर्ज करें।',
+    'custom_days_required':
+        'कृपया कस्टम अंतराल के लिए दिनों की संख्या दर्ज करें।',
     'recurring_next': 'अगला: {date}',
     'notif_recurring_title': 'आवर्ती चालान बनाया गया',
-    'notif_recurring_body': 'चालान #{number} {client} के लिए स्वचालित रूप से बनाया गया।',
+    'notif_recurring_body':
+        'चालान #{number} {client} के लिए स्वचालित रूप से बनाया गया।',
     'discount_flat': 'फ्लैट',
   };
 
@@ -1032,7 +1075,8 @@ class AppTranslations {
     'opening': 'جاري الفتح…',
     'export_failed': 'فشل التصدير. حاول مرة أخرى.',
     'notif_overdue_title': 'فاتورة متأخرة',
-    'notif_overdue_body': 'الفاتورة #{number} للعميل {client} كانت مستحقة في {date} ولا تزال غير مدفوعة.',
+    'notif_overdue_body':
+        'الفاتورة #{number} للعميل {client} كانت مستحقة في {date} ولا تزال غير مدفوعة.',
     'notif_due_today_title': 'فاتورة مستحقة اليوم',
     'notif_due_today_body': 'الفاتورة #{number} للعميل {client} مستحقة اليوم.',
     'terms_hint': 'تظهر على الفواتير عند اختيار تضمينها.',
@@ -1115,7 +1159,8 @@ class AppTranslations {
     'new_business': 'عمل جديد',
     'business_name_placeholder': 'اسم العمل',
     'delete_business': 'حذف العمل',
-    'confirm_delete_business': 'ستبقى الفواتير المرتبطة لكنها لن تظهر تحت أي عمل.',
+    'confirm_delete_business':
+        'ستبقى الفواتير المرتبطة لكنها لن تظهر تحت أي عمل.',
     // Services screen
     'services_title': 'الخدمات',
     'no_services_yet': 'لا توجد خدمات بعد',
@@ -1263,12 +1308,14 @@ class AppTranslations {
     'setup_business_title': 'أنشئ\nعملك',
     'setup_business_subtitle': 'خطوة واحدة فقط لبدء\nإنشاء فواتير احترافية.',
     'business_ex_placeholder': 'مثل Acme Studio',
-    'business_name_settings_hint': 'يمكنك دائماً تحديث هذا لاحقاً في الإعدادات.',
+    'business_name_settings_hint':
+        'يمكنك دائماً تحديث هذا لاحقاً في الإعدادات.',
     'continue_btn': 'متابعة',
     'terms_placeholder': 'مثل: الدفع مستحق خلال 30 يوماً…',
     // Onboarding (invoice_dummy)
     'onboard_title': 'أنت جاهز تماماً!',
-    'onboard_subtitle': 'أنشئ فواتير احترافية في ثوانٍ\nواحصل على المدفوعات بسرعة.',
+    'onboard_subtitle':
+        'أنشئ فواتير احترافية في ثوانٍ\nواحصل على المدفوعات بسرعة.',
     'onboard_f1_title': 'فواتير PDF جميلة',
     'onboard_f1_sub': 'اختر لون الثيم وشاركها فوراً',
     'onboard_f2_title': 'عروض الأسعار والمقترحات',
@@ -1289,12 +1336,16 @@ class AppTranslations {
     'restore_backup': 'استعادة النسخة الاحتياطية',
     'restore_backup_sub': 'استعادة البيانات من ملف النسخة الاحتياطية',
     'restore_confirm_title': 'استعادة النسخة الاحتياطية؟',
-    'restore_confirm_body': 'سيؤدي هذا إلى استبدال جميع بياناتك الحالية بالنسخة الاحتياطية. لا يمكن التراجع عن هذا الإجراء.',
+    'restore_confirm_body':
+        'سيؤدي هذا إلى استبدال جميع بياناتك الحالية بالنسخة الاحتياطية. لا يمكن التراجع عن هذا الإجراء.',
     'restore_btn': 'استعادة',
-    'backup_export_fail': 'فشل إنشاء النسخة الاحتياطية. يرجى المحاولة مرة أخرى.',
+    'backup_export_fail':
+        'فشل إنشاء النسخة الاحتياطية. يرجى المحاولة مرة أخرى.',
     'restore_success': 'تمت استعادة البيانات بنجاح',
-    'restore_invalid': 'ملف النسخة الاحتياطية غير صالح. قد يكون الملف تالفاً أو من إصدار غير متوافق.',
-    'restore_not_backup': 'هذا الملف ليس نسخة احتياطية من Invoice Maker. يرجى تحديد ملف نسخة احتياطية صالح.',
+    'restore_invalid':
+        'ملف النسخة الاحتياطية غير صالح. قد يكون الملف تالفاً أو من إصدار غير متوافق.',
+    'restore_not_backup':
+        'هذا الملف ليس نسخة احتياطية من Invoice Maker. يرجى تحديد ملف نسخة احتياطية صالح.',
     'exporting': 'جارٍ التصدير…',
     'restoring': 'جارٍ الاستعادة…',
     // Recurring invoices
@@ -1309,7 +1360,8 @@ class AppTranslations {
     'custom_days_required': 'يرجى إدخال عدد الأيام للفترة المخصصة.',
     'recurring_next': 'التالي: {date}',
     'notif_recurring_title': 'تم إنشاء فاتورة متكررة',
-    'notif_recurring_body': 'تم إنشاء الفاتورة #{number} للعميل {client} تلقائياً.',
+    'notif_recurring_body':
+        'تم إنشاء الفاتورة #{number} للعميل {client} تلقائياً.',
     'discount_flat': 'مبلغ ثابت',
   };
 }

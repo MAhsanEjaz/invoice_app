@@ -61,9 +61,10 @@ class _SplashScreenState extends State<SplashScreen> {
             bottom: 52,
             left: 0,
             right: 0,
-            child: _LoadingDots()
-                .animate()
-                .fadeIn(delay: 800.ms, duration: 400.ms),
+            child: _LoadingDots().animate().fadeIn(
+              delay: 800.ms,
+              duration: 400.ms,
+            ),
           ),
         ],
       ),
@@ -111,9 +112,7 @@ class _LoadingDotsState extends State<_LoadingDots>
               height: 7 * scale,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(
-                  alpha: 0.4 + 0.6 * scale,
-                ),
+                color: Colors.white.withValues(alpha: 0.4 + 0.6 * scale),
               ),
             );
           },

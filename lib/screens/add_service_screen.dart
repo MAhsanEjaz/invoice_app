@@ -7,6 +7,8 @@ import 'package:invoicemaker/models/service_model.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/service_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 
 class AddServiceScreen extends StatefulWidget {
@@ -55,28 +57,31 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     return CupertinoPageScaffold(
       backgroundColor: cl.background,
       child: SafeArea(
-        child: Column(
-          children: [
-            _buildNavBar(cl),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    sectionLabel(context, context.tr('service_details')),
-                    _buildForm(cl),
-                    const SizedBox(height: 16),
-                    if (_isEdit) _buildDeleteButton(cl),
-                  ],
+        child: ResponsiveCenter(
+          maxWidth: 640,
+          child: Column(
+            children: [
+              _buildNavBar(cl),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      sectionLabel(context, context.tr('service_details')),
+                      _buildForm(cl),
+                      const SizedBox(height: 16),
+                      if (_isEdit) _buildDeleteButton(cl),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _buildBottomBar(cl),
-          ],
+              _buildBottomBar(cl),
+            ],
+          ),
         ),
       ),
     );
@@ -169,9 +174,15 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                   placeholder: placeholder,
                   placeholderStyle: GoogleFonts.poppins(
                     fontSize: 14,
-                    color: error ? kDangerColor.withValues(alpha: 0.6) : cl.textHint,
+                    color:
+                        error
+                            ? kDangerColor.withValues(alpha: 0.6)
+                            : cl.textHint,
                   ),
-                  style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: cl.textPrimary,
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   keyboardType: keyboardType,
                   decoration: const BoxDecoration(color: Colors.transparent),
@@ -194,15 +205,18 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   }
 
   Widget _buildDeleteButton(AppColors cl) {
-    return GestureDetector(
-      onTap: () => customCupertinoDialog(context, () async {
-        await Provider.of<ServiceProvider>(context, listen: false)
-            .deleteService(widget.service!.id!);
-        if (!mounted) return;
-        Navigator.of(context)
-          ..pop()
-          ..pop();
-      }),
+    return AppTap(
+      onTap:
+          () => customCupertinoDialog(context, () async {
+            await Provider.of<ServiceProvider>(
+              context,
+              listen: false,
+            ).deleteService(widget.service!.id!);
+            if (!mounted) return;
+            Navigator.of(context)
+              ..pop()
+              ..pop();
+          }),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -231,7 +245,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: _isEdit ? context.tr('update_service') : context.tr('save_service'),
+        txt:
+            _isEdit ? context.tr('update_service') : context.tr('save_service'),
         onTap: () async {
           final name = _nameCtrl.text.trim();
           final price = double.tryParse(_priceCtrl.text.trim());
@@ -245,22 +260,25 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           }
 
           final desc = _descCtrl.text.trim();
-          final provider =
-              Provider.of<ServiceProvider>(context, listen: false);
+          final provider = Provider.of<ServiceProvider>(context, listen: false);
 
           if (_isEdit) {
-            await provider.updateService(ServiceModel(
-              id: widget.service!.id,
-              name: name,
-              description: desc.isEmpty ? null : desc,
-              price: price,
-            ));
+            await provider.updateService(
+              ServiceModel(
+                id: widget.service!.id,
+                name: name,
+                description: desc.isEmpty ? null : desc,
+                price: price,
+              ),
+            );
           } else {
-            await provider.addService(ServiceModel(
-              name: name,
-              description: desc.isEmpty ? null : desc,
-              price: price,
-            ));
+            await provider.addService(
+              ServiceModel(
+                name: name,
+                description: desc.isEmpty ? null : desc,
+                price: price,
+              ),
+            );
           }
 
           if (!mounted) return;

@@ -7,6 +7,8 @@ import 'package:invoicemaker/models/bank_model.dart';
 import 'package:invoicemaker/providers/bank_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 
 class AddBankAccountScreen extends StatefulWidget {
@@ -54,31 +56,34 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
     return CupertinoPageScaffold(
       backgroundColor: cl.background,
       child: SafeArea(
-        child: Column(
-          children: [
-            _buildNavBar(cl),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    sectionLabel(context, context.tr('bank_details')),
-                    _buildForm(cl),
-                    if (_isEdit) ...[
-                      const SizedBox(height: 24),
-                      _buildDeleteButton(cl),
+        child: ResponsiveCenter(
+          maxWidth: 640,
+          child: Column(
+            children: [
+              _buildNavBar(cl),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      sectionLabel(context, context.tr('bank_details')),
+                      _buildForm(cl),
+                      if (_isEdit) ...[
+                        const SizedBox(height: 24),
+                        _buildDeleteButton(cl),
+                      ],
+                      const SizedBox(height: 16),
                     ],
-                    const SizedBox(height: 16),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            _buildBottomBar(cl),
-          ],
+              _buildBottomBar(cl),
+            ],
+          ),
         ),
       ),
     );
@@ -92,7 +97,9 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
           closeButton(context),
           const Spacer(),
           Text(
-            _isEdit ? context.tr('edit_bank_account') : context.tr('new_bank_account'),
+            _isEdit
+                ? context.tr('edit_bank_account')
+                : context.tr('new_bank_account'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -176,9 +183,15 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
                   autofocus: autofocus,
                   placeholderStyle: GoogleFonts.poppins(
                     fontSize: 14,
-                    color: error ? kDangerColor.withValues(alpha: 0.6) : cl.textHint,
+                    color:
+                        error
+                            ? kDangerColor.withValues(alpha: 0.6)
+                            : cl.textHint,
                   ),
-                  style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: cl.textPrimary,
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   keyboardType: keyboardType,
                   decoration: const BoxDecoration(color: Colors.transparent),
@@ -201,7 +214,7 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
   }
 
   Widget _buildDeleteButton(AppColors cl) {
-    return GestureDetector(
+    return AppTap(
       onTap:
           () => customCupertinoDialog(context, () async {
             await Provider.of<BankProvider>(
@@ -249,7 +262,10 @@ class _AddBankAccountScreenState extends State<AddBankAccountScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: _isEdit ? context.tr('update_bank_account') : context.tr('save_bank_account'),
+        txt:
+            _isEdit
+                ? context.tr('update_bank_account')
+                : context.tr('save_bank_account'),
         onTap: () async {
           final bankName = _bankNameCtrl.text.trim();
           final title = _titleCtrl.text.trim();

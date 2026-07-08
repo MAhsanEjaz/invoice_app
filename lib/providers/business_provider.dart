@@ -61,9 +61,10 @@ class BusinessProvider extends ChangeNotifier {
 
     if (data != null) {
       final list = jsonDecode(data) as List<dynamic>;
-      businesses = list
-          .map((e) => BusinessModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      businesses =
+          list
+              .map((e) => BusinessModel.fromJson(e as Map<String, dynamic>))
+              .toList();
     }
 
     if (businesses.isNotEmpty) {

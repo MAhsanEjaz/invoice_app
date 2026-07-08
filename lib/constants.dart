@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/models/invoice_model.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
 
 // ─── Mode-independent colours ─────────────────────────────────────────────────
 const kPrimary = Color(0xFF0D7377);
@@ -91,23 +92,24 @@ extension AppColorsX on BuildContext {
   bool get isDarkMode => AppColors.of(this) == AppColors.dark;
 
   BoxDecoration get cardDecoration => BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: (isDarkMode ? Colors.black : const Color(0xFF0F172A))
-                .withValues(alpha: isDarkMode ? 0.3 : 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      );
+    color: colors.surface,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(
+        color: (isDarkMode ? Colors.black : const Color(0xFF0F172A)).withValues(
+          alpha: isDarkMode ? 0.3 : 0.06,
+        ),
+        blurRadius: 12,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
 
   BoxDecoration get cardDecorationFlat => BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.border, width: 1),
-      );
+    color: colors.surface,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: colors.border, width: 1),
+  );
 }
 
 // ─── Shared Widgets ───────────────────────────────────────────────────────────
@@ -128,20 +130,29 @@ responseText(BuildContext context, double size) {
   return MediaQuery.sizeOf(context).width * size;
 }
 
-Widget closeButton(BuildContext context, [Function()? onTap]) {
+/// [onTap] runs (if given) and is then followed by a pop, for screens reached
+/// via push navigation. [onClose] fully replaces that pop — used when the
+/// screen is instead embedded in the desktop sidebar shell, where there is no
+/// route to pop and "close" should just switch back to the previous section.
+Widget closeButton(
+  BuildContext context, [
+  Function()? onTap,
+  VoidCallback? onClose,
+]) {
   final cl = context.colors;
-  return GestureDetector(
+  return AppTap(
     onTap: () {
+      if (onClose != null) {
+        onClose();
+        return;
+      }
       onTap?.call();
       Navigator.of(context).pop();
     },
     child: Container(
       width: 34,
       height: 34,
-      decoration: BoxDecoration(
-        color: cl.primaryLight,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: cl.primaryLight, shape: BoxShape.circle),
       child: const Icon(CupertinoIcons.xmark, color: kPrimary, size: 15),
     ),
   );
@@ -255,10 +266,7 @@ CupertinoThemeData theme({required bool isDarkMode}) {
     scaffoldBackgroundColor: colors.background,
     barBackgroundColor: colors.surface,
     textTheme: CupertinoTextThemeData(
-      textStyle: GoogleFonts.poppins(
-        fontSize: 15,
-        color: colors.textPrimary,
-      ),
+      textStyle: GoogleFonts.poppins(fontSize: 15, color: colors.textPrimary),
       navLargeTitleTextStyle: GoogleFonts.poppins(
         fontSize: 32,
         fontWeight: FontWeight.w700,
@@ -269,10 +277,7 @@ CupertinoThemeData theme({required bool isDarkMode}) {
         fontWeight: FontWeight.w600,
         color: colors.textPrimary,
       ),
-      actionTextStyle: GoogleFonts.poppins(
-        fontSize: 15,
-        color: kPrimary,
-      ),
+      actionTextStyle: GoogleFonts.poppins(fontSize: 15, color: kPrimary),
     ),
   );
 }
@@ -281,38 +286,42 @@ CupertinoThemeData theme({required bool isDarkMode}) {
 void customCupertinoDialog(BuildContext context, Function()? onTap) {
   showCupertinoDialog(
     context: context,
-    builder: (context) => CupertinoAlertDialog(
-      title: Text(
-        context.tr('delete_item'),
-        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
-      content: Padding(
-        padding: const EdgeInsets.only(top: 10.0),
-        child: Text(
-          context.tr('action_cannot_undo'),
-          style: GoogleFonts.poppins(fontSize: 13),
-        ),
-      ),
-      actions: [
-        CupertinoDialogAction(
-          child: Text(
-            context.tr('cancel'),
-            style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
+    builder:
+        (context) => CupertinoAlertDialog(
+          title: Text(
+            context.tr('delete_item'),
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        CupertinoDialogAction(
-          child: Text(
-            context.tr('delete'),
-            style: GoogleFonts.poppins(color: CupertinoColors.systemRed),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 10.0),
+            child: Text(
+              context.tr('action_cannot_undo'),
+              style: GoogleFonts.poppins(fontSize: 13),
+            ),
           ),
-          onPressed: () {
-            Navigator.pop(context);
-            if (onTap != null) onTap();
-          },
+          actions: [
+            CupertinoDialogAction(
+              child: Text(
+                context.tr('cancel'),
+                style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            CupertinoDialogAction(
+              child: Text(
+                context.tr('delete'),
+                style: GoogleFonts.poppins(color: CupertinoColors.systemRed),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                if (onTap != null) onTap();
+              },
+            ),
+          ],
         ),
-      ],
-    ),
   );
 }
 
@@ -325,24 +334,26 @@ Future<DateTime?> customDatePicker(
     context: context,
     initialDate: DateTime.now(),
     firstDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
-    lastDate: allowFuture
-        ? DateTime.now().add(const Duration(days: 365 * 5))
-        : DateTime.now(),
+    lastDate:
+        allowFuture
+            ? DateTime.now().add(const Duration(days: 365 * 5))
+            : DateTime.now(),
     builder: (context, child) {
       return Theme(
         data: ThemeData(
-          colorScheme: isDark
-              ? ColorScheme.dark(
-                  primary: kPrimary,
-                  onPrimary: Colors.white,
-                  surface: AppColors.dark.surface,
-                  onSurface: AppColors.dark.textPrimary,
-                )
-              : const ColorScheme.light(
-                  primary: kPrimary,
-                  onPrimary: Colors.white,
-                  onSurface: Color(0xFF0F172A),
-                ),
+          colorScheme:
+              isDark
+                  ? ColorScheme.dark(
+                    primary: kPrimary,
+                    onPrimary: Colors.white,
+                    surface: AppColors.dark.surface,
+                    onSurface: AppColors.dark.textPrimary,
+                  )
+                  : const ColorScheme.light(
+                    primary: kPrimary,
+                    onPrimary: Colors.white,
+                    onSurface: Color(0xFF0F172A),
+                  ),
           textTheme: GoogleFonts.poppinsTextTheme(),
         ),
         child: child!,

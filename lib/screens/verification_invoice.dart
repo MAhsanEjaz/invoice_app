@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,7 +18,10 @@ import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/home_screen.dart';
 import 'package:invoicemaker/screens/invoice_preview_screen.dart';
 import 'package:invoicemaker/screens/new_invoice_screen.dart';
+import 'package:invoicemaker/services/export_helper.dart';
 import 'package:invoicemaker/services/navigations.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
@@ -33,12 +37,14 @@ class VerificationInvoice extends StatefulWidget {
   final ClientModel? clientModel;
   final ItemModel? itemModel;
   final InvoiceModel? invoiceModel;
+  final bool cameFromCreation;
 
   const VerificationInvoice({
     super.key,
     this.itemModel,
     this.clientModel,
     this.invoiceModel,
+    this.cameFromCreation = false,
   });
 
   @override
@@ -54,6 +60,18 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       MaterialPageRoute(builder: (_) => const HomeScreen()),
       (route) => false,
     );
+  }
+
+  // System/hardware back should return to whichever screen pushed this
+  // invoice (Dashboard, Home list, etc.) instead of always resetting to
+  // Home — except right after creating a new invoice, where the previous
+  // screen is a cleared-out creation form we don't want to land back on.
+  void _goBack() {
+    if (!widget.cameFromCreation && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      _goHome();
+    }
   }
 
   // ── Currency formatter ─────────────────────────────────────────────────────
@@ -287,7 +305,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                             itemBuilder: (_, index) {
                               final b = banks[index];
                               final isSelected = b.id == liveInvoice.bank?.id;
-                              return GestureDetector(
+                              return AppTap(
                                 onTap: () {
                                   Navigator.pop(context);
                                   invoiceProvider.updateInvoiceBank(
@@ -391,7 +409,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         const SizedBox(height: 8),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: GestureDetector(
+                          child: AppTap(
                             onTap: () {
                               Navigator.pop(context);
                               invoiceProvider.updateInvoiceBank(
@@ -491,48 +509,54 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
   ) {
     showCupertinoDialog<void>(
       context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: Text(
-          context.tr('convert_to_invoice'),
-          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: Text(
-            context.tr('convert_confirm'),
-            style: GoogleFonts.poppins(fontSize: 13),
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              context.tr('cancel'),
-              style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
+      builder:
+          (_) => CupertinoAlertDialog(
+            title: Text(
+              context.tr('convert_to_invoice'),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          CupertinoDialogAction(
-            onPressed: () async {
-              Navigator.pop(context);
-              final newInvoice = await invoice.convertToInvoice(
-                source,
-                numberFormatter: numProvider.isCustom ? numProvider.format : null,
-              );
-              if (!mounted) return;
-              Navigator.pushReplacement(
-                context,
-                CupertinoPageRoute(
-                  builder: (_) => VerificationInvoice(invoiceModel: newInvoice),
+            content: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                context.tr('convert_confirm'),
+                style: GoogleFonts.poppins(fontSize: 13),
+              ),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  context.tr('cancel'),
+                  style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
                 ),
-              );
-            },
-            child: Text(
-              context.tr('convert'),
-              style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
-            ),
+              ),
+              CupertinoDialogAction(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final newInvoice = await invoice.convertToInvoice(
+                    source,
+                    numberFormatter:
+                        numProvider.isCustom ? numProvider.format : null,
+                  );
+                  if (!mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    CupertinoPageRoute(
+                      builder:
+                          (_) => VerificationInvoice(invoiceModel: newInvoice),
+                    ),
+                  );
+                },
+                child: Text(
+                  context.tr('convert'),
+                  style: GoogleFonts.poppins(color: CupertinoColors.systemBlue),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -554,22 +578,25 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         return PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) _goHome();
+            if (!didPop) _goBack();
           },
           child: CupertinoPageScaffold(
             backgroundColor: context.colors.background,
-            child: Column(
-              children: [
-                _buildNavBar(liveInvoice, invoice, docType),
-                Expanded(
-                  child: _buildBody(liveInvoice, isPaid, isInvoice, invoice),
-                ),
-                Consumer<TemplatesColorsProvider>(
-                  builder:
-                      (ctx, data, _) =>
-                          _buildBottomBar(data, invoice, liveInvoice),
-                ),
-              ],
+            child: ResponsiveCenter(
+              maxWidth: 900,
+              child: Column(
+                children: [
+                  _buildNavBar(liveInvoice, invoice, docType),
+                  Expanded(
+                    child: _buildBody(liveInvoice, isPaid, isInvoice, invoice),
+                  ),
+                  Consumer<TemplatesColorsProvider>(
+                    builder:
+                        (ctx, data, _) =>
+                            _buildBottomBar(data, invoice, liveInvoice),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -590,7 +617,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         child: Row(
           children: [
             // Back to home
-            GestureDetector(
+            AppTap(
               onTap: _goHome,
               child: Container(
                 width: 34,
@@ -626,7 +653,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             const Spacer(),
 
             // Edit
-            GestureDetector(
+            AppTap(
               onTap:
                   () => Navigation.go(
                     context,
@@ -913,7 +940,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
                 // Discount row — always visible and tappable
                 Divider(height: 1, color: context.colors.border),
-                GestureDetector(
+                AppTap(
                   onTap: () => _showDiscountDialog(invoice, discount),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -977,11 +1004,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          CupertinoIcons.percent,
-                          size: 15,
-                          color: kPrimary,
-                        ),
+                        Icon(CupertinoIcons.percent, size: 15, color: kPrimary),
                         const SizedBox(width: 8),
                         Text(
                           '${liveInvoice.taxLabel ?? context.tr('tax')} (${taxRate.toStringAsFixed(taxRate == taxRate.roundToDouble() ? 0 : 1)}%)',
@@ -1096,7 +1119,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                 ),
                 const Spacer(),
                 if (liveInvoice.bank != null)
-                  GestureDetector(
+                  AppTap(
                     onTap: () async {
                       final bank = liveInvoice.bank!;
                       final parts = <String>[];
@@ -1239,7 +1262,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                   Divider(height: 1, color: context.colors.border),
 
                   // Received — tappable to enter amount
-                  GestureDetector(
+                  AppTap(
                     onTap: () => _showReceivedDialog(invoice, received),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -1343,43 +1366,48 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           if (!isInvoice) ...[
             const SizedBox(height: 16),
             Consumer<InvoiceNumberProvider>(
-              builder: (ctx, numProvider, _) => GestureDetector(
-                onTap: () => _confirmConvert(liveInvoice, invoice, numProvider),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: kPrimary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kPrimary.withValues(alpha: 0.3)),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        CupertinoIcons.arrow_right_arrow_left,
-                        color: kPrimary,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.tr('convert_to_invoice'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: kPrimary,
+              builder:
+                  (ctx, numProvider, _) => AppTap(
+                    onTap:
+                        () =>
+                            _confirmConvert(liveInvoice, invoice, numProvider),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: kPrimary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: kPrimary.withValues(alpha: 0.3),
                         ),
                       ),
-                    ],
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.arrow_right_arrow_left,
+                            color: kPrimary,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.tr('convert_to_invoice'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: kPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
             ),
           ],
 
           // ── Delete invoice ─────────────────────────────────────────────────
           const SizedBox(height: 24),
-          GestureDetector(
+          AppTap(
             onTap: () => _confirmDelete(invoice),
             child: Container(
               width: double.infinity,
@@ -1420,7 +1448,10 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
   }
 
   // ── Recurring section ─────────────────────────────────────────────────────
-  Widget _buildRecurringSection(InvoiceModel liveInvoice, InvoiceProvider invoice) {
+  Widget _buildRecurringSection(
+    InvoiceModel liveInvoice,
+    InvoiceProvider invoice,
+  ) {
     final cl = context.colors;
     final isOn = liveInvoice.isRecurring == true;
     final interval = liveInvoice.recurringInterval ?? 'monthly';
@@ -1428,11 +1459,15 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
 
     String intervalLabel() {
       switch (interval) {
-        case 'weekly': return context.tr('interval_weekly');
+        case 'weekly':
+          return context.tr('interval_weekly');
         case 'custom':
           final days = liveInvoice.recurringCustomDays;
-          return days != null ? '$days ${context.tr('custom_days_unit')}' : context.tr('interval_custom');
-        default: return context.tr('interval_monthly');
+          return days != null
+              ? '$days ${context.tr('custom_days_unit')}'
+              : context.tr('interval_custom');
+        default:
+          return context.tr('interval_monthly');
       }
     }
 
@@ -1476,18 +1511,28 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
           ),
           if (isOn) ...[
             Divider(height: 1, color: cl.border),
-            GestureDetector(
+            AppTap(
               onTap: () => _showIntervalPicker(liveInvoice, invoice),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
-                    Icon(CupertinoIcons.calendar_today, size: 16, color: cl.textSecondary),
+                    Icon(
+                      CupertinoIcons.calendar_today,
+                      size: 16,
+                      color: cl.textSecondary,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         context.tr('recurring_interval'),
-                        style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: cl.textSecondary,
+                        ),
                       ),
                     ),
                     Text(
@@ -1499,7 +1544,11 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Icon(CupertinoIcons.chevron_right, size: 13, color: cl.textSecondary),
+                    Icon(
+                      CupertinoIcons.chevron_right,
+                      size: 13,
+                      color: cl.textSecondary,
+                    ),
                   ],
                 ),
               ),
@@ -1507,10 +1556,17 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
             if (nextDate != null) ...[
               Divider(height: 1, color: cl.border),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
-                    Icon(CupertinoIcons.clock, size: 16, color: cl.textSecondary),
+                    Icon(
+                      CupertinoIcons.clock,
+                      size: 16,
+                      color: cl.textSecondary,
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       context.tr('recurring_next').replaceAll(
@@ -1518,14 +1574,18 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                         // nextRecurringDate is stored as yyyy-MM-dd — format for display
                         () {
                           try {
-                            return DateFormat('MMM dd, yyyy')
-                                .format(DateTime.parse(nextDate));
+                            return DateFormat(
+                              'MMM dd, yyyy',
+                            ).format(DateTime.parse(nextDate));
                           } catch (_) {
                             return nextDate;
                           }
                         }(),
                       ),
-                      style: GoogleFonts.poppins(fontSize: 13, color: cl.textSecondary),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: cl.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -1542,10 +1602,9 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _IntervalPickerSheet(
-        liveInvoice: liveInvoice,
-        invoice: invoice,
-      ),
+      builder:
+          (_) =>
+              _IntervalPickerSheet(liveInvoice: liveInvoice, invoice: invoice),
     );
   }
 
@@ -1732,10 +1791,19 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         currencySymbol: sym,
         locale: 'en',
       );
-      final tempDir = await getTemporaryDirectory();
-      final pdfFile = File('${tempDir.path}/Invoice_${invoice.invoiceId}.pdf');
-      await pdfFile.writeAsBytes(pdfData);
-      await SharePlus.instance.share(ShareParams(files: [XFile(pdfFile.path)]));
+      if (kIsWeb) {
+        // No filesystem and no native share sheet on web — trigger a
+        // browser download instead.
+        await ExportHelper.downloadPdf(
+          pdfData,
+          'Invoice_${invoice.invoiceId}.pdf',
+        );
+      } else {
+        final tempDir = await getTemporaryDirectory();
+        final pdfFile = File('${tempDir.path}/Invoice_${invoice.invoiceId}.pdf');
+        await pdfFile.writeAsBytes(pdfData);
+        await SharePlus.instance.share(ShareParams(files: [XFile(pdfFile.path)]));
+      }
     } catch (_) {
       if (mounted) _showToast(context.tr('export_failed'));
     } finally {
@@ -1771,6 +1839,23 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         currencySymbol: sym,
         locale: 'en',
       );
+
+      if (kIsWeb) {
+        // No filesystem on web — rasterize to PNG bytes and download them
+        // directly instead of writing to disk.
+        final pages = <Uint8List>[];
+        await for (final raster in Printing.raster(pdfData, dpi: 200)) {
+          pages.add(await raster.toPng());
+        }
+        if (pages.isNotEmpty) {
+          await ExportHelper.downloadImages(
+            pages,
+            'Invoice_${invoice.invoiceId}',
+          );
+        }
+        return;
+      }
+
       final tempDir = await getTemporaryDirectory();
       final List<XFile> files = [];
       int page = 0;
@@ -1902,7 +1987,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                           children:
                               InvoiceTemplate.values.map((t) {
                                 final isSelected = data.template == t;
-                                return GestureDetector(
+                                return AppTap(
                                   onTap: () {
                                     data.selectTemplate(t);
                                     setSheet(() {});
@@ -2049,7 +2134,7 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: List.generate(data.colors.length, (i) {
                             final isSelected = colorIdx == i;
-                            return GestureDetector(
+                            return AppTap(
                               onTap: () {
                                 colorIdx = i;
                                 data.selectColor(data.colors[i]);
@@ -2209,7 +2294,10 @@ class _IntervalPickerSheet extends StatefulWidget {
   final InvoiceModel liveInvoice;
   final InvoiceProvider invoice;
 
-  const _IntervalPickerSheet({required this.liveInvoice, required this.invoice});
+  const _IntervalPickerSheet({
+    required this.liveInvoice,
+    required this.invoice,
+  });
 
   @override
   State<_IntervalPickerSheet> createState() => _IntervalPickerSheetState();
@@ -2245,7 +2333,9 @@ class _IntervalPickerSheetState extends State<_IntervalPickerSheet> {
       ('custom', context.tr('interval_custom')),
     ];
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: cl.background,
@@ -2258,8 +2348,12 @@ class _IntervalPickerSheetState extends State<_IntervalPickerSheet> {
             children: [
               const SizedBox(height: 12),
               Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: cl.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
               const SizedBox(height: 16),
               Padding(
@@ -2268,21 +2362,29 @@ class _IntervalPickerSheetState extends State<_IntervalPickerSheet> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     context.tr('recurring_interval'),
-                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: cl.textPrimary),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: cl.textPrimary,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               ...options.map((entry) {
                 final isSelected = _selectedInterval == entry.$1;
-                return GestureDetector(
-                  onTap: () => setState(() {
-                    _selectedInterval = entry.$1;
-                    if (entry.$1 != 'custom') _customDays = null;
-                  }),
+                return AppTap(
+                  onTap:
+                      () => setState(() {
+                        _selectedInterval = entry.$1;
+                        if (entry.$1 != 'custom') _customDays = null;
+                      }),
                   child: Container(
                     color: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -2291,12 +2393,17 @@ class _IntervalPickerSheetState extends State<_IntervalPickerSheet> {
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               color: isSelected ? kPrimary : cl.textPrimary,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
                             ),
                           ),
                         ),
                         Icon(
-                          isSelected ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+                          isSelected
+                              ? CupertinoIcons.checkmark_circle_fill
+                              : CupertinoIcons.circle,
                           color: isSelected ? kPrimary : cl.textHint,
                           size: 20,
                         ),
@@ -2312,17 +2419,35 @@ class _IntervalPickerSheetState extends State<_IntervalPickerSheet> {
                     controller: _customDaysCtrl,
                     autofocus: true,
                     keyboardType: TextInputType.number,
-                    style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: cl.textPrimary,
+                    ),
                     decoration: InputDecoration(
                       hintText: context.tr('custom_days_hint'),
                       hintStyle: GoogleFonts.poppins(color: cl.textHint),
                       suffixText: context.tr('custom_days_unit'),
                       filled: true,
                       fillColor: cl.surface,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cl.border)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cl.border)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 1.5)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: cl.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: cl.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: kPrimary,
+                          width: 1.5,
+                        ),
+                      ),
                     ),
                     onChanged: (v) => _customDays = int.tryParse(v),
                   ),
@@ -2350,16 +2475,25 @@ class _IntervalPickerSheetState extends State<_IntervalPickerSheet> {
                         widget.liveInvoice.invoiceId!,
                         isRecurring: true,
                         interval: _selectedInterval,
-                        customDays: _selectedInterval == 'custom' ? _customDays : null,
+                        customDays:
+                            _selectedInterval == 'custom' ? _customDays : null,
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kPrimary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    child: Text(context.tr('save'), style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                    child: Text(
+                      context.tr('save'),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -2634,9 +2768,7 @@ class _TemplatePreview extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: CustomPaint(
-            painter: _GeometricCornersPainter(color, color),
-          ),
+          child: CustomPaint(painter: _GeometricCornersPainter(color, color)),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
@@ -2653,24 +2785,52 @@ class _TemplatePreview extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _fakeLine(width: 24, color: Colors.grey.shade700, height: 3),
+                      _fakeLine(
+                        width: 24,
+                        color: Colors.grey.shade700,
+                        height: 3,
+                      ),
                       const SizedBox(height: 2),
-                      _fakeLine(width: 18, color: Colors.grey.shade400, height: 2),
+                      _fakeLine(
+                        width: 18,
+                        color: Colors.grey.shade400,
+                        height: 2,
+                      ),
                       const SizedBox(height: 4),
-                      _fakeLine(width: 22, color: Colors.grey.shade700, height: 3),
+                      _fakeLine(
+                        width: 22,
+                        color: Colors.grey.shade700,
+                        height: 3,
+                      ),
                       const SizedBox(height: 2),
-                      _fakeLine(width: 14, color: Colors.grey.shade400, height: 2),
+                      _fakeLine(
+                        width: 14,
+                        color: Colors.grey.shade400,
+                        height: 2,
+                      ),
                     ],
                   ),
                   const SizedBox(width: 14),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _fakeLine(width: 20, color: Colors.grey.shade700, height: 3),
+                      _fakeLine(
+                        width: 20,
+                        color: Colors.grey.shade700,
+                        height: 3,
+                      ),
                       const SizedBox(height: 2),
-                      _fakeLine(width: 28, color: Colors.grey.shade400, height: 2),
+                      _fakeLine(
+                        width: 28,
+                        color: Colors.grey.shade400,
+                        height: 2,
+                      ),
                       const SizedBox(height: 2),
-                      _fakeLine(width: 24, color: Colors.grey.shade400, height: 2),
+                      _fakeLine(
+                        width: 24,
+                        color: Colors.grey.shade400,
+                        height: 2,
+                      ),
                     ],
                   ),
                 ],
@@ -2691,73 +2851,93 @@ class _TemplatePreview extends StatelessWidget {
 
     // Header row: 5 columns proportional to PDF (0.8 : 4.0 : 1.2 : 2.0 : 2.0)
     Widget headerRow() => Container(
-          height: 13,
-          decoration: BoxDecoration(color: headerBg, border: border),
-          child: Row(
-            children: [
-              _tableCell(flex: 1, color: Colors.grey.shade600),
-              _tableCell(flex: 4, color: Colors.grey.shade600),
-              _tableCell(flex: 1, color: Colors.grey.shade600),
-              _tableCell(flex: 2, color: Colors.grey.shade600),
-              _tableCell(flex: 2, color: Colors.grey.shade600),
-            ],
-          ),
-        );
+      height: 13,
+      decoration: BoxDecoration(color: headerBg, border: border),
+      child: Row(
+        children: [
+          _tableCell(flex: 1, color: Colors.grey.shade600),
+          _tableCell(flex: 4, color: Colors.grey.shade600),
+          _tableCell(flex: 1, color: Colors.grey.shade600),
+          _tableCell(flex: 2, color: Colors.grey.shade600),
+          _tableCell(flex: 2, color: Colors.grey.shade600),
+        ],
+      ),
+    );
 
     // Data row: 5 columns, full border, white bg
     Widget dataRow() => Container(
-          height: 11,
-          decoration: BoxDecoration(color: Colors.white, border: border),
-          child: Row(
-            children: [
-              Expanded(flex: 1, child: const SizedBox()),
-              Expanded(
-                flex: 4,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Container(height: 2.5, color: Colors.grey.shade300),
-                ),
-              ),
-              Expanded(flex: 1, child: Center(child: Container(width: 6, height: 2.5, color: Colors.grey.shade300))),
-              Expanded(flex: 2, child: Center(child: Container(width: 14, height: 2.5, color: Colors.grey.shade300))),
-              Expanded(flex: 2, child: Center(child: Container(width: 14, height: 2.5, color: Colors.grey.shade300))),
-            ],
+      height: 11,
+      decoration: BoxDecoration(color: Colors.white, border: border),
+      child: Row(
+        children: [
+          Expanded(flex: 1, child: const SizedBox()),
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Container(height: 2.5, color: Colors.grey.shade300),
+            ),
           ),
-        );
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: Container(
+                width: 6,
+                height: 2.5,
+                color: Colors.grey.shade300,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Container(
+                width: 14,
+                height: 2.5,
+                color: Colors.grey.shade300,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Container(
+                width: 14,
+                height: 2.5,
+                color: Colors.grey.shade300,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
 
     // Grand total row: label + accent-colored amount in last two cells
     Widget totalRow() => Container(
-          height: 12,
-          decoration: BoxDecoration(color: Colors.white, border: border),
-          child: Row(
-            children: [
-              const Spacer(flex: 8),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Container(height: 2.5, color: Colors.grey.shade500),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Container(height: 3, color: accent),
-                ),
-              ),
-            ],
+      height: 12,
+      decoration: BoxDecoration(color: Colors.white, border: border),
+      child: Row(
+        children: [
+          const Spacer(flex: 8),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Container(height: 2.5, color: Colors.grey.shade500),
+            ),
           ),
-        );
-
-    return Column(
-      children: [
-        headerRow(),
-        dataRow(),
-        dataRow(),
-        totalRow(),
-      ],
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Container(height: 3, color: accent),
+            ),
+          ),
+        ],
+      ),
     );
+
+    return Column(children: [headerRow(), dataRow(), dataRow(), totalRow()]);
   }
 
   // Boutique: white bg · dark badge logo · large "INVOICE" title · clean table
@@ -2848,7 +3028,10 @@ class _TemplatePreview extends StatelessWidget {
                 flex: 2,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Container(height: 3, color: Colors.white.withValues(alpha: 0.8)),
+                  child: Container(
+                    height: 3,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
                 ),
               ),
               Expanded(
@@ -2909,7 +3092,10 @@ class _TemplatePreview extends StatelessWidget {
                 flex: 2,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Container(height: 3, color: Colors.white.withValues(alpha: 0.8)),
+                  child: Container(
+                    height: 3,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
                 ),
               ),
               Expanded(
@@ -3000,7 +3186,9 @@ class _TemplatePreview extends StatelessWidget {
           height: 12,
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border(top: BorderSide(color: Colors.grey.shade300, width: 0.5)),
+            border: Border(
+              top: BorderSide(color: Colors.grey.shade300, width: 0.5),
+            ),
           ),
           child: Row(
             children: [
@@ -3050,19 +3238,31 @@ class _TemplatePreview extends StatelessWidget {
           Expanded(
             flex: 1,
             child: Center(
-              child: Container(width: 8, height: 3, color: Colors.grey.shade300),
+              child: Container(
+                width: 8,
+                height: 3,
+                color: Colors.grey.shade300,
+              ),
             ),
           ),
           Expanded(
             flex: 2,
             child: Center(
-              child: Container(width: 12, height: 3, color: Colors.grey.shade300),
+              child: Container(
+                width: 12,
+                height: 3,
+                color: Colors.grey.shade300,
+              ),
             ),
           ),
           Expanded(
             flex: 2,
             child: Center(
-              child: Container(width: 14, height: 3, color: Colors.grey.shade300),
+              child: Container(
+                width: 14,
+                height: 3,
+                color: Colors.grey.shade300,
+              ),
             ),
           ),
         ],

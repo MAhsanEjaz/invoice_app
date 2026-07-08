@@ -14,13 +14,9 @@ class ServiceProvider extends ChangeNotifier {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList('services') ?? [];
-    services = data
-        .map((e) => ServiceModel.fromJson(jsonDecode(e)))
-        .toList();
+    services = data.map((e) => ServiceModel.fromJson(jsonDecode(e))).toList();
     if (services.isNotEmpty) {
-      _lastId = services
-          .map((s) => s.id ?? 0)
-          .reduce((a, b) => a > b ? a : b);
+      _lastId = services.map((s) => s.id ?? 0).reduce((a, b) => a > b ? a : b);
     }
     notifyListeners();
   }

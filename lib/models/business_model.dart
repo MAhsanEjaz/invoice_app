@@ -12,16 +12,18 @@ class BusinessModel {
   }) : id = id ?? DateTime.now().millisecondsSinceEpoch.toString();
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'businessName': businessName,
-        'businessLogo': businessLogo,
-        'isDefault': isDefault,
-      };
+    'id': id,
+    'businessName': businessName,
+    'businessLogo': businessLogo,
+    'isDefault': isDefault,
+  };
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) => BusinessModel(
-        id: json['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        businessName: json['businessName'] as String?,
-        businessLogo: json['businessLogo'] as String?,
-        isDefault: json['isDefault'] as bool? ?? false,
-      );
+    id:
+        json['id'] as String? ??
+        DateTime.now().millisecondsSinceEpoch.toString(),
+    businessName: json['businessName'] as String?,
+    businessLogo: json['businessLogo'] as String?,
+    isDefault: json['isDefault'] as bool? ?? false,
+  );
 }

@@ -7,6 +7,8 @@ import 'package:invoicemaker/providers/bank_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/add_bank_account_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 
 class BankAccountsScreen extends StatelessWidget {
@@ -21,15 +23,19 @@ class BankAccountsScreen extends StatelessWidget {
         return CupertinoPageScaffold(
           backgroundColor: cl.background,
           child: SafeArea(
-            child: Column(
-              children: [
-                _buildNavBar(context, cl),
-                Expanded(
-                  child: provider.banks.isEmpty
-                      ? _buildEmpty(context, cl)
-                      : _buildList(context, cl, provider),
-                ),
-              ],
+            child: ResponsiveCenter(
+              maxWidth: 640,
+              child: Column(
+                children: [
+                  _buildNavBar(context, cl),
+                  Expanded(
+                    child:
+                        provider.banks.isEmpty
+                            ? _buildEmpty(context, cl)
+                            : _buildList(context, cl, provider),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -53,7 +59,7 @@ class BankAccountsScreen extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          GestureDetector(
+          AppTap(
             onTap: () => Navigation.go(context, const AddBankAccountScreen()),
             child: Container(
               width: 34,
@@ -104,9 +110,8 @@ class BankAccountsScreen extends StatelessWidget {
             style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
           ),
           const SizedBox(height: 24),
-          GestureDetector(
-            onTap: () =>
-                Navigation.go(context, const AddBankAccountScreen()),
+          AppTap(
+            onTap: () => Navigation.go(context, const AddBankAccountScreen()),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
@@ -128,8 +133,7 @@ class BankAccountsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildList(
-      BuildContext context, AppColors cl, BankProvider provider) {
+  Widget _buildList(BuildContext context, AppColors cl, BankProvider provider) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemCount: provider.banks.length,
@@ -144,10 +148,11 @@ class BankAccountsScreen extends StatelessWidget {
               child: Material(
                 type: MaterialType.transparency,
                 child: InkWell(
-                  onTap: () => Navigation.go(
-                    context,
-                    AddBankAccountScreen(bank: bank),
-                  ),
+                  onTap:
+                      () => Navigation.go(
+                        context,
+                        AddBankAccountScreen(bank: bank),
+                      ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,

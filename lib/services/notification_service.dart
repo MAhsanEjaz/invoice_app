@@ -16,7 +16,8 @@ class NotificationService {
 
   static const _recurringChannelId = 'recurring_invoices';
   static const _recurringChannelName = 'Recurring Invoices';
-  static const _recurringChannelDesc = 'Notifications when recurring invoices are auto-created';
+  static const _recurringChannelDesc =
+      'Notifications when recurring invoices are auto-created';
 
   static Future<void> initialize() async {
     tz.initializeTimeZones();
@@ -36,10 +37,11 @@ class NotificationService {
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
 
-    final android = _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+    final android =
+        _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
     await android?.requestNotificationsPermission();
     await android?.requestExactAlarmsPermission();
   }

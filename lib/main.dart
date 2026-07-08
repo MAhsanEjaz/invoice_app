@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:invoicemaker/constants.dart';
@@ -22,6 +23,13 @@ import 'package:invoicemaker/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Local notifications and forced portrait orientation are mobile-only
+  // concerns; the web build has no native notification channel and runs in
+  // a resizable browser window.
+  if (kIsWeb) {
+    runApp(const MyApp());
+    return;
+  }
   await NotificationService.initialize();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then((
     _,
@@ -58,31 +66,32 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (context) => InvoiceNumberProvider()),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
-        builder: (context, themeProvider, localeProvider, _) => CupertinoApp(
-          debugShowCheckedModeBanner: false,
-          locale: localeProvider.locale,
-          supportedLocales: const [
-            Locale('en'),
-            Locale('ur'),
-            Locale('hi'),
-            Locale('ar'),
-          ],
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          builder: (context, myChild) {
-            return MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: const TextScaler.linear(.8)),
-              child: myChild!,
-            );
-          },
-          theme: theme(isDarkMode: themeProvider.isDark),
-          home: const SplashScreen(),
-        ),
+        builder:
+            (context, themeProvider, localeProvider, _) => CupertinoApp(
+              debugShowCheckedModeBanner: false,
+              locale: localeProvider.locale,
+              supportedLocales: const [
+                Locale('en'),
+                Locale('ur'),
+                Locale('hi'),
+                Locale('ar'),
+              ],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              builder: (context, myChild) {
+                return MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: const TextScaler.linear(.8)),
+                  child: myChild!,
+                );
+              },
+              theme: theme(isDarkMode: themeProvider.isDark),
+              home: const SplashScreen(),
+            ),
       ),
     );
   }

@@ -7,16 +7,16 @@ class BankModel {
   BankModel({this.id, this.accountNumber, this.title, this.bankName});
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'accountNumber': accountNumber,
-        'title': title,
-        'bankName': bankName,
-      };
+    'id': id,
+    'accountNumber': accountNumber,
+    'title': title,
+    'bankName': bankName,
+  };
 
   factory BankModel.fromJson(Map<String, dynamic> json) => BankModel(
-        id: json['id'],
-        accountNumber: json['accountNumber'],
-        title: json['title'],
-        bankName: json['bankName'],
-      );
+    id: json['id'],
+    accountNumber: json['accountNumber'],
+    title: json['title'],
+    bankName: json['bankName'],
+  );
 }

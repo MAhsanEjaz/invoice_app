@@ -7,10 +7,14 @@ import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/screens/add_saved_client_screen.dart';
 import 'package:invoicemaker/services/navigations.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 
 class SavedClientsScreen extends StatelessWidget {
-  const SavedClientsScreen({super.key});
+  final VoidCallback? onClose;
+
+  const SavedClientsScreen({super.key, this.onClose});
 
   @override
   Widget build(BuildContext context) {
@@ -21,15 +25,19 @@ class SavedClientsScreen extends StatelessWidget {
         return CupertinoPageScaffold(
           backgroundColor: cl.background,
           child: SafeArea(
-            child: Column(
-              children: [
-                _buildNavBar(context, cl),
-                Expanded(
-                  child: provider.clients.isEmpty
-                      ? _buildEmpty(context, cl)
-                      : _buildList(context, cl, provider),
-                ),
-              ],
+            child: ResponsiveCenter(
+              maxWidth: 720,
+              child: Column(
+                children: [
+                  _buildNavBar(context, cl),
+                  Expanded(
+                    child:
+                        provider.clients.isEmpty
+                            ? _buildEmpty(context, cl)
+                            : _buildList(context, cl, provider),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -42,7 +50,7 @@ class SavedClientsScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          closeButton(context),
+          closeButton(context, null, onClose),
           const Spacer(),
           Text(
             context.tr('clients'),
@@ -53,7 +61,7 @@ class SavedClientsScreen extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          GestureDetector(
+          AppTap(
             onTap: () => Navigation.go(context, const AddSavedClientScreen()),
             child: Container(
               width: 34,
@@ -101,15 +109,13 @@ class SavedClientsScreen extends StatelessWidget {
           Text(
             context.tr('no_clients_msg'),
             textAlign: TextAlign.center,
-            style:
-                GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
+            style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
           ),
           const SizedBox(height: 24),
-          GestureDetector(
+          AppTap(
             onTap: () => Navigation.go(context, const AddSavedClientScreen()),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
                 color: kPrimary,
                 borderRadius: BorderRadius.circular(12),
@@ -130,7 +136,10 @@ class SavedClientsScreen extends StatelessWidget {
   }
 
   Widget _buildList(
-      BuildContext context, AppColors cl, SavedClientProvider provider) {
+    BuildContext context,
+    AppColors cl,
+    SavedClientProvider provider,
+  ) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemCount: provider.clients.length,
@@ -145,10 +154,11 @@ class SavedClientsScreen extends StatelessWidget {
               child: Material(
                 type: MaterialType.transparency,
                 child: InkWell(
-                  onTap: () => Navigation.go(
-                    context,
-                    AddSavedClientScreen(client: client),
-                  ),
+                  onTap:
+                      () => Navigation.go(
+                        context,
+                        AddSavedClientScreen(client: client),
+                      ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,

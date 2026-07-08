@@ -8,6 +8,8 @@ import 'package:invoicemaker/models/client_model.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -59,9 +61,10 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
               contact.phones.isNotEmpty ? contact.phones.first.number : '';
           _emailCtrl.text =
               contact.emails.isNotEmpty ? contact.emails.first.address : '';
-          _addressCtrl.text = contact.addresses.isNotEmpty
-              ? contact.addresses.first.address
-              : '';
+          _addressCtrl.text =
+              contact.addresses.isNotEmpty
+                  ? contact.addresses.first.address
+                  : '';
         });
       } else {
         openAppSettings();
@@ -78,34 +81,37 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
     return CupertinoPageScaffold(
       backgroundColor: cl.background,
       child: SafeArea(
-        child: Column(
-          children: [
-            _buildNavBar(cl),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    sectionLabel(context, context.tr('client_info')),
-                    _buildNameCard(cl),
-                    const SizedBox(height: 20),
-                    sectionLabel(context, context.tr('contact_details')),
-                    _buildContactCard(cl),
-                    if (_isEdit) ...[
-                      const SizedBox(height: 24),
-                      _buildDeleteButton(cl),
+        child: ResponsiveCenter(
+          maxWidth: 640,
+          child: Column(
+            children: [
+              _buildNavBar(cl),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      sectionLabel(context, context.tr('client_info')),
+                      _buildNameCard(cl),
+                      const SizedBox(height: 20),
+                      sectionLabel(context, context.tr('contact_details')),
+                      _buildContactCard(cl),
+                      if (_isEdit) ...[
+                        const SizedBox(height: 24),
+                        _buildDeleteButton(cl),
+                      ],
+                      const SizedBox(height: 16),
                     ],
-                    const SizedBox(height: 16),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            _buildBottomBar(cl),
-          ],
+              _buildBottomBar(cl),
+            ],
+          ),
         ),
       ),
     );
@@ -148,7 +154,7 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
           Divider(height: 1, color: cl.border),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: GestureDetector(
+            child: AppTap(
               onTap: _pickContact,
               child: Row(
                 children: [
@@ -241,10 +247,11 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
               controller: controller,
               placeholder: placeholder,
               autofocus: autofocus,
-              placeholderStyle:
-                  GoogleFonts.poppins(fontSize: 14, color: cl.textHint),
-              style:
-                  GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
+              placeholderStyle: GoogleFonts.poppins(
+                fontSize: 14,
+                color: cl.textHint,
+              ),
+              style: GoogleFonts.poppins(fontSize: 14, color: cl.textPrimary),
               padding: const EdgeInsets.symmetric(vertical: 16),
               keyboardType: keyboardType,
               decoration: const BoxDecoration(color: Colors.transparent),
@@ -256,15 +263,18 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
   }
 
   Widget _buildDeleteButton(AppColors cl) {
-    return GestureDetector(
-      onTap: () => customCupertinoDialog(context, () async {
-        await Provider.of<SavedClientProvider>(context, listen: false)
-            .deleteClient(widget.client!.id!);
-        if (!mounted) return;
-        Navigator.of(context)
-          ..pop()
-          ..pop();
-      }),
+    return AppTap(
+      onTap:
+          () => customCupertinoDialog(context, () async {
+            await Provider.of<SavedClientProvider>(
+              context,
+              listen: false,
+            ).deleteClient(widget.client!.id!);
+            if (!mounted) return;
+            Navigator.of(context)
+              ..pop()
+              ..pop();
+          }),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -301,41 +311,56 @@ class _AddSavedClientScreenState extends State<AddSavedClientScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: AppButton(
-        txt: _isEdit ? context.tr('update_client_btn') : context.tr('save_client_btn'),
+        txt:
+            _isEdit
+                ? context.tr('update_client_btn')
+                : context.tr('save_client_btn'),
         onTap: () async {
           final name = _nameCtrl.text.trim();
           if (name.isEmpty) return;
 
-          final provider =
-              Provider.of<SavedClientProvider>(context, listen: false);
+          final provider = Provider.of<SavedClientProvider>(
+            context,
+            listen: false,
+          );
 
           if (_isEdit) {
-            await provider.updateClient(ClientModel(
-              id: widget.client!.id,
-              name: name,
-              phone: _phoneCtrl.text.trim().isEmpty
-                  ? null
-                  : _phoneCtrl.text.trim(),
-              email: _emailCtrl.text.trim().isEmpty
-                  ? null
-                  : _emailCtrl.text.trim(),
-              address: _addressCtrl.text.trim().isEmpty
-                  ? null
-                  : _addressCtrl.text.trim(),
-            ));
+            await provider.updateClient(
+              ClientModel(
+                id: widget.client!.id,
+                name: name,
+                phone:
+                    _phoneCtrl.text.trim().isEmpty
+                        ? null
+                        : _phoneCtrl.text.trim(),
+                email:
+                    _emailCtrl.text.trim().isEmpty
+                        ? null
+                        : _emailCtrl.text.trim(),
+                address:
+                    _addressCtrl.text.trim().isEmpty
+                        ? null
+                        : _addressCtrl.text.trim(),
+              ),
+            );
           } else {
-            await provider.addClient(ClientModel(
-              name: name,
-              phone: _phoneCtrl.text.trim().isEmpty
-                  ? null
-                  : _phoneCtrl.text.trim(),
-              email: _emailCtrl.text.trim().isEmpty
-                  ? null
-                  : _emailCtrl.text.trim(),
-              address: _addressCtrl.text.trim().isEmpty
-                  ? null
-                  : _addressCtrl.text.trim(),
-            ));
+            await provider.addClient(
+              ClientModel(
+                name: name,
+                phone:
+                    _phoneCtrl.text.trim().isEmpty
+                        ? null
+                        : _phoneCtrl.text.trim(),
+                email:
+                    _emailCtrl.text.trim().isEmpty
+                        ? null
+                        : _emailCtrl.text.trim(),
+                address:
+                    _addressCtrl.text.trim().isEmpty
+                        ? null
+                        : _addressCtrl.text.trim(),
+              ),
+            );
           }
 
           if (!mounted) return;

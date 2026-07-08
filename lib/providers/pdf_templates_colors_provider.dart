@@ -69,13 +69,18 @@ class TemplatesColorsProvider extends ChangeNotifier {
       colorCode = hex;
     }
     final tIdx = prefs.getInt('pref_invoice_template') ?? 0;
-    template = InvoiceTemplate.values[tIdx.clamp(0, InvoiceTemplate.values.length - 1)];
+    template =
+        InvoiceTemplate.values[tIdx.clamp(
+          0,
+          InvoiceTemplate.values.length - 1,
+        )];
     notifyListeners();
   }
 
   void selectColor(Color selection) {
     color = selection;
-    colorCode = selection.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
+    colorCode =
+        selection.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
     _persist();
     notifyListeners();
   }

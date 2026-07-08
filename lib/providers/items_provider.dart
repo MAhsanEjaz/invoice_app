@@ -27,7 +27,8 @@ class ItemProvider extends ChangeNotifier {
     itemModel.note = iNote;
     itemModel.qty = int.parse(iQty.toString());
     itemModel.discount = (discount != null && discount > 0) ? discount : null;
-    itemModel.discountType = (discount != null && discount > 0) ? discountType : null;
+    itemModel.discountType =
+        (discount != null && discount > 0) ? discountType : null;
 
     notifyListeners();
   }

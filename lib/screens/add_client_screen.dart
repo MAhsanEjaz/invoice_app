@@ -13,7 +13,9 @@ import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/providers/saved_client_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
 import 'package:invoicemaker/widgets/app_text_filed.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -109,9 +111,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
         emailCont.text =
             contact.emails.isNotEmpty ? contact.emails.first.address : '';
         addressCont.text =
-            contact.addresses.isNotEmpty
-                ? contact.addresses.first.address
-                : '';
+            contact.addresses.isNotEmpty ? contact.addresses.first.address : '';
         setState(() {});
       } else {
         openAppSettings();
@@ -131,34 +131,37 @@ class _AddClientScreenState extends State<AddClientScreen> {
 
         return CupertinoPageScaffold(
           backgroundColor: cl.background,
-          child: Column(
-            children: [
-              _buildNavBar(cl, isEditing),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      sectionLabel(context, context.tr('client_info')),
-                      _buildNameCard(cl),
-                      const SizedBox(height: 20),
-                      sectionLabel(context, context.tr('contact_details')),
-                      _buildContactCard(cl),
-                      if (isEditing) ...[
-                        const SizedBox(height: 24),
-                        _buildDeleteButton(cl, client),
+          child: ResponsiveCenter(
+            maxWidth: 640,
+            child: Column(
+              children: [
+                _buildNavBar(cl, isEditing),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        sectionLabel(context, context.tr('client_info')),
+                        _buildNameCard(cl),
+                        const SizedBox(height: 20),
+                        sectionLabel(context, context.tr('contact_details')),
+                        _buildContactCard(cl),
+                        if (isEditing) ...[
+                          const SizedBox(height: 24),
+                          _buildDeleteButton(cl, client),
+                        ],
+                        const SizedBox(height: 16),
                       ],
-                      const SizedBox(height: 16),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              _buildBottomBar(cl, client, invoice),
-            ],
+                _buildBottomBar(cl, client, invoice),
+              ],
+            ),
           ),
         );
       },
@@ -203,7 +206,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
           Divider(height: 1, color: cl.border, indent: 16, endIndent: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: GestureDetector(
+            child: AppTap(
               onTap: _pickContact,
               child: Row(
                 children: [
@@ -272,7 +275,7 @@ class _AddClientScreenState extends State<AddClientScreen> {
   }
 
   Widget _buildDeleteButton(AppColors cl, ClientProvider client) {
-    return GestureDetector(
+    return AppTap(
       onTap: () {
         customCupertinoDialog(context, () async {
           await client.clearClientFromList();
@@ -308,7 +311,10 @@ class _AddClientScreenState extends State<AddClientScreen> {
   }
 
   Widget _buildBottomBar(
-      AppColors cl, ClientProvider client, InvoiceProvider invoice) {
+    AppColors cl,
+    ClientProvider client,
+    InvoiceProvider invoice,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: cl.surface,
@@ -326,14 +332,15 @@ class _AddClientScreenState extends State<AddClientScreen> {
               duplicate: false,
             );
             client.addClient(newClient);
-            Provider.of<SavedClientProvider>(context, listen: false)
-                .addClient(ClientModel(
-              email: newClient.email,
-              address: newClient.address,
-              phone: newClient.phone,
-              name: newClient.name,
-              duplicate: false,
-            ));
+            Provider.of<SavedClientProvider>(context, listen: false).addClient(
+              ClientModel(
+                email: newClient.email,
+                address: newClient.address,
+                phone: newClient.phone,
+                name: newClient.name,
+                duplicate: false,
+              ),
+            );
           } else {
             if (widget.isPredefined == true) {
               invoice.updateClient(
@@ -376,7 +383,10 @@ class _AddClientScreenState extends State<AddClientScreen> {
             Navigator.pop(context);
           }
         },
-        txt: client.name != null ? context.tr('save_changes') : context.tr('save_client_btn'),
+        txt:
+            client.name != null
+                ? context.tr('save_changes')
+                : context.tr('save_client_btn'),
       ),
     );
   }

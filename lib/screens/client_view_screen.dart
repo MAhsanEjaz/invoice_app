@@ -86,8 +86,7 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
                     customHeight(context, .02),
                     CupertinoSearchTextField(
                       controller: _searchCtrl,
-                      onChanged: (val) =>
-                          setState(() => _query = val.trim()),
+                      onChanged: (val) => setState(() => _query = val.trim()),
                     ),
                     customHeight(context, .02),
                     Container(
@@ -96,59 +95,63 @@ class _ClientViewScreenState extends State<ClientViewScreen> {
                         color: CupertinoColors.white,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: uniqueClients.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Center(
-                                child: Text(
-                                  _query.isEmpty
-                                      ? context.tr('no_clients_yet')
-                                      : context.tr('no_results'),
-                                  style: const TextStyle(
-                                    color: CupertinoColors.systemGrey,
+                      child:
+                          uniqueClients.isEmpty
+                              ? Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Center(
+                                  child: Text(
+                                    _query.isEmpty
+                                        ? context.tr('no_clients_yet')
+                                        : context.tr('no_results'),
+                                    style: const TextStyle(
+                                      color: CupertinoColors.systemGrey,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: uniqueClients
-                                  .map(
-                                    (k) => GestureDetector(
-                                      onTap: () {
-                                        // Replace any stale working client before selecting
-                                        client.client.clear();
-                                        client.selectClient(
-                                          k.name,
-                                          k.address,
-                                          k.phone,
-                                          k.email,
-                                          k.id,
-                                        );
-                                        client.client.add(
-                                          ClientModel(
-                                            name: k.name,
-                                            id: k.id,
-                                            email: k.email,
-                                            address: k.address,
-                                            phone: k.phone,
-                                            duplicate: false,
+                              )
+                              : Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children:
+                                    uniqueClients
+                                        .map(
+                                          (k) => GestureDetector(
+                                            onTap: () {
+                                              // Replace any stale working client before selecting
+                                              client.client.clear();
+                                              client.selectClient(
+                                                k.name,
+                                                k.address,
+                                                k.phone,
+                                                k.email,
+                                                k.id,
+                                              );
+                                              client.client.add(
+                                                ClientModel(
+                                                  name: k.name,
+                                                  id: k.id,
+                                                  email: k.email,
+                                                  address: k.address,
+                                                  phone: k.phone,
+                                                  duplicate: false,
+                                                ),
+                                              );
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(
+                                                12.0,
+                                              ),
+                                              child: SizedBox(
+                                                width: double.infinity,
+                                                child: Text(k.name ?? ''),
+                                              ),
+                                            ),
                                           ),
-                                        );
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: SizedBox(
-                                          width: double.infinity,
-                                          child: Text(k.name ?? ''),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
+                                        )
+                                        .toList(),
+                              ),
                     ),
                   ],
                 ),

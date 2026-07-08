@@ -16,6 +16,8 @@ import 'package:invoicemaker/screens/invoice_preview_screen.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 import '../models/business_model.dart';
 import '../models/client_model.dart';
@@ -156,51 +158,59 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
       builder: (context, client, item, invoice, _) {
         return CupertinoPageScaffold(
           backgroundColor: context.colors.background,
-          child: Column(
-            children: [
-              _buildNavBar(context, client, item, invoice),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!_isEditMode) _buildDocTypeSelector(),
-                      if (item.item.isEmpty && !_isEditMode)
-                        _buildPageTitle()
-                      else
-                        _buildMetaRow(invoice),
-                      const SizedBox(height: 20),
-                      sectionLabel(context, context.tr('client')),
-                      _clientCard(client, invoice),
-                      const SizedBox(height: 20),
-                      sectionLabel(context, context.tr('line_items')),
-                      _itemCard(item, invoice),
-                      const SizedBox(height: 20),
-                      if (item.item.isNotEmpty || _isEditMode) _totalCard(item),
-                      const SizedBox(height: 20),
-                      sectionLabel(context, context.tr('notes')),
-                      _notesCard(),
-                      const SizedBox(height: 20),
-                      _buildTermsToggle(),
-                      sectionLabel(context, context.tr('pdf_payment_details')),
-                      _bankCard(),
-                      if (_documentType == 'Invoice') ...[
+          child: ResponsiveCenter(
+            maxWidth: 720,
+            child: Column(
+              children: [
+                _buildNavBar(context, client, item, invoice),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!_isEditMode) _buildDocTypeSelector(),
+                        if (item.item.isEmpty && !_isEditMode)
+                          _buildPageTitle()
+                        else
+                          _buildMetaRow(invoice),
                         const SizedBox(height: 20),
-                        sectionLabel(context, context.tr('repeat_invoice')),
-                        _buildRecurringCard(),
+                        sectionLabel(context, context.tr('client')),
+                        _clientCard(client, invoice),
+                        const SizedBox(height: 20),
+                        sectionLabel(context, context.tr('line_items')),
+                        _itemCard(item, invoice),
+                        const SizedBox(height: 20),
+                        if (item.item.isNotEmpty || _isEditMode)
+                          _totalCard(item),
+                        const SizedBox(height: 20),
+                        sectionLabel(context, context.tr('notes')),
+                        _notesCard(),
+                        const SizedBox(height: 20),
+                        _buildTermsToggle(),
+                        sectionLabel(
+                          context,
+                          context.tr('pdf_payment_details'),
+                        ),
+                        _bankCard(),
+                        if (_documentType == 'Invoice') ...[
+                          const SizedBox(height: 20),
+                          sectionLabel(context, context.tr('repeat_invoice')),
+                          _buildRecurringCard(),
+                        ],
+                        const SizedBox(height: 16),
                       ],
-                      const SizedBox(height: 16),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              if ((client.name != null && item.item.isNotEmpty) || _isEditMode)
-                _buildBottomBar(context, client, item, invoice),
-            ],
+                if ((client.name != null && item.item.isNotEmpty) ||
+                    _isEditMode)
+                  _buildBottomBar(context, client, item, invoice),
+              ],
+            ),
           ),
         );
       },
@@ -273,7 +283,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(right: key != 'Estimate' ? 8 : 0),
-                  child: GestureDetector(
+                  child: AppTap(
                     onTap: () => setState(() => _documentType = key),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
@@ -336,7 +346,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
         Row(
           children: [
             Expanded(
-              child: GestureDetector(
+              child: AppTap(
                 onTap: () async {
                   final date = await customDatePicker(context);
                   if (date != null) {
@@ -386,7 +396,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        GestureDetector(
+        AppTap(
           onTap: () async {
             final date = await customDatePicker(context, allowFuture: true);
             if (date != null) {
@@ -424,7 +434,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                   ),
                 ),
                 if (_dueDate != null)
-                  GestureDetector(
+                  AppTap(
                     onTap: () => setState(() => _dueDate = null),
                     child: Icon(
                       CupertinoIcons.xmark_circle,
@@ -455,7 +465,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
     final businesses = bp.businesses;
     if (businesses.length <= 1) return const SizedBox.shrink();
 
-    return GestureDetector(
+    return AppTap(
       onTap: () => _showBusinessPicker(bp),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -542,7 +552,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                     itemBuilder: (_, i) {
                       final b = bp.businesses[i];
                       final isSel = _selectedBusiness?.id == b.id;
-                      return GestureDetector(
+                      return AppTap(
                         onTap: () {
                           setState(() => _selectedBusiness = b);
                           Navigator.pop(context);
@@ -679,7 +689,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
           type: MaterialType.transparency,
           child:
               client.name != null
-                  ? GestureDetector(
+                  ? AppTap(
                     onTap:
                         _isEditMode
                             ? null
@@ -1099,7 +1109,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        GestureDetector(
+                        AppTap(
                           onTap:
                               () => setState(() {
                                 _taxRate = null;
@@ -1447,7 +1457,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                               ],
                             ),
                           ),
-                          GestureDetector(
+                          AppTap(
                             onTap: () => setState(() => _selectedBank = null),
                             child: Icon(
                               CupertinoIcons.xmark_circle,
@@ -1670,7 +1680,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
 
   Widget _buildIntervalOption(AppColors cl, String value, String label) {
     final isSelected = _recurringInterval == value;
-    return GestureDetector(
+    return AppTap(
       onTap:
           () => setState(() {
             _recurringInterval = value;
@@ -1821,9 +1831,11 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                         final isInvoice = _documentType == 'Invoice';
 
                         // Guard: require valid day count before saving custom interval
-                        if (isInvoice && _isRecurring &&
+                        if (isInvoice &&
+                            _isRecurring &&
                             _recurringInterval == 'custom' &&
-                            (_recurringCustomDays == null || _recurringCustomDays! <= 0)) {
+                            (_recurringCustomDays == null ||
+                                _recurringCustomDays! <= 0)) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(context.tr('custom_days_required')),
@@ -1912,6 +1924,7 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
                                     ? latestInvoice.items!.first
                                     : null,
                             invoiceModel: latestInvoice,
+                            cameFromCreation: true,
                           ),
                         );
                       },
@@ -1988,7 +2001,7 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
             // ── New custom item row ──────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GestureDetector(
+              child: AppTap(
                 onTap: widget.onNewItem,
                 child: Container(
                   decoration: BoxDecoration(
@@ -2053,7 +2066,7 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GestureDetector(
+                child: AppTap(
                   onTap: widget.onAddService,
                   child: Container(
                     decoration: BoxDecoration(
@@ -2143,7 +2156,7 @@ class _AddLineItemSheetState extends State<_AddLineItemSheet> {
                   itemBuilder: (context, index) {
                     final service = widget.services[index];
                     final isChosen = _selected.contains(service.id);
-                    return GestureDetector(
+                    return AppTap(
                       onTap:
                           () => setState(() {
                             if (isChosen) {
@@ -2321,7 +2334,7 @@ class _BankPickerSheet extends StatelessWidget {
                   horizontal: 20,
                   vertical: 8,
                 ),
-                child: GestureDetector(
+                child: AppTap(
                   onTap: onAddNew,
                   child: Container(
                     decoration: BoxDecoration(
@@ -2394,7 +2407,7 @@ class _BankPickerSheet extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final b = banks[index];
                     final isSelected = b.id == selectedId;
-                    return GestureDetector(
+                    return AppTap(
                       onTap: () {
                         Navigator.pop(context);
                         onSelect(b);
@@ -2544,7 +2557,7 @@ class _ClientPickerSheet extends StatelessWidget {
                   horizontal: 20,
                   vertical: 8,
                 ),
-                child: GestureDetector(
+                child: AppTap(
                   onTap: () {
                     Navigator.pop(context);
                     onAddNew();
@@ -2619,7 +2632,7 @@ class _ClientPickerSheet extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final c = savedClients[index];
-                    return GestureDetector(
+                    return AppTap(
                       onTap: () {
                         Navigator.pop(context);
                         onSelect(c);

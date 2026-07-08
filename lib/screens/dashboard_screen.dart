@@ -10,15 +10,21 @@ import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onClose;
+
+  const DashboardScreen({super.key, this.onClose});
 
   double _invoiceTotal(InvoiceModel inv) {
     final subtotal = inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0;
-    final afterDiscount =
-        (subtotal - (inv.discount ?? 0)).clamp(0.0, double.infinity);
+    final afterDiscount = (subtotal - (inv.discount ?? 0)).clamp(
+      0.0,
+      double.infinity,
+    );
     final taxAmount = afterDiscount * (inv.taxRate ?? 0) / 100;
     return afterDiscount + taxAmount;
   }
@@ -53,36 +59,48 @@ class DashboardScreen extends StatelessWidget {
         final sym = currency.symbol;
         final active = business.activeBusiness;
         final all = _filterForBusiness(
-            invoiceProvider.invoice, active, business.businesses);
+          invoiceProvider.invoice,
+          active,
+          business.businesses,
+        );
 
         final invoices =
-            all.where((i) => (i.documentType ?? 'Invoice') == 'Invoice').toList();
+            all
+                .where((i) => (i.documentType ?? 'Invoice') == 'Invoice')
+                .toList();
         final paid = invoices.where((i) => i.invoiceStatus == 'Paid').toList();
         final unpaid =
             invoices.where((i) => i.invoiceStatus != 'Paid').toList();
 
         final now = DateTime.now();
-        final thisMonthInvoices = invoices.where((inv) {
-          if (inv.date == null) return false;
-          try {
-            final parsed = DateFormat('MMM dd, yyyy').parse(inv.date!);
-            return parsed.year == now.year && parsed.month == now.month;
-          } catch (_) {
-            try {
-              final parsed = DateTime.parse(inv.date!);
-              return parsed.year == now.year && parsed.month == now.month;
-            } catch (_) {
-              return false;
-            }
-          }
-        }).toList();
+        final thisMonthInvoices =
+            invoices.where((inv) {
+              if (inv.date == null) return false;
+              try {
+                final parsed = DateFormat('MMM dd, yyyy').parse(inv.date!);
+                return parsed.year == now.year && parsed.month == now.month;
+              } catch (_) {
+                try {
+                  final parsed = DateTime.parse(inv.date!);
+                  return parsed.year == now.year && parsed.month == now.month;
+                } catch (_) {
+                  return false;
+                }
+              }
+            }).toList();
 
-        final totalEarned =
-            paid.fold<double>(0, (s, inv) => s + _invoiceTotal(inv));
-        final totalOutstanding =
-            unpaid.fold<double>(0, (s, inv) => s + _balanceDue(inv));
-        final thisMonthRevenue =
-            thisMonthInvoices.fold<double>(0, (s, inv) => s + _invoiceTotal(inv));
+        final totalEarned = paid.fold<double>(
+          0,
+          (s, inv) => s + _invoiceTotal(inv),
+        );
+        final totalOutstanding = unpaid.fold<double>(
+          0,
+          (s, inv) => s + _balanceDue(inv),
+        );
+        final thisMonthRevenue = thisMonthInvoices.fold<double>(
+          0,
+          (s, inv) => s + _invoiceTotal(inv),
+        );
 
         final recent = [...all]
           ..sort((a, b) => (b.invoiceId ?? 0).compareTo(a.invoiceId ?? 0));
@@ -91,29 +109,43 @@ class DashboardScreen extends StatelessWidget {
         return CupertinoPageScaffold(
           backgroundColor: cl.background,
           child: SafeArea(
-            child: Column(
-              children: [
-                _buildNavBar(context, cl),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                    children: [
-                      _statsGrid(context, cl, sym, totalEarned,
-                          totalOutstanding, thisMonthRevenue,
-                          paid.length, unpaid.length),
-                      const SizedBox(height: 28),
-                      _sectionLabel(context, cl, context.tr('recent_invoices')),
-                      const SizedBox(height: 12),
-                      if (recentSlice.isEmpty)
-                        _emptyState(context, cl)
-                      else
-                        ...recentSlice.map(
-                          (inv) => _invoiceTile(context, cl, sym, inv),
+            child: ResponsiveCenter(
+              maxWidth: 960,
+              child: Column(
+                children: [
+                  _buildNavBar(context, cl),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                      children: [
+                        _statsGrid(
+                          context,
+                          cl,
+                          sym,
+                          totalEarned,
+                          totalOutstanding,
+                          thisMonthRevenue,
+                          paid.length,
+                          unpaid.length,
                         ),
-                    ],
+                        const SizedBox(height: 28),
+                        _sectionLabel(
+                          context,
+                          cl,
+                          context.tr('recent_invoices'),
+                        ),
+                        const SizedBox(height: 12),
+                        if (recentSlice.isEmpty)
+                          _emptyState(context, cl)
+                        else
+                          ...recentSlice.map(
+                            (inv) => _invoiceTile(context, cl, sym, inv),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -126,8 +158,8 @@ class DashboardScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
+          AppTap(
+            onTap: onClose ?? () => Navigator.pop(context),
             child: Icon(CupertinoIcons.back, color: kPrimary, size: 26),
           ),
           const SizedBox(width: 12),
@@ -160,7 +192,8 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _statCard(
-                context, cl,
+                context,
+                cl,
                 label: context.tr('total_earned'),
                 value: '$sym${earned.toStringAsFixed(2)}',
                 icon: CupertinoIcons.checkmark_seal_fill,
@@ -171,7 +204,8 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _statCard(
-                context, cl,
+                context,
+                cl,
                 label: context.tr('outstanding'),
                 value: '$sym${outstanding.toStringAsFixed(2)}',
                 icon: CupertinoIcons.clock_fill,
@@ -183,7 +217,8 @@ class DashboardScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _statCard(
-          context, cl,
+          context,
+          cl,
           label: context.tr('this_month'),
           value: '$sym${thisMonth.toStringAsFixed(2)}',
           icon: CupertinoIcons.calendar,
@@ -219,64 +254,83 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: wide
-          ? Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+      child:
+          wide
+              ? Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 22),
                   ),
-                  child: Icon(icon, color: iconColor, size: 22),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
                         style: GoogleFonts.poppins(
-                            fontSize: 12, color: cl.textSecondary)),
-                    Text(value,
+                          fontSize: 12,
+                          color: cl.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        value,
                         style: GoogleFonts.poppins(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: cl.textPrimary)),
-                  ],
-                ),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: cl.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Icon(icon, color: iconColor, size: 18),
-                ),
-                const SizedBox(height: 10),
-                Text(label,
-                    style: GoogleFonts.poppins(
-                        fontSize: 11, color: cl.textSecondary)),
-                const SizedBox(height: 2),
-                Text(value,
-                    style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: cl.textPrimary)),
-                if (sub.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(sub,
-                      style: GoogleFonts.poppins(
-                          fontSize: 10, color: cl.textSecondary)),
                 ],
-              ],
-            ),
+              )
+              : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 18),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: cl.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: GoogleFonts.poppins(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: cl.textPrimary,
+                    ),
+                  ),
+                  if (sub.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      sub,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: cl.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
     );
   }
 
@@ -303,26 +357,28 @@ class DashboardScreen extends StatelessWidget {
     final total = _invoiceTotal(inv);
     final balanceDue = _balanceDue(inv);
 
-    final statusColor = !isInvoice
-        ? kQuoteColor
-        : isPaid
+    final statusColor =
+        !isInvoice
+            ? kQuoteColor
+            : isPaid
             ? kPaidColor
             : kUnpaidColor;
 
-    final docLabel = isInvoice
-        ? (isPaid ? context.tr('paid') : context.tr('unpaid'))
-        : docType;
+    final docLabel =
+        isInvoice
+            ? (isPaid ? context.tr('paid') : context.tr('unpaid'))
+            : docType;
 
-    final displayNumber = inv.invoiceNumber ??
-        '#${inv.invoiceId ?? ''}';
+    final displayNumber = inv.invoiceNumber ?? '#${inv.invoiceId ?? ''}';
 
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        CupertinoPageRoute(
-          builder: (_) => VerificationInvoice(invoiceModel: inv),
-        ),
-      ),
+    return AppTap(
+      onTap:
+          () => Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (_) => VerificationInvoice(invoiceModel: inv),
+            ),
+          ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -373,7 +429,9 @@ class DashboardScreen extends StatelessWidget {
                   Text(
                     displayNumber,
                     style: GoogleFonts.poppins(
-                        fontSize: 11, color: cl.textSecondary),
+                      fontSize: 11,
+                      color: cl.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -390,8 +448,10 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -421,13 +481,15 @@ class DashboardScreen extends StatelessWidget {
       child: Center(
         child: Column(
           children: [
-            Icon(CupertinoIcons.doc_text,
-                size: 48, color: cl.textSecondary.withValues(alpha: 0.4)),
+            Icon(
+              CupertinoIcons.doc_text,
+              size: 48,
+              color: cl.textSecondary.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 12),
             Text(
               context.tr('no_activity'),
-              style: GoogleFonts.poppins(
-                  fontSize: 14, color: cl.textSecondary),
+              style: GoogleFonts.poppins(fontSize: 14, color: cl.textSecondary),
             ),
           ],
         ),

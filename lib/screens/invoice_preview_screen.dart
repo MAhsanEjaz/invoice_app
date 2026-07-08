@@ -11,16 +11,18 @@ import 'package:invoicemaker/models/item_model.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/pdf_templates_colors_provider.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 
 // ── Shared palette ────────────────────────────────────────────────────────────
-const _classicNavy  = Color(0xFF0F1726);
-const _elegantDark  = Color(0xFF111826);
-const _rowAlt       = Color(0xFFF8FAFD);
-const _borderGrey   = Color(0xFFE1E5EB);
-const _textDark     = Color(0xFF1F2B3A);
-const _textMid      = Color(0xFF6C7A8D);
-const _textMuted    = Color(0xFF9DAABB);
+const _classicNavy = Color(0xFF0F1726);
+const _elegantDark = Color(0xFF111826);
+const _rowAlt = Color(0xFFF8FAFD);
+const _borderGrey = Color(0xFFE1E5EB);
+const _textDark = Color(0xFF1F2B3A);
+const _textMid = Color(0xFF6C7A8D);
+const _textMuted = Color(0xFF9DAABB);
 
 class InvoicePreviewScreen extends StatelessWidget {
   final InvoiceModel invoice;
@@ -57,11 +59,10 @@ class InvoicePreviewScreen extends StatelessWidget {
           SafeArea(
             bottom: false,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
                 children: [
-                  GestureDetector(
+                  AppTap(
                     onTap: () => Navigator.pop(context),
                     child: Container(
                       width: 34,
@@ -70,8 +71,11 @@ class InvoicePreviewScreen extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(CupertinoIcons.xmark,
-                          color: Colors.white, size: 15),
+                      child: const Icon(
+                        CupertinoIcons.xmark,
+                        color: Colors.white,
+                        size: 15,
+                      ),
                     ),
                   ),
                   const Spacer(),
@@ -91,27 +95,29 @@ class InvoicePreviewScreen extends StatelessWidget {
           ),
           Expanded(
             child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: _InvoiceDocument(
-                  invoice: invoice,
-                  business: business,
-                  currencySymbol: currencySymbol,
-                  template: template,
-                  accentColor: accentColor,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              child: ResponsiveCenter(
+                maxWidth: 800,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _InvoiceDocument(
+                    invoice: invoice,
+                    business: business,
+                    currencySymbol: currencySymbol,
+                    template: template,
+                    accentColor: accentColor,
+                  ),
                 ),
               ),
             ),
@@ -141,22 +147,26 @@ class _InvoiceDocument extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = invoice.items ?? [];
-    final subtotal =
-        items.fold<double>(0, (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)));
+    final subtotal = items.fold<double>(
+      0,
+      (s, i) => s + ((i.price ?? 0) * (i.qty ?? 1)),
+    );
     final discount = invoice.discount ?? 0;
     final received = invoice.receivedAmount ?? 0;
     final client =
         (invoice.clients?.isNotEmpty ?? false) ? invoice.clients!.first : null;
 
     final docType = invoice.documentType ?? 'Invoice';
-    final docTitle = docType == 'Quote'
-        ? context.tr('pdf_quote')
-        : docType == 'Estimate'
+    final docTitle =
+        docType == 'Quote'
+            ? context.tr('pdf_quote')
+            : docType == 'Estimate'
             ? context.tr('pdf_estimate')
             : context.tr('pdf_invoice');
-    final docNoLabel = docType == 'Quote'
-        ? context.tr('quote_no')
-        : docType == 'Estimate'
+    final docNoLabel =
+        docType == 'Quote'
+            ? context.tr('quote_no')
+            : docType == 'Estimate'
             ? context.tr('estimate_no')
             : context.tr('pdf_invoice_no');
 
@@ -202,7 +212,10 @@ class _InvoiceDocument extends StatelessWidget {
 
   // ── Route to template ────────────────────────────────────────────────────
   Widget _buildHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
+    BuildContext context,
+    String docTitle,
+    String docNoLabel,
+  ) {
     switch (template) {
       case InvoiceTemplate.classic:
         return _classicHeader(context, docTitle, docNoLabel);
@@ -221,7 +234,10 @@ class _InvoiceDocument extends StatelessWidget {
 
   // ── CLASSIC ──────────────────────────────────────────────────────────────
   Widget _classicHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
+    BuildContext context,
+    String docTitle,
+    String docNoLabel,
+  ) {
     final navyLight = const Color(0xFF243052);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -256,7 +272,9 @@ class _InvoiceDocument extends StatelessWidget {
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: navyLight,
                               borderRadius: BorderRadius.circular(5),
@@ -298,7 +316,9 @@ class _InvoiceDocument extends StatelessWidget {
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: accentColor,
                       borderRadius: BorderRadius.circular(5),
@@ -329,12 +349,14 @@ class _InvoiceDocument extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Text('$label  ',
-              style: GoogleFonts.poppins(
-                  fontSize: 10, color: _textMuted)),
-          Text(value,
-              style: GoogleFonts.poppins(
-                  fontSize: 10, color: Colors.white)),
+          Text(
+            '$label  ',
+            style: GoogleFonts.poppins(fontSize: 10, color: _textMuted),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(fontSize: 10, color: Colors.white),
+          ),
         ],
       ),
     );
@@ -342,7 +364,10 @@ class _InvoiceDocument extends StatelessWidget {
 
   // ── ELEGANT ──────────────────────────────────────────────────────────────
   Widget _elegantHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
+    BuildContext context,
+    String docTitle,
+    String docNoLabel,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -358,8 +383,11 @@ class _InvoiceDocument extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (business?.businessLogo != null) ...[
-                      _logoWidget(52, rounded: true,
-                          borderColor: const Color(0xFF232D45)),
+                      _logoWidget(
+                        52,
+                        rounded: true,
+                        borderColor: const Color(0xFF232D45),
+                      ),
                       const SizedBox(width: 14),
                     ],
                     Expanded(
@@ -424,7 +452,9 @@ class _InvoiceDocument extends StatelessWidget {
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: accentColor, width: 1),
                       borderRadius: BorderRadius.circular(4),
@@ -451,7 +481,10 @@ class _InvoiceDocument extends StatelessWidget {
 
   // ── MINIMAL ──────────────────────────────────────────────────────────────
   Widget _minimalHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
+    BuildContext context,
+    String docTitle,
+    String docNoLabel,
+  ) {
     final accentLight = Color.lerp(accentColor, Colors.white, 0.88)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -495,7 +528,9 @@ class _InvoiceDocument extends StatelessWidget {
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: accentLight,
                               borderRadius: BorderRadius.circular(4),
@@ -523,7 +558,9 @@ class _InvoiceDocument extends StatelessWidget {
                     Text(
                       invoice.date!,
                       style: GoogleFonts.poppins(
-                          fontSize: 11, color: _textMuted),
+                        fontSize: 11,
+                        color: _textMuted,
+                      ),
                     ),
                   if (invoice.dueDate?.isNotEmpty ?? false) ...[
                     const SizedBox(height: 4),
@@ -539,7 +576,9 @@ class _InvoiceDocument extends StatelessWidget {
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       border: Border.all(color: accentColor, width: 1),
                       borderRadius: BorderRadius.circular(4),
@@ -565,8 +604,7 @@ class _InvoiceDocument extends StatelessWidget {
   }
 
   // ── WAVE ─────────────────────────────────────────────────────────────────
-  Widget _waveHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
+  Widget _waveHeader(BuildContext context, String docTitle, String docNoLabel) {
     return SizedBox(
       height: 195,
       child: CustomPaint(
@@ -604,7 +642,9 @@ class _InvoiceDocument extends StatelessWidget {
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 3),
+                              horizontal: 9,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(5),
@@ -644,14 +684,18 @@ class _InvoiceDocument extends StatelessWidget {
 
   // ── BOUTIQUE ──────────────────────────────────────────────────────────────
   Widget _boutiqueHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
+    BuildContext context,
+    String docTitle,
+    String docNoLabel,
+  ) {
     final businessName = business?.businessName ?? '';
-    final initials = businessName
-        .trim()
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-        .join();
+    final initials =
+        businessName
+            .trim()
+            .split(RegExp(r'\s+'))
+            .take(2)
+            .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+            .join();
 
     return Container(
       color: Colors.white,
@@ -671,24 +715,25 @@ class _InvoiceDocument extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: business?.businessLogo != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          File(business!.businessLogo!),
-                          width: 48,
-                          height: 48,
-                          fit: BoxFit.cover,
+                child:
+                    business?.businessLogo != null
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(business!.businessLogo!),
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                        : Text(
+                          initials.isEmpty ? '?' : initials,
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      )
-                    : Text(
-                        initials.isEmpty ? '?' : initials,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -718,7 +763,10 @@ class _InvoiceDocument extends StatelessWidget {
 
   // ── GEOMETRIC ─────────────────────────────────────────────────────────────
   Widget _geometricHeader(
-      BuildContext context, String docTitle, String docNoLabel) {
+    BuildContext context,
+    String docTitle,
+    String docNoLabel,
+  ) {
     final client =
         (invoice.clients?.isNotEmpty ?? false) ? invoice.clients!.first : null;
 
@@ -756,29 +804,29 @@ class _InvoiceDocument extends StatelessWidget {
                       Text(
                         '${context.tr('pdf_date_issued')}:',
                         style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: _textDark),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: _textDark,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         invoice.date ?? '',
-                        style: const TextStyle(
-                            fontSize: 10, color: _textMid),
+                        style: const TextStyle(fontSize: 10, color: _textMid),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         '$docNoLabel:',
                         style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: _textDark),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: _textDark,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${invoice.invoiceId ?? ''}',
-                        style: const TextStyle(
-                            fontSize: 10, color: _textMid),
+                        style: const TextStyle(fontSize: 10, color: _textMid),
                       ),
                     ],
                   ),
@@ -791,29 +839,45 @@ class _InvoiceDocument extends StatelessWidget {
                         Text(
                           '${context.tr('pdf_issued_to')}:',
                           style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: _textDark),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _textDark,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         if ((client.name ?? '').isNotEmpty)
-                          Text(client.name!,
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: _textDark)),
+                          Text(
+                            client.name!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _textDark,
+                            ),
+                          ),
                         if ((client.phone ?? '').isNotEmpty)
-                          Text(client.phone!,
-                              style: const TextStyle(
-                                  fontSize: 10, color: _textMid)),
+                          Text(
+                            client.phone!,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: _textMid,
+                            ),
+                          ),
                         if ((client.email ?? '').isNotEmpty)
-                          Text(client.email!,
-                              style: const TextStyle(
-                                  fontSize: 10, color: _textMid)),
+                          Text(
+                            client.email!,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: _textMid,
+                            ),
+                          ),
                         if ((client.address ?? '').isNotEmpty)
-                          Text(client.address!,
-                              style: const TextStyle(
-                                  fontSize: 10, color: _textMid)),
+                          Text(
+                            client.address!,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: _textMid,
+                            ),
+                          ),
                       ],
                     ),
                 ],
@@ -856,8 +920,7 @@ class _InvoiceDocument extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: accentLight,
                   borderRadius: BorderRadius.circular(3),
@@ -880,7 +943,9 @@ class _InvoiceDocument extends StatelessWidget {
                       width: 7,
                       height: 7,
                       decoration: BoxDecoration(
-                          color: statusColor, shape: BoxShape.circle),
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -910,11 +975,15 @@ class _InvoiceDocument extends StatelessWidget {
 
     return Row(
       children: [
-        card(context.tr('pdf_date'),
-            invoice.date?.isNotEmpty == true ? invoice.date! : '-'),
+        card(
+          context.tr('pdf_date'),
+          invoice.date?.isNotEmpty == true ? invoice.date! : '-',
+        ),
         const SizedBox(width: 8),
-        card(context.tr('pdf_due'),
-            (invoice.dueDate?.isNotEmpty ?? false) ? invoice.dueDate! : '-'),
+        card(
+          context.tr('pdf_due'),
+          (invoice.dueDate?.isNotEmpty ?? false) ? invoice.dueDate! : '-',
+        ),
         const SizedBox(width: 8),
         card(context.tr('pdf_status'), statusLabel, isStatus: true),
       ],
@@ -940,20 +1009,24 @@ class _InvoiceDocument extends StatelessWidget {
         if (bank != null) ...[
           const SizedBox(height: 5),
           if ((bank.bankName ?? '').isNotEmpty)
-            Text(bank.bankName!,
-                style:
-                    const TextStyle(fontSize: 10, color: _textMid)),
+            Text(
+              bank.bankName!,
+              style: const TextStyle(fontSize: 10, color: _textMid),
+            ),
           if ((bank.title ?? '').isNotEmpty)
-            Text(bank.title!,
-                style:
-                    const TextStyle(fontSize: 10, color: _textMid)),
+            Text(
+              bank.title!,
+              style: const TextStyle(fontSize: 10, color: _textMid),
+            ),
           if ((bank.accountNumber ?? '').isNotEmpty)
-            Text(bank.accountNumber!,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: _textDark,
-                )),
+            Text(
+              bank.accountNumber!,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: _textDark,
+              ),
+            ),
         ],
       ],
     );
@@ -968,30 +1041,39 @@ class _InvoiceDocument extends StatelessWidget {
         _sectionTitle(context.tr('pdf_invoice_to')),
         const SizedBox(height: 8),
         if ((client.name ?? '').isNotEmpty)
-          Text(client.name!,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: _textDark,
-              )),
+          Text(
+            client.name!,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: _textDark,
+            ),
+          ),
         if ((client.email ?? '').isNotEmpty)
-          Text(client.email!,
-              style: const TextStyle(fontSize: 10, color: _textMid)),
+          Text(
+            client.email!,
+            style: const TextStyle(fontSize: 10, color: _textMid),
+          ),
         if ((client.phone ?? '').isNotEmpty)
-          Text(client.phone!,
-              style: const TextStyle(fontSize: 10, color: _textMid)),
+          Text(
+            client.phone!,
+            style: const TextStyle(fontSize: 10, color: _textMid),
+          ),
         if ((client.address ?? '').isNotEmpty)
-          Text(client.address!,
-              style: const TextStyle(fontSize: 10, color: _textMid)),
+          Text(
+            client.address!,
+            style: const TextStyle(fontSize: 10, color: _textMid),
+          ),
       ],
     );
   }
 
   // ── Items table ────────────────────────────────────────────────────────
   Widget _buildItemsTable(BuildContext context, List<ItemModel> items) {
-    final headerColor = template == InvoiceTemplate.classic
-        ? _classicNavy
-        : template == InvoiceTemplate.elegant
+    final headerColor =
+        template == InvoiceTemplate.classic
+            ? _classicNavy
+            : template == InvoiceTemplate.elegant
             ? _elegantDark
             : accentColor;
 
@@ -1000,23 +1082,25 @@ class _InvoiceDocument extends StatelessWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: template == InvoiceTemplate.geometric
-                ? const Color(0xFFE7E9ED)
-                : (template == InvoiceTemplate.minimal ||
+            color:
+                template == InvoiceTemplate.geometric
+                    ? const Color(0xFFE7E9ED)
+                    : (template == InvoiceTemplate.minimal ||
                         template == InvoiceTemplate.boutique)
                     ? Colors.transparent
                     : headerColor,
-            border: template == InvoiceTemplate.minimal
-                ? Border(
-                    top: BorderSide(color: accentColor, width: 2),
-                    bottom: const BorderSide(color: _borderGrey, width: 0.8),
-                  )
-                : (template == InvoiceTemplate.boutique ||
+            border:
+                template == InvoiceTemplate.minimal
+                    ? Border(
+                      top: BorderSide(color: accentColor, width: 2),
+                      bottom: const BorderSide(color: _borderGrey, width: 0.8),
+                    )
+                    : (template == InvoiceTemplate.boutique ||
                         template == InvoiceTemplate.geometric)
                     ? const Border(
-                        top: BorderSide(color: _borderGrey, width: 0.8),
-                        bottom: BorderSide(color: _borderGrey, width: 0.8),
-                      )
+                      top: BorderSide(color: _borderGrey, width: 0.8),
+                      bottom: BorderSide(color: _borderGrey, width: 0.8),
+                    )
                     : null,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
@@ -1029,11 +1113,12 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique ||
-                            template == InvoiceTemplate.geometric)
-                        ? _textMid
-                        : Colors.white,
+                    color:
+                        (template == InvoiceTemplate.minimal ||
+                                template == InvoiceTemplate.boutique ||
+                                template == InvoiceTemplate.geometric)
+                            ? _textMid
+                            : Colors.white,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1046,11 +1131,12 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique ||
-                            template == InvoiceTemplate.geometric)
-                        ? _textMid
-                        : Colors.white,
+                    color:
+                        (template == InvoiceTemplate.minimal ||
+                                template == InvoiceTemplate.boutique ||
+                                template == InvoiceTemplate.geometric)
+                            ? _textMid
+                            : Colors.white,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1063,11 +1149,12 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique ||
-                            template == InvoiceTemplate.geometric)
-                        ? _textMid
-                        : Colors.white,
+                    color:
+                        (template == InvoiceTemplate.minimal ||
+                                template == InvoiceTemplate.boutique ||
+                                template == InvoiceTemplate.geometric)
+                            ? _textMid
+                            : Colors.white,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1080,11 +1167,12 @@ class _InvoiceDocument extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: (template == InvoiceTemplate.minimal ||
-                            template == InvoiceTemplate.boutique ||
-                            template == InvoiceTemplate.geometric)
-                        ? _textMid
-                        : Colors.white,
+                    color:
+                        (template == InvoiceTemplate.minimal ||
+                                template == InvoiceTemplate.boutique ||
+                                template == InvoiceTemplate.geometric)
+                            ? _textMid
+                            : Colors.white,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1115,9 +1203,13 @@ class _InvoiceDocument extends StatelessWidget {
                         ),
                       ),
                       if ((item.note ?? '').isNotEmpty)
-                        Text(item.note!,
-                            style: const TextStyle(
-                                fontSize: 9, color: _textMuted)),
+                        Text(
+                          item.note!,
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: _textMuted,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1126,8 +1218,7 @@ class _InvoiceDocument extends StatelessWidget {
                   child: Text(
                     '${item.qty ?? 1}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 11, color: _textMid),
+                    style: const TextStyle(fontSize: 11, color: _textMid),
                   ),
                 ),
                 SizedBox(
@@ -1135,8 +1226,7 @@ class _InvoiceDocument extends StatelessWidget {
                   child: Text(
                     '$currencySymbol${(item.price ?? 0).toStringAsFixed(2)}',
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
-                        fontSize: 11, color: _textMid),
+                    style: const TextStyle(fontSize: 11, color: _textMid),
                   ),
                 ),
                 SizedBox(
@@ -1161,17 +1251,20 @@ class _InvoiceDocument extends StatelessWidget {
   }
 
   // ── Totals ─────────────────────────────────────────────────────────────
-  Widget _buildTotals(BuildContext context, double subtotal, double discount,
-      double received) {
+  Widget _buildTotals(
+    BuildContext context,
+    double subtotal,
+    double discount,
+    double received,
+  ) {
     final total = (subtotal - discount).clamp(0.0, double.infinity);
     final balanceDue = (total - received).clamp(0.0, double.infinity);
     final hasDiscount = discount > 0;
     final hasReceived = received > 0;
     final hasAdj = hasDiscount || hasReceived;
     final finalAmt = hasAdj ? balanceDue : subtotal;
-    final finalLabel = hasAdj
-        ? context.tr('pdf_balance_due')
-        : context.tr('pdf_total_due');
+    final finalLabel =
+        hasAdj ? context.tr('pdf_balance_due') : context.tr('pdf_total_due');
 
     if (template == InvoiceTemplate.classic ||
         template == InvoiceTemplate.wave) {
@@ -1194,45 +1287,54 @@ class _InvoiceDocument extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      _totRow(context.tr('pdf_subtotal'),
-                          '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+                      _totRow(
+                        context.tr('pdf_subtotal'),
+                        '$currencySymbol${subtotal.toStringAsFixed(2)}',
+                      ),
                       if (hasDiscount) ...[
                         const SizedBox(height: 6),
-                        _totRow(context.tr('pdf_discount'),
-                            '-$currencySymbol${discount.toStringAsFixed(2)}',
-                            valueColor: kDangerColor),
+                        _totRow(
+                          context.tr('pdf_discount'),
+                          '-$currencySymbol${discount.toStringAsFixed(2)}',
+                          valueColor: kDangerColor,
+                        ),
                       ],
                       if (hasReceived) ...[
                         const SizedBox(height: 6),
-                        _totRow(context.tr('pdf_received'),
-                            '($currencySymbol${received.toStringAsFixed(2)})',
-                            valueColor: const Color(0xFF059669)),
+                        _totRow(
+                          context.tr('pdf_received'),
+                          '($currencySymbol${received.toStringAsFixed(2)})',
+                          valueColor: const Color(0xFF059669),
+                        ),
                       ],
                     ],
                   ),
                 ),
               ] else ...[
-                _totRow(context.tr('pdf_subtotal'),
-                    '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+                _totRow(
+                  context.tr('pdf_subtotal'),
+                  '$currencySymbol${subtotal.toStringAsFixed(2)}',
+                ),
                 const SizedBox(height: 8),
               ],
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: template == InvoiceTemplate.classic
-                      ? _classicNavy
-                      : accentColor,
+                  color:
+                      template == InvoiceTemplate.classic
+                          ? _classicNavy
+                          : accentColor,
                   borderRadius: BorderRadius.only(
-                    topLeft:
-                        hasAdj ? Radius.zero : const Radius.circular(10),
-                    topRight:
-                        hasAdj ? Radius.zero : const Radius.circular(10),
+                    topLeft: hasAdj ? Radius.zero : const Radius.circular(10),
+                    topRight: hasAdj ? Radius.zero : const Radius.circular(10),
                     bottomLeft: const Radius.circular(10),
                     bottomRight: const Radius.circular(10),
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1269,19 +1371,25 @@ class _InvoiceDocument extends StatelessWidget {
           width: 210,
           child: Column(
             children: [
-              _totRow(context.tr('pdf_subtotal'),
-                  '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+              _totRow(
+                context.tr('pdf_subtotal'),
+                '$currencySymbol${subtotal.toStringAsFixed(2)}',
+              ),
               if (hasDiscount) ...[
                 const SizedBox(height: 6),
-                _totRow(context.tr('pdf_discount'),
-                    '-$currencySymbol${discount.toStringAsFixed(2)}',
-                    valueColor: kDangerColor),
+                _totRow(
+                  context.tr('pdf_discount'),
+                  '-$currencySymbol${discount.toStringAsFixed(2)}',
+                  valueColor: kDangerColor,
+                ),
               ],
               if (hasReceived) ...[
                 const SizedBox(height: 6),
-                _totRow(context.tr('pdf_received'),
-                    '($currencySymbol${received.toStringAsFixed(2)})',
-                    valueColor: const Color(0xFF059669)),
+                _totRow(
+                  context.tr('pdf_received'),
+                  '($currencySymbol${received.toStringAsFixed(2)})',
+                  valueColor: const Color(0xFF059669),
+                ),
               ],
               const SizedBox(height: 10),
               Divider(color: accentColor, thickness: 1, height: 1),
@@ -1322,26 +1430,34 @@ class _InvoiceDocument extends StatelessWidget {
           width: 220,
           child: Column(
             children: [
-              _totRow(context.tr('pdf_subtotal'),
-                  '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+              _totRow(
+                context.tr('pdf_subtotal'),
+                '$currencySymbol${subtotal.toStringAsFixed(2)}',
+              ),
               if (hasDiscount) ...[
                 const SizedBox(height: 6),
-                _totRow(context.tr('pdf_discount'),
-                    '-$currencySymbol${discount.toStringAsFixed(2)}',
-                    valueColor: kDangerColor),
+                _totRow(
+                  context.tr('pdf_discount'),
+                  '-$currencySymbol${discount.toStringAsFixed(2)}',
+                  valueColor: kDangerColor,
+                ),
               ],
               if (hasReceived) ...[
                 const SizedBox(height: 6),
-                _totRow(context.tr('pdf_received'),
-                    '($currencySymbol${received.toStringAsFixed(2)})',
-                    valueColor: const Color(0xFF059669)),
+                _totRow(
+                  context.tr('pdf_received'),
+                  '($currencySymbol${received.toStringAsFixed(2)})',
+                  valueColor: const Color(0xFF059669),
+                ),
               ],
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(color: _classicNavy),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1380,18 +1496,24 @@ class _InvoiceDocument extends StatelessWidget {
           child: Column(
             children: [
               if (hasDiscount) ...[
-                _totRow(context.tr('pdf_subtotal'),
-                    '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+                _totRow(
+                  context.tr('pdf_subtotal'),
+                  '$currencySymbol${subtotal.toStringAsFixed(2)}',
+                ),
                 const SizedBox(height: 6),
-                _totRow(context.tr('pdf_discount'),
-                    '-$currencySymbol${discount.toStringAsFixed(2)}',
-                    valueColor: kDangerColor),
+                _totRow(
+                  context.tr('pdf_discount'),
+                  '-$currencySymbol${discount.toStringAsFixed(2)}',
+                  valueColor: kDangerColor,
+                ),
               ],
               if (hasReceived) ...[
                 const SizedBox(height: 6),
-                _totRow(context.tr('pdf_received'),
-                    '($currencySymbol${received.toStringAsFixed(2)})',
-                    valueColor: const Color(0xFF059669)),
+                _totRow(
+                  context.tr('pdf_received'),
+                  '($currencySymbol${received.toStringAsFixed(2)})',
+                  valueColor: const Color(0xFF059669),
+                ),
               ],
               const SizedBox(height: 8),
               const Divider(height: 1, thickness: 0.8, color: _borderGrey),
@@ -1431,19 +1553,25 @@ class _InvoiceDocument extends StatelessWidget {
         width: 200,
         child: Column(
           children: [
-            _totRow(context.tr('pdf_subtotal'),
-                '$currencySymbol${subtotal.toStringAsFixed(2)}'),
+            _totRow(
+              context.tr('pdf_subtotal'),
+              '$currencySymbol${subtotal.toStringAsFixed(2)}',
+            ),
             if (hasDiscount) ...[
               const SizedBox(height: 6),
-              _totRow(context.tr('pdf_discount'),
-                  '-$currencySymbol${discount.toStringAsFixed(2)}',
-                  valueColor: kDangerColor),
+              _totRow(
+                context.tr('pdf_discount'),
+                '-$currencySymbol${discount.toStringAsFixed(2)}',
+                valueColor: kDangerColor,
+              ),
             ],
             if (hasReceived) ...[
               const SizedBox(height: 6),
-              _totRow(context.tr('pdf_received'),
-                  '($currencySymbol${received.toStringAsFixed(2)})',
-                  valueColor: const Color(0xFF059669)),
+              _totRow(
+                context.tr('pdf_received'),
+                '($currencySymbol${received.toStringAsFixed(2)})',
+                valueColor: const Color(0xFF059669),
+              ),
             ],
             const SizedBox(height: 10),
             const Divider(height: 1, thickness: 0.8, color: _borderGrey),
@@ -1479,14 +1607,15 @@ class _InvoiceDocument extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: GoogleFonts.poppins(fontSize: 10, color: _textMid)),
-        Text(value,
-            style: GoogleFonts.poppins(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? _textDark,
-            )),
+        Text(label, style: GoogleFonts.poppins(fontSize: 10, color: _textMid)),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? _textDark,
+          ),
+        ),
       ],
     );
   }
@@ -1508,8 +1637,7 @@ class _InvoiceDocument extends StatelessWidget {
           ),
           child: Text(
             invoice.notes!,
-            style: const TextStyle(
-                fontSize: 10, color: _textMid, height: 1.5),
+            style: const TextStyle(fontSize: 10, color: _textMid, height: 1.5),
           ),
         ),
       ],
@@ -1531,9 +1659,7 @@ class _InvoiceDocument extends StatelessWidget {
         Container(
           width: 120,
           decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: _borderGrey, width: 0.8),
-            ),
+            border: Border(bottom: BorderSide(color: _borderGrey, width: 0.8)),
           ),
         ),
       ],
@@ -1556,7 +1682,10 @@ class _InvoiceDocument extends StatelessWidget {
               Text(
                 invoice.termsConditions!,
                 style: const TextStyle(
-                    fontSize: 9, color: _textMid, height: 1.5),
+                  fontSize: 9,
+                  color: _textMid,
+                  height: 1.5,
+                ),
               ),
             ],
           ),
@@ -1592,10 +1721,12 @@ class _InvoiceDocument extends StatelessWidget {
     );
   }
 
-  Widget _logoWidget(double size,
-      {bool rounded = false,
-      bool whiteBg = false,
-      Color? borderColor}) {
+  Widget _logoWidget(
+    double size, {
+    bool rounded = false,
+    bool whiteBg = false,
+    Color? borderColor,
+  }) {
     final logoPath = business?.businessLogo;
     if (logoPath == null || logoPath.isEmpty) return const SizedBox.shrink();
     try {
@@ -1608,13 +1739,13 @@ class _InvoiceDocument extends StatelessWidget {
             color: whiteBg ? Colors.white : null,
             borderRadius:
                 rounded ? BorderRadius.circular(10) : BorderRadius.zero,
-            border: borderColor != null
-                ? Border.all(color: borderColor, width: 1)
-                : null,
+            border:
+                borderColor != null
+                    ? Border.all(color: borderColor, width: 1)
+                    : null,
           ),
           clipBehavior: Clip.antiAlias,
-          child: Image.file(file,
-              width: size, height: size, fit: BoxFit.cover),
+          child: Image.file(file, width: size, height: size, fit: BoxFit.cover),
         );
       }
     } catch (_) {}
@@ -1640,20 +1771,22 @@ class _WaveHeaderPainter extends CustomPainter {
 
     // Main accent layer with smooth arch wave at the bottom
     // Both edges start at h-54, curve down to h-8 in the centre
-    final wavePath = Path()
-      ..moveTo(0, 0)
-      ..lineTo(w, 0)
-      ..lineTo(w, h - 54)
-      ..cubicTo(w * 0.65, h - 6, w * 0.35, h - 6, 0, h - 54)
-      ..close();
+    final wavePath =
+        Path()
+          ..moveTo(0, 0)
+          ..lineTo(w, 0)
+          ..lineTo(w, h - 54)
+          ..cubicTo(w * 0.65, h - 6, w * 0.35, h - 6, 0, h - 54)
+          ..close();
     canvas.drawPath(wavePath, Paint()..color = color);
 
     // Subtle diagonal highlight for visual depth
-    final hlPath = Path()
-      ..moveTo(0, 0)
-      ..lineTo(w * 0.52, 0)
-      ..cubicTo(w * 0.32, h * 0.32, w * 0.14, h * 0.52, 0, h * 0.44)
-      ..close();
+    final hlPath =
+        Path()
+          ..moveTo(0, 0)
+          ..lineTo(w * 0.52, 0)
+          ..cubicTo(w * 0.32, h * 0.32, w * 0.14, h * 0.52, 0, h * 0.44)
+          ..close();
     canvas.drawPath(
       hlPath,
       Paint()..color = Colors.white.withValues(alpha: 0.07),
@@ -1676,8 +1809,7 @@ class _GeometricBgPainter extends CustomPainter {
     final h = size.height;
     const pink = Color(0xFFEDB8B8);
 
-    canvas.drawRect(
-        Rect.fromLTWH(0, 0, w, h), Paint()..color = Colors.white);
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), Paint()..color = Colors.white);
 
     const r1w = 92.0, r1h = 66.0;
     const r2 = 50.0;

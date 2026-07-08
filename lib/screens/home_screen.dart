@@ -10,13 +10,22 @@ import 'package:invoicemaker/providers/currency_provider.dart';
 import 'package:invoicemaker/providers/invoice_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/screens/dashboard_screen.dart';
+import 'package:invoicemaker/screens/saved_clients_screen.dart';
+import 'package:invoicemaker/screens/services_screen.dart';
 import 'package:invoicemaker/screens/setting_page.dart';
 import 'package:invoicemaker/screens/verification_invoice.dart';
 import 'package:invoicemaker/services/navigations.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
+import 'package:invoicemaker/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 
 import 'new_invoice_screen.dart';
+
+/// Top-level sections reachable from the persistent desktop sidebar. On
+/// narrow (phone) widths these are reached the original way instead —
+/// pushed on top of the invoice list via [Navigation.go].
+enum _Section { invoices, dashboard, clients, services, settings }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,6 +36,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int groupVal = 0;
+  _Section _section = _Section.invoices;
 
   List<InvoiceModel> _filterForBusiness(
     List<InvoiceModel> all,
@@ -53,61 +63,81 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, invoice, currency, business, _) {
         final sym = currency.symbol;
         final active = business.activeBusiness;
-        final filtered = _filterForBusiness(invoice.invoice, active, business.businesses);
+        final filtered = _filterForBusiness(
+          invoice.invoice,
+          active,
+          business.businesses,
+        );
 
         // Separate invoices from quotes/estimates
-        final invoices = filtered
-            .where((i) => (i.documentType ?? 'Invoice') == 'Invoice')
-            .toList();
-        final quotesEstimates = filtered
-            .where((i) => (i.documentType ?? 'Invoice') != 'Invoice')
-            .toList();
+        final invoices =
+            filtered
+                .where((i) => (i.documentType ?? 'Invoice') == 'Invoice')
+                .toList();
+        final quotesEstimates =
+            filtered
+                .where((i) => (i.documentType ?? 'Invoice') != 'Invoice')
+                .toList();
         final unpaid =
             invoices.where((i) => i.invoiceStatus != 'Paid').toList();
-        final paid =
-            invoices.where((i) => i.invoiceStatus == 'Paid').toList();
-        final displayList = groupVal == 0
-            ? unpaid
-            : groupVal == 1
+        final paid = invoices.where((i) => i.invoiceStatus == 'Paid').toList();
+        final displayList =
+            groupVal == 0
+                ? unpaid
+                : groupVal == 1
                 ? paid
                 : quotesEstimates;
+
+        final invoicesBody = _buildInvoicesBody(
+          context,
+          cl,
+          invoice,
+          business,
+          filtered,
+          displayList,
+          sym,
+          showSectionShortcuts: !context.isDesktop,
+        );
+
+        if (!context.isDesktop) {
+          return CupertinoPageScaffold(
+            backgroundColor: cl.background,
+            child: SafeArea(child: invoicesBody),
+          );
+        }
 
         return CupertinoPageScaffold(
           backgroundColor: cl.background,
           child: SafeArea(
-            child: Column(
+            child: Row(
               children: [
-                _buildHeader(context, cl, business, filtered, sym),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  child: _buildSegmentControl(cl),
+                _Sidebar(
+                  section: _section,
+                  onSelect: (s) => setState(() => _section = s),
                 ),
                 Expanded(
-                  child: displayList.isEmpty
-                      ? _buildEmptyState(cl)
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                          itemCount: displayList.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (context, k) => _buildInvoiceCard(
-                            context,
-                            cl,
-                            invoice,
-                            displayList[k],
-                            sym,
-                          ),
-                        ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  child: AppButton(
-                    onTap: () => Navigation.go(context, NewInvoiceScreen()),
-                    txt: context.tr('create_invoice'),
-                  ),
+                  child: switch (_section) {
+                    _Section.invoices => ResponsiveCenter(
+                      maxWidth: 960,
+                      child: invoicesBody,
+                    ),
+                    _Section.dashboard => DashboardScreen(
+                      onClose:
+                          () => setState(() => _section = _Section.invoices),
+                    ),
+                    _Section.clients => SavedClientsScreen(
+                      onClose:
+                          () => setState(() => _section = _Section.invoices),
+                    ),
+                    _Section.services => ServicesScreen(
+                      onClose:
+                          () => setState(() => _section = _Section.invoices),
+                    ),
+                    _Section.settings => SettingPage(
+                      onClose:
+                          () => setState(() => _section = _Section.invoices),
+                    ),
+                  },
                 ),
               ],
             ),
@@ -117,20 +147,84 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// The invoice list itself: header, status filter, list/empty state and
+  /// the "create invoice" button. Shared between the phone layout (as the
+  /// whole screen body) and the desktop sidebar shell (as the "Invoices"
+  /// section content).
+  Widget _buildInvoicesBody(
+    BuildContext context,
+    AppColors cl,
+    InvoiceProvider invoice,
+    BusinessProvider business,
+    List<InvoiceModel> filtered,
+    List<InvoiceModel> displayList,
+    String sym, {
+    required bool showSectionShortcuts,
+  }) {
+    return Column(
+      children: [
+        _buildHeader(
+          context,
+          cl,
+          business,
+          filtered,
+          sym,
+          showSectionShortcuts: showSectionShortcuts,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: _buildSegmentControl(cl),
+        ),
+        Expanded(
+          child:
+              displayList.isEmpty
+                  ? _buildEmptyState(cl)
+                  : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                    itemCount: displayList.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder:
+                        (context, k) => _buildInvoiceCard(
+                          context,
+                          cl,
+                          invoice,
+                          displayList[k],
+                          sym,
+                        ),
+                  ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: AppButton(
+            onTap: () => Navigation.go(context, NewInvoiceScreen()),
+            txt: context.tr('create_invoice'),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeader(
     BuildContext context,
     AppColors cl,
     BusinessProvider business,
     List<InvoiceModel> filtered,
-    String sym,
-  ) {
+    String sym, {
+    required bool showSectionShortcuts,
+  }) {
     final unpaidTotal = filtered
-        .where((i) => (i.documentType ?? 'Invoice') == 'Invoice' && i.invoiceStatus != 'Paid')
+        .where(
+          (i) =>
+              (i.documentType ?? 'Invoice') == 'Invoice' &&
+              i.invoiceStatus != 'Paid',
+        )
         .fold<double>(0, (sum, inv) {
-          final subtotal = inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0;
+          final subtotal =
+              inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0;
           final discount = inv.discount ?? 0;
           final received = inv.receivedAmount ?? 0;
-          return sum + (subtotal - discount - received).clamp(0.0, double.infinity);
+          return sum +
+              (subtotal - discount - received).clamp(0.0, double.infinity);
         });
 
     return Padding(
@@ -157,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                GestureDetector(
+                AppTap(
                   onTap: () => _showBusinessSwitcher(context, cl, business),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -193,71 +287,77 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => Navigation.go(context, const DashboardScreen()),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: cl.surface,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0F172A).withValues(alpha: 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                CupertinoIcons.chart_bar_square,
-                color: kPrimary,
-                size: 20,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => Navigation.go(context, SettingPage()),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: cl.surface,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0F172A).withValues(alpha: 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                CupertinoIcons.settings,
-                color: kPrimary,
-                size: 20,
+          if (showSectionShortcuts) ...[
+            AppTap(
+              onTap: () => Navigation.go(context, const DashboardScreen()),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: cl.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  CupertinoIcons.chart_bar_square,
+                  color: kPrimary,
+                  size: 20,
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 10),
+            AppTap(
+              onTap: () => Navigation.go(context, SettingPage()),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: cl.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  CupertinoIcons.settings,
+                  color: kPrimary,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
   void _showBusinessSwitcher(
-      BuildContext context, AppColors cl, BusinessProvider business) {
+    BuildContext context,
+    AppColors cl,
+    BusinessProvider business,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => _BusinessSwitcherSheet(
-        businesses: business.businesses,
-        activeId: business.activeBusiness?.id,
-        onSelect: (b) {
-          business.setActiveBusiness(b);
-          Navigator.pop(context);
-        },
-      ),
+      builder:
+          (_) => _BusinessSwitcherSheet(
+            businesses: business.businesses,
+            activeId: business.activeBusiness?.id,
+            onSelect: (b) {
+              business.setActiveBusiness(b);
+              Navigator.pop(context);
+            },
+          ),
     );
   }
 
@@ -285,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _segmentTab(AppColors cl, String label, int index) {
     final isSelected = groupVal == index;
     return Expanded(
-      child: GestureDetector(
+      child: AppTap(
         onTap: () => setState(() => groupVal = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -331,8 +431,8 @@ class _HomeScreenState extends State<HomeScreen> {
             groupVal == 0
                 ? context.tr('no_unpaid')
                 : groupVal == 1
-                    ? context.tr('no_paid')
-                    : context.tr('no_quotes'),
+                ? context.tr('no_paid')
+                : context.tr('no_quotes'),
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -342,8 +442,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 6),
           Text(
             context.tr('tap_create'),
-            style: GoogleFonts.poppins(
-                fontSize: 13, color: cl.textSecondary),
+            style: GoogleFonts.poppins(fontSize: 13, color: cl.textSecondary),
           ),
         ],
       ),
@@ -357,12 +456,15 @@ class _HomeScreenState extends State<HomeScreen> {
     InvoiceModel inv,
     String sym,
   ) {
-    final clientName = (inv.clients?.isNotEmpty ?? false)
-        ? (inv.clients!.first.name ?? 'Unknown Client')
-        : 'Unknown Client';
-    final subtotal = inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0.0;
-    final total = (subtotal - (inv.discount ?? 0) - (inv.receivedAmount ?? 0)).clamp(0.0, double.infinity);
-    return GestureDetector(
+    final clientName =
+        (inv.clients?.isNotEmpty ?? false)
+            ? (inv.clients!.first.name ?? 'Unknown Client')
+            : 'Unknown Client';
+    final subtotal =
+        inv.items?.fold<double>(0, (s, i) => s + i.lineTotal) ?? 0.0;
+    final total = (subtotal - (inv.discount ?? 0) - (inv.receivedAmount ?? 0))
+        .clamp(0.0, double.infinity);
+    return AppTap(
       onTap: () {
         final latest = invoice.invoice.firstWhere(
           (e) => e.invoiceId == inv.invoiceId,
@@ -371,12 +473,14 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
           VerificationInvoice(
             invoiceModel: latest,
-            clientModel: (latest.clients?.isNotEmpty ?? false)
-                ? latest.clients!.first
-                : null,
-            itemModel: (latest.items?.isNotEmpty ?? false)
-                ? latest.items!.first
-                : null,
+            clientModel:
+                (latest.clients?.isNotEmpty ?? false)
+                    ? latest.clients!.first
+                    : null,
+            itemModel:
+                (latest.items?.isNotEmpty ?? false)
+                    ? latest.items!.first
+                    : null,
           ),
         );
       },
@@ -455,6 +559,144 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+/// Persistent left navigation shown on desktop/web widths in place of the
+/// phone's push-based navigation between Invoices/Dashboard/Settings.
+class _Sidebar extends StatelessWidget {
+  final _Section section;
+  final ValueChanged<_Section> onSelect;
+
+  const _Sidebar({required this.section, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final cl = context.colors;
+    return Container(
+      width: 232,
+      decoration: BoxDecoration(
+        color: cl.surface,
+        border: Border(right: BorderSide(color: cl.border)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: kPrimary,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    CupertinoIcons.doc_text_fill,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Invoice Maker',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: cl.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _item(
+            context,
+            cl,
+            _Section.invoices,
+            CupertinoIcons.tray_full,
+            context.tr('invoices'),
+          ),
+          _item(
+            context,
+            cl,
+            _Section.dashboard,
+            CupertinoIcons.chart_bar_square,
+            context.tr('dashboard'),
+          ),
+          _item(
+            context,
+            cl,
+            _Section.clients,
+            CupertinoIcons.person_2_fill,
+            context.tr('clients'),
+          ),
+          _item(
+            context,
+            cl,
+            _Section.services,
+            CupertinoIcons.tag_fill,
+            context.tr('items_services'),
+          ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Divider(height: 1, color: cl.border),
+          ),
+          _item(
+            context,
+            cl,
+            _Section.settings,
+            CupertinoIcons.settings,
+            context.tr('settings'),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _item(
+    BuildContext context,
+    AppColors cl,
+    _Section value,
+    IconData icon,
+    String label,
+  ) {
+    final isActive = section == value;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+      child: AppTap(
+        onTap: () => onSelect(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: isActive ? cl.primaryLight : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isActive ? kPrimary : cl.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  color: isActive ? kPrimary : cl.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _BusinessSwitcherSheet extends StatelessWidget {
   final List<BusinessModel> businesses;
   final String? activeId;
@@ -510,7 +752,7 @@ class _BusinessSwitcherSheet extends StatelessWidget {
               itemBuilder: (_, i) {
                 final b = businesses[i];
                 final isActive = b.id == activeId;
-                return GestureDetector(
+                return AppTap(
                   onTap: () => onSelect(b),
                   child: Container(
                     decoration: BoxDecoration(
@@ -542,8 +784,7 @@ class _BusinessSwitcherSheet extends StatelessWidget {
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color:
-                                  isActive ? Colors.white : cl.textSecondary,
+                              color: isActive ? Colors.white : cl.textSecondary,
                             ),
                           ),
                         ),

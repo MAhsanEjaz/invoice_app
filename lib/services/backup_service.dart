@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/providers/bank_provider.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
@@ -53,22 +54,31 @@ class BackupService {
       final payload = await _gather();
       final json = const JsonEncoder.withIndent('  ').convert(payload);
 
-      final tempDir = await getTemporaryDirectory();
       final now = DateTime.now();
       final name =
           'invoicemaker_backup_${now.year}${_p(now.month)}${_p(now.day)}'
           '_${_p(now.hour)}${_p(now.minute)}.json';
-      final file = File('${tempDir.path}/$name');
-      await file.writeAsBytes(utf8.encode(json), flush: true);
+
+      final XFile shareFile;
+      if (kIsWeb) {
+        // No filesystem on web — share straight from bytes.
+        shareFile = XFile.fromData(
+          utf8.encode(json),
+          mimeType: 'application/json',
+          name: name,
+        );
+      } else {
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/$name');
+        await file.writeAsBytes(utf8.encode(json), flush: true);
+        shareFile = XFile(file.path, mimeType: 'application/json');
+      }
 
       if (!context.mounted) return;
       Navigator.pop(context); // close loading dialog
 
       await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path, mimeType: 'application/json')],
-          subject: 'Invoice Maker Backup',
-        ),
+        ShareParams(files: [shareFile], subject: 'Invoice Maker Backup'),
       );
     } catch (_) {
       if (context.mounted) {
@@ -88,8 +98,7 @@ class BackupService {
         type: FileType.custom,
         allowedExtensions: ['json'],
         allowMultiple: false,
-        withData: false,
-        withReadStream: false,
+        withData: true,
       );
     } catch (_) {
       if (context.mounted) {
@@ -99,8 +108,10 @@ class BackupService {
     }
 
     if (picked == null || picked.files.isEmpty) return;
-    final filePath = picked.files.first.path;
-    if (filePath == null) {
+    // Read from bytes rather than a file path — web never exposes a real
+    // filesystem path, only in-memory bytes.
+    final bytes = picked.files.first.bytes;
+    if (bytes == null) {
       if (context.mounted) {
         _showAlert(context, context.tr('restore_invalid'), isError: true);
       }
@@ -110,7 +121,7 @@ class BackupService {
     // 2. Parse
     Map<String, dynamic> data;
     try {
-      final content = await File(filePath).readAsString();
+      final content = utf8.decode(bytes);
       final decoded = jsonDecode(content);
       if (decoded is! Map<String, dynamic>) {
         if (context.mounted) {
@@ -229,18 +240,22 @@ class BackupService {
 
   static Future<void> _restore(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
-    final docsDir = await getApplicationDocumentsDirectory();
     final logos = (data['business_logos'] as Map<String, dynamic>?) ?? {};
 
-    // Write logo image files back to disk first so their paths exist when
-    // the providers load.
-    for (final entry in logos.entries) {
-      final bid = entry.key;
-      final b64 = entry.value as String? ?? '';
-      if (b64.isEmpty) continue;
-      final logoDir = Directory('${docsDir.path}/invoicemaker/$bid');
-      if (!await logoDir.exists()) await logoDir.create(recursive: true);
-      await File('${logoDir.path}/logo.jpg').writeAsBytes(base64Decode(b64));
+    // Web has no filesystem to write logo images back to, so restored
+    // businesses come back without a logo there — everything else (clients,
+    // invoices, settings) still restores normally.
+    Directory? docsDir;
+    if (!kIsWeb) {
+      docsDir = await getApplicationDocumentsDirectory();
+      for (final entry in logos.entries) {
+        final bid = entry.key;
+        final b64 = entry.value as String? ?? '';
+        if (b64.isEmpty) continue;
+        final logoDir = Directory('${docsDir.path}/invoicemaker/$bid');
+        if (!await logoDir.exists()) await logoDir.create(recursive: true);
+        await File('${logoDir.path}/logo.jpg').writeAsBytes(base64Decode(b64));
+      }
     }
 
     // Rewrite businesses JSON with paths valid on *this* device (the absolute
@@ -253,7 +268,7 @@ class BackupService {
           final bid = b['id'] as String?;
           if (bid == null) continue;
           b['businessLogo'] =
-              logos.containsKey(bid)
+              (docsDir != null && logos.containsKey(bid))
                   ? '${docsDir.path}/invoicemaker/$bid/logo.jpg'
                   : null;
         }

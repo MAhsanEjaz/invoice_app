@@ -12,7 +12,9 @@ import 'package:provider/provider.dart';
 
 import '../models/invoice_model.dart';
 import '../widgets/app_button.dart';
+import '../widgets/app_tap.dart';
 import '../widgets/app_text_filed.dart';
+import '../widgets/responsive.dart';
 
 class AddItemScreen extends StatefulWidget {
   final ItemModel? itemModel;
@@ -72,10 +74,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
     final gross = price * qty;
     final disc = double.tryParse(discountCont.text) ?? 0;
     if (disc <= 0) return gross;
-    if (_discountType == 'percent') return (gross * (1 - disc / 100)).clamp(0.0, double.infinity);
+    if (_discountType == 'percent')
+      return (gross * (1 - disc / 100)).clamp(0.0, double.infinity);
     return (gross - disc).clamp(0.0, double.infinity);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -83,41 +85,43 @@ class _AddItemScreenState extends State<AddItemScreen> {
     final cl = context.colors;
     return Consumer2<ItemProvider, InvoiceProvider>(
       builder: (context, item, invoice, _) {
-        final isEditing =
-            widget.itemModel != null && widget.duplicate == false;
+        final isEditing = widget.itemModel != null && widget.duplicate == false;
 
         return CupertinoPageScaffold(
           backgroundColor: cl.background,
-          child: Column(
-            children: [
-              _buildNavBar(cl, isEditing),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      sectionLabel(context, context.tr('item_details')),
-                      _buildDescriptionCard(cl),
-                      const SizedBox(height: 20),
-                      sectionLabel(context, context.tr('pricing')),
-                      _buildPricingCard(cl),
-                      const SizedBox(height: 20),
-                      _buildTotalCard(),
-                      if (widget.itemModel != null) ...[
-                        const SizedBox(height: 24),
-                        _buildDeleteButton(cl, item, invoice),
+          child: ResponsiveCenter(
+            maxWidth: 640,
+            child: Column(
+              children: [
+                _buildNavBar(cl, isEditing),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        sectionLabel(context, context.tr('item_details')),
+                        _buildDescriptionCard(cl),
+                        const SizedBox(height: 20),
+                        sectionLabel(context, context.tr('pricing')),
+                        _buildPricingCard(cl),
+                        const SizedBox(height: 20),
+                        _buildTotalCard(),
+                        if (widget.itemModel != null) ...[
+                          const SizedBox(height: 24),
+                          _buildDeleteButton(cl, item, invoice),
+                        ],
+                        const SizedBox(height: 16),
                       ],
-                      const SizedBox(height: 16),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              _buildBottomBar(cl, item, invoice, isEditing),
-            ],
+                _buildBottomBar(cl, item, invoice, isEditing),
+              ],
+            ),
           ),
         );
       },
@@ -195,28 +199,43 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 Expanded(
                   child: CupertinoTextField(
                     controller: discountCont,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     placeholder: context.tr('pdf_discount'),
-                    placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: cl.textHint),
-                    style: GoogleFonts.poppins(fontSize: 15, color: cl.textPrimary),
+                    placeholderStyle: GoogleFonts.poppins(
+                      fontSize: 15,
+                      color: cl.textHint,
+                    ),
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      color: cl.textPrimary,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: const BoxDecoration(),
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
                 const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => setState(() {
-                    _discountType = _discountType == 'flat' ? 'percent' : 'flat';
-                  }),
+                AppTap(
+                  onTap:
+                      () => setState(() {
+                        _discountType =
+                            _discountType == 'flat' ? 'percent' : 'flat';
+                      }),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: cl.primaryLight,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _discountType == 'percent' ? '%' : context.tr('discount_flat'),
+                      _discountType == 'percent'
+                          ? '%'
+                          : context.tr('discount_flat'),
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -263,8 +282,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Widget _buildDeleteButton(
-      AppColors cl, ItemProvider item, InvoiceProvider invoice) {
-    return GestureDetector(
+    AppColors cl,
+    ItemProvider item,
+    InvoiceProvider invoice,
+  ) {
+    return AppTap(
       onTap: () {
         if (widget.duplicate == true) {
           customCupertinoDialog(context, () {
@@ -281,7 +303,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
               );
             } else if (widget.itemModel != null) {
               await item.deleteItems(
-                  widget.itemModel!, widget.itemModel!.id ?? 0);
+                widget.itemModel!,
+                widget.itemModel!.id ?? 0,
+              );
             }
             if (!mounted) return;
             Navigator.pop(context);

@@ -92,7 +92,11 @@ class _ItemsScreenState extends State<ItemsScreen> {
                     placeholder: context.tr('search_items'),
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8),
-                      child: Icon(CupertinoIcons.search, size: 18, color: CupertinoColors.systemGrey),
+                      child: Icon(
+                        CupertinoIcons.search,
+                        size: 18,
+                        color: CupertinoColors.systemGrey,
+                      ),
                     ),
                     onChanged: (val) => setState(() => _query = val.trim()),
                   ),
@@ -104,37 +108,43 @@ class _ItemsScreenState extends State<ItemsScreen> {
                       color: CupertinoColors.white,
                       borderRadius: BorderRadius.circular(7),
                     ),
-                    child: uniqueItems.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Center(
-                              child: Text(
-                                _query.isEmpty
-                                    ? context.tr('no_items')
-                                    : context.tr('no_results'),
-                                style: const TextStyle(color: CupertinoColors.systemGrey),
-                              ),
-                            ),
-                          )
-                        : Column(
-                            children: uniqueItems
-                                .map(
-                                  (item) => CupertinoListTile(
-                                    additionalInfo: Text(item.price.toString()),
-                                    onTap: () {
-                                      Navigation.go(
-                                        context,
-                                        AddItemScreen(
-                                          itemModel: item,
-                                          duplicate: true,
-                                        ),
-                                      );
-                                    },
-                                    title: Text(item.itemName ?? ''),
+                    child:
+                        uniqueItems.isEmpty
+                            ? Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Center(
+                                child: Text(
+                                  _query.isEmpty
+                                      ? context.tr('no_items')
+                                      : context.tr('no_results'),
+                                  style: const TextStyle(
+                                    color: CupertinoColors.systemGrey,
                                   ),
-                                )
-                                .toList(),
-                          ),
+                                ),
+                              ),
+                            )
+                            : Column(
+                              children:
+                                  uniqueItems
+                                      .map(
+                                        (item) => CupertinoListTile(
+                                          additionalInfo: Text(
+                                            item.price.toString(),
+                                          ),
+                                          onTap: () {
+                                            Navigation.go(
+                                              context,
+                                              AddItemScreen(
+                                                itemModel: item,
+                                                duplicate: true,
+                                              ),
+                                            );
+                                          },
+                                          title: Text(item.itemName ?? ''),
+                                        ),
+                                      )
+                                      .toList(),
+                            ),
                   ),
                 ],
               ),

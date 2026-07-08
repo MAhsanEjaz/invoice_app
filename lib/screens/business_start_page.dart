@@ -9,6 +9,7 @@ import 'package:invoicemaker/l10n/translations.dart';
 import 'package:invoicemaker/providers/business_provider.dart';
 import 'package:invoicemaker/providers/locale_provider.dart';
 import 'package:invoicemaker/widgets/app_button.dart';
+import 'package:invoicemaker/widgets/app_tap.dart';
 import 'package:provider/provider.dart';
 
 import '../services/navigations.dart';
@@ -60,135 +61,264 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
               Positioned(top: -80, right: -80, child: _circle(240, 0.08)),
               Positioned(top: 80, left: -100, child: _circle(200, 0.05)),
               Positioned(
-                top: 0, left: 0, right: 0,
+                top: 0,
+                left: 0,
+                right: 0,
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(28, topPad + 36, 28, 0),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Image.asset('assets/icon.png', width: 60, height: 60, fit: BoxFit.cover),
-                    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.7, 0.7), duration: 500.ms, curve: Curves.easeOut),
-                    const SizedBox(height: 22),
-                    Text(context.tr('setup_business_title'), style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5))
-                        .animate().fadeIn(delay: 150.ms, duration: 400.ms).slideY(begin: 0.2, end: 0, delay: 150.ms, duration: 400.ms),
-                    const SizedBox(height: 10),
-                    Text(context.tr('setup_business_subtitle'), style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withValues(alpha: 0.72), height: 1.5))
-                        .animate().fadeIn(delay: 250.ms, duration: 400.ms),
-                  ]),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.asset(
+                              'assets/icon.png',
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms)
+                          .scale(
+                            begin: const Offset(0.7, 0.7),
+                            duration: 500.ms,
+                            curve: Curves.easeOut,
+                          ),
+                      const SizedBox(height: 22),
+                      Text(
+                            context.tr('setup_business_title'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.15,
+                              letterSpacing: -0.5,
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(delay: 150.ms, duration: 400.ms)
+                          .slideY(
+                            begin: 0.2,
+                            end: 0,
+                            delay: 150.ms,
+                            duration: 400.ms,
+                          ),
+                      const SizedBox(height: 10),
+                      Text(
+                        context.tr('setup_business_subtitle'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.72),
+                          height: 1.5,
+                        ),
+                      ).animate().fadeIn(delay: 250.ms, duration: 400.ms),
+                    ],
+                  ),
                 ),
               ),
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOut,
-                bottom: viewInsets.bottom, left: 0, right: 0,
+                bottom: viewInsets.bottom,
+                left: 0,
+                right: 0,
                 child: Container(
                   decoration: BoxDecoration(
                     color: cl.surface,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                    boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 24, offset: Offset(0, -6))],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(32),
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 24,
+                        offset: Offset(0, -6),
+                      ),
+                    ],
                   ),
                   child: SafeArea(
                     top: false,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-                      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 20),
-                          decoration: BoxDecoration(color: cl.border, borderRadius: BorderRadius.circular(2)))),
-                        Center(
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              GestureDetector(
-                                onTap: () async {
-                                  final path = await business.imagePickFunction();
-                                  if (path != null && mounted) {
-                                    setState(() => _logoPath = path);
-                                  }
-                                },
-                                child: Container(
-                                  width: 90,
-                                  height: 90,
-                                  decoration: BoxDecoration(
-                                    color: cl.primaryLight,
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(color: cl.border, width: 1.5),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: _logoPath != null && _logoPath!.isNotEmpty
-                                        ? Image.file(File(_logoPath!), fit: BoxFit.cover)
-                                        : Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(CupertinoIcons.camera_fill, color: kPrimary, size: 26),
-                                              const SizedBox(height: 5),
-                                              Text(context.tr('logo_optional'),
-                                                  textAlign: TextAlign.center,
-                                                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: kPrimary)),
-                                            ],
-                                          ),
-                                  ),
-                                ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 36,
+                              height: 4,
+                              margin: const EdgeInsets.only(bottom: 20),
+                              decoration: BoxDecoration(
+                                color: cl.border,
+                                borderRadius: BorderRadius.circular(2),
                               ),
-                              if (_logoPath != null && _logoPath!.isNotEmpty)
-                                Positioned(
-                                  top: -6, right: -6,
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _logoPath = null),
-                                    child: Container(
-                                      width: 24, height: 24,
-                                      decoration: BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: cl.surface, width: 2),
+                            ),
+                          ),
+                          Center(
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                AppTap(
+                                  onTap: () async {
+                                    final path =
+                                        await business.imagePickFunction();
+                                    if (path != null && mounted) {
+                                      setState(() => _logoPath = path);
+                                    }
+                                  },
+                                  child: Container(
+                                    width: 90,
+                                    height: 90,
+                                    decoration: BoxDecoration(
+                                      color: cl.primaryLight,
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(
+                                        color: cl.border,
+                                        width: 1.5,
                                       ),
-                                      child: const Icon(CupertinoIcons.xmark, size: 11, color: Colors.white),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child:
+                                          _logoPath != null &&
+                                                  _logoPath!.isNotEmpty
+                                              ? Image.file(
+                                                File(_logoPath!),
+                                                fit: BoxFit.cover,
+                                              )
+                                              : Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  const Icon(
+                                                    CupertinoIcons.camera_fill,
+                                                    color: kPrimary,
+                                                    size: 26,
+                                                  ),
+                                                  const SizedBox(height: 5),
+                                                  Text(
+                                                    context.tr('logo_optional'),
+                                                    textAlign: TextAlign.center,
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: kPrimary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                     ),
                                   ),
                                 ),
-                            ],
+                                if (_logoPath != null && _logoPath!.isNotEmpty)
+                                  Positioned(
+                                    top: -6,
+                                    right: -6,
+                                    child: AppTap(
+                                      onTap:
+                                          () =>
+                                              setState(() => _logoPath = null),
+                                      child: Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: cl.surface,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          CupertinoIcons.xmark,
+                                          size: 11,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        sectionLabel(context, context.tr('business_name_label')),
-                        const SizedBox(height: 8),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          decoration: BoxDecoration(
-                            color: cl.background,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: _isFocused ? kPrimary : Colors.transparent, width: 1.5),
+                          const SizedBox(height: 20),
+                          sectionLabel(
+                            context,
+                            context.tr('business_name_label'),
                           ),
-                          child: CupertinoTextField(
-                            controller: _nameCont,
-                            focusNode: _focusNode,
-                            autofocus: false,
-                            placeholder: context.tr('business_ex_placeholder'),
-                            placeholderStyle: GoogleFonts.poppins(fontSize: 15, color: cl.textHint),
-                            style: GoogleFonts.poppins(fontSize: 15, color: cl.textPrimary),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            clearButtonMode: OverlayVisibilityMode.editing,
-                            decoration: const BoxDecoration(color: Colors.transparent),
-                            onChanged: (val) => setState(() => _hasInput = val.trim().isNotEmpty),
+                          const SizedBox(height: 8),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            decoration: BoxDecoration(
+                              color: cl.background,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color:
+                                    _isFocused ? kPrimary : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: CupertinoTextField(
+                              controller: _nameCont,
+                              focusNode: _focusNode,
+                              autofocus: false,
+                              placeholder: context.tr(
+                                'business_ex_placeholder',
+                              ),
+                              placeholderStyle: GoogleFonts.poppins(
+                                fontSize: 15,
+                                color: cl.textHint,
+                              ),
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                color: cl.textPrimary,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              clearButtonMode: OverlayVisibilityMode.editing,
+                              decoration: const BoxDecoration(
+                                color: Colors.transparent,
+                              ),
+                              onChanged:
+                                  (val) => setState(
+                                    () => _hasInput = val.trim().isNotEmpty,
+                                  ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(context.tr('business_name_settings_hint'), style: GoogleFonts.poppins(fontSize: 12, color: cl.textSecondary)),
-                        const SizedBox(height: 24),
-                        AppButton(
-                          txt: context.tr('continue_btn'),
-                          color: _hasInput ? kPrimary : cl.textHint,
-                          onTap: _hasInput ? () async {
-                            await business.addBusiness(
-                              _nameCont.text.trim(),
-                              logoPath: _logoPath,
-                            );
-                            if (!context.mounted) return;
-                            Navigation.go(context, const InvoiceDummy());
-                          } : null,
-                        ),
-                        const SizedBox(height: 20),
-                      ]),
+                          const SizedBox(height: 10),
+                          Text(
+                            context.tr('business_name_settings_hint'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: cl.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          AppButton(
+                            txt: context.tr('continue_btn'),
+                            color: _hasInput ? kPrimary : cl.textHint,
+                            onTap:
+                                _hasInput
+                                    ? () async {
+                                      await business.addBusiness(
+                                        _nameCont.text.trim(),
+                                        logoPath: _logoPath,
+                                      );
+                                      if (!context.mounted) return;
+                                      Navigation.go(
+                                        context,
+                                        const InvoiceDummy(),
+                                      );
+                                    }
+                                    : null,
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -202,8 +332,12 @@ class _BusinessStartPageState extends State<BusinessStartPage> {
 
   Widget _circle(double size, double opacity) {
     return Container(
-      width: size, height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: opacity)),
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: opacity),
+      ),
     );
   }
 }

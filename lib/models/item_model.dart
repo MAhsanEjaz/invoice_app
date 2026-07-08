@@ -29,7 +29,8 @@ class ItemModel {
     final g = gross;
     final d = discount ?? 0;
     if (d <= 0) return g;
-    if (discountType == 'percent') return (g * (1 - d / 100)).clamp(0.0, double.infinity);
+    if (discountType == 'percent')
+      return (g * (1 - d / 100)).clamp(0.0, double.infinity);
     return (g - d).clamp(0.0, double.infinity);
   }
 
