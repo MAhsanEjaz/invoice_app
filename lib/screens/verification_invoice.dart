@@ -1800,9 +1800,13 @@ class _VerificationInvoiceState extends State<VerificationInvoice> {
         );
       } else {
         final tempDir = await getTemporaryDirectory();
-        final pdfFile = File('${tempDir.path}/Invoice_${invoice.invoiceId}.pdf');
+        final pdfFile = File(
+          '${tempDir.path}/Invoice_${invoice.invoiceId}.pdf',
+        );
         await pdfFile.writeAsBytes(pdfData);
-        await SharePlus.instance.share(ShareParams(files: [XFile(pdfFile.path)]));
+        await SharePlus.instance.share(
+          ShareParams(files: [XFile(pdfFile.path)]),
+        );
       }
     } catch (_) {
       if (mounted) _showToast(context.tr('export_failed'));

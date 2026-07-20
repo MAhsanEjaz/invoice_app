@@ -121,9 +121,9 @@ class _SettingPageState extends State<SettingPage> {
                           ),
                           const SizedBox(height: 24),
 
-                          sectionLabel(context, context.tr('backup_restore')),
-                          _buildBackupCard(cl),
-                          const SizedBox(height: 32),
+                          // sectionLabel(context, context.tr('backup_restore')),
+                          // _buildBackupCard(cl),
+                          // const SizedBox(height: 32),
 
                           Center(
                             child: Text(

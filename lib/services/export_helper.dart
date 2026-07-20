@@ -12,10 +12,7 @@ class ExportHelper {
     return Printing.sharePdf(bytes: bytes, filename: filename);
   }
 
-  static Future<void> downloadImages(
-    List<Uint8List> pages,
-    String baseName,
-  ) {
+  static Future<void> downloadImages(List<Uint8List> pages, String baseName) {
     final files = <XFile>[
       for (var i = 0; i < pages.length; i++)
         XFile.fromData(
